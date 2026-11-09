@@ -11,8 +11,20 @@ docker compose up -d db redis
 python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"      # macOS/Linux: .venv/bin/python
 .venv/Scripts/alembic upgrade head                   # build the schema in the dev database
-.venv/Scripts/uvicorn app.main:app --reload          # http://localhost:8000/health
+.venv/Scripts/uvicorn app.main:app --reload          # http://localhost:8000/health (docs: /docs)
+.venv/Scripts/arq app.worker.WorkerSettings          # the background worker (second terminal)
 ```
+
+## Layout
+| Path | What |
+|---|---|
+| `app/main.py`, `app/routers/` | HTTP endpoints (thin) |
+| `app/auth/` | API token verification, `current_user`, league membership checks |
+| `app/adapters/` | `LeagueAdapter` interface + `sleeper.py` (only module that talks to Sleeper) |
+| `app/services/` | Orchestration, e.g. `sync.py` (adapter output -> Postgres upserts) |
+| `app/jobs/`, `app/worker.py` | ARQ jobs + schedule; `sync_runs` tracking and retry policy |
+| `app/db/` | SQLAlchemy models + session; migrations in `alembic/` |
+| `tests/fixtures/sleeper/` | Recorded, anonymized Sleeper responses from a real league |
 
 > **Windows note:** on some CPUs the default Polars build hangs at import. If
 > `python -c "import polars"` never returns, install the compatibility build:

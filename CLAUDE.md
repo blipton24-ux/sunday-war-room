@@ -36,5 +36,5 @@ the `obsidian-notes` skill after editing.
 ## Status
 
 Vault written and pre-build decisions made (ADR-028 to ADR-033), 2026-11-08. Next: Phase 1 build per
-`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–3 done (compose db+redis,
-API skeleton, schema + first migration); see `api/README.md`.
+`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–6 done (compose db+redis,
+API skeleton, schema, auth verification, Sleeper adapter, worker + jobs); see `api/README.md`.

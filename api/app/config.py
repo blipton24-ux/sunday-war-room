@@ -3,8 +3,10 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEV_JWT_SECRET = "dev-only-secret-change-me-0123456789abcdef"
 
 
 class Settings(BaseSettings):
@@ -17,7 +19,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Shared with Next.js: it signs the API token, FastAPI verifies it (ADR-017).
-    api_jwt_secret: str = Field(default="change-me", min_length=8)
+    api_jwt_secret: str = Field(default=DEV_JWT_SECRET, min_length=32)
     api_jwt_audience: str = "swr-api"
     api_jwt_issuer: str = "swr-web"
 
@@ -25,6 +27,12 @@ class Settings(BaseSettings):
 
     # Manual refresh rate limit (per user, per league).
     refresh_min_interval_seconds: int = 60
+
+    @model_validator(mode="after")
+    def _no_dev_secret_in_production(self) -> "Settings":
+        if self.environment == "production" and self.api_jwt_secret == DEV_JWT_SECRET:
+            raise ValueError("API_JWT_SECRET must be set to a real secret in production")
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

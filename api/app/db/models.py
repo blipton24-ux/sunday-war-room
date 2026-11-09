@@ -293,4 +293,6 @@ class SyncRun(Base):
     started_at: Mapped[datetime | None] = mapped_column(TZ)
     finished_at: Mapped[datetime | None] = mapped_column(TZ)
     error: Mapped[str | None] = mapped_column(Text)
+    # Small JSON result for jobs whose output the UI needs (e.g. leagues found on connect).
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(TZ, server_default=func.now())

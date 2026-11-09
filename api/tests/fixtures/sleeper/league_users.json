@@ -1,0 +1,138 @@
+[
+ {
+  "user_id": "900000000000000001",
+  "display_name": "manager1",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 1"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000002",
+  "display_name": "manager2",
+  "avatar": null,
+  "is_owner": true,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 2"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000003",
+  "display_name": "manager3",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {},
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000004",
+  "display_name": "manager4",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 4"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000005",
+  "display_name": "manager5",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 5"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000006",
+  "display_name": "manager6",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {},
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000007",
+  "display_name": "manager7",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 7"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000008",
+  "display_name": "manager8",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 8"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000009",
+  "display_name": "manager9",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {},
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000010",
+  "display_name": "manager10",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 10"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000011",
+  "display_name": "manager11",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {
+   "team_name": "Team 11"
+  },
+  "settings": null
+ },
+ {
+  "user_id": "900000000000000012",
+  "display_name": "manager12",
+  "avatar": null,
+  "is_owner": false,
+  "is_bot": false,
+  "league_id": "1100000000000000001",
+  "metadata": {},
+  "settings": null
+ }
+]
