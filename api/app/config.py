@@ -25,6 +25,9 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"
 
+    # First season loaded from nflverse for the model's history and backtests.
+    nflverse_first_season: int = 2022
+
     # Manual refresh rate limit (per user, per league).
     refresh_min_interval_seconds: int = 60
 

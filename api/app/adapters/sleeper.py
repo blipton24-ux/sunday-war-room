@@ -31,6 +31,7 @@ from app.adapters.base import (
     RosterSpot,
     TeamData,
 )
+from app.nfl_teams import canonical_team
 
 BASE_URL = "https://api.sleeper.app/v1"
 AVATAR_URL = "https://sleepercdn.com/avatars/thumbs/{}"
@@ -260,7 +261,7 @@ class SleeperAdapter:
                     external_id=p.player_id,
                     name=name,
                     position=position,
-                    nfl_team=p.team,
+                    nfl_team=canonical_team(p.team),
                     status=p.status,
                     injury_status=p.injury_status,
                     gsis_id=(p.gsis_id or "").strip() or None,

@@ -38,6 +38,14 @@ Each step adds a `factor` entry: `{name, value, effect, note}`, shown in Player 
 ## Evaluation
 Backtest on past seasons (walk-forward: only data available before each week). Metrics: MAE by position, range coverage (80% interval should contain ~80%). A model change ships only if it beats the current one on held-out weeks without making any position notably worse.
 
+## v1 as built (1.0.0)
+Constants live in `api/app/model/projection.py`; fitted ranges in `api/app/model/calibration.json`. Results: [Backtest Report](../Build-Plan/Backtest-Report.md).
+- Baseline: recent-weighted mean (half-life 4 games) blended with last season's mean, which counts like 3 games. Players with no history start at the 30th percentile of their position.
+- Opponent: clamp ±25%, weight n/(n+4) by games the opponent has played. Role: snap share last 2 games vs season, clamp ±15% (RB/WR/TE, 3+ games).
+- Injury: Out/IR/PUP/Suspended → 0, Doubtful ×0.25, Questionable ×0.92. Backup QB on the depth chart ×0.25. Injury and depth are live-only (no history), so the backtest doesn't measure them.
+- Ranges are fit in Sleeper default half-PPR and applied to every league's scoring (a v1 simplification).
+- Lineup: exact assignment (Hungarian algorithm), so overlapping flex slots are handled. Win probability: 10,000 seeded draws from a split normal through p10/p50/p90.
+
 ## Later upgrades (P2+)
 Per-position models on expected points/opportunity, player-level correlations in simulation, rookie priors, weekly auto-refit with a promotion gate, news as a measured factor.
 

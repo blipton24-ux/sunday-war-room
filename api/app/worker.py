@@ -20,6 +20,7 @@ from app.jobs.league_jobs import (
     sync_league_job,
     sync_players_job,
 )
+from app.jobs.nfl_jobs import ingest_nflverse_job
 from app.jobs.tracking import MAX_TRIES
 from app.logging import configure_logging, get_logger
 
@@ -44,10 +45,13 @@ class WorkerSettings:
         connect_sleeper,
         sync_league_job,
         sync_players_job,
+        ingest_nflverse_job,
     ]
     cron_jobs: ClassVar[list[Any]] = [
         cron(sync_all_leagues, minute=5, run_at_startup=False),  # hourly, at :05
         cron(sync_players_job, hour=9, minute=15),  # daily (UTC)
+        # Daily: nflverse publishes stats overnight after games (Tuesday run catches MNF).
+        cron(ingest_nflverse_job, hour={10}, minute=0),
     ]
     on_startup = startup
     on_shutdown = shutdown

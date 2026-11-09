@@ -62,3 +62,8 @@ strict = true
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 exclude = ["alembic/"]
+
+[[tool.mypy.overrides]]
+# nflreadpy is untyped, so frames derived from it are Any; the schema contracts check them.
+module = ["app.sources.nflverse"]
+warn_return_any = false
