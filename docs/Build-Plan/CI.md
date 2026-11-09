@@ -17,7 +17,7 @@ tags: [build-plan, ci]
 ## Not in CI yet
 - **WebKit (Safari's engine)** in the end-to-end suite: [P-14](Improvement-Backlog.md).
 - **Image pinning and vulnerability scanning**: [P-09](Improvement-Backlog.md), waiting on the owner's choice of scanner.
-- **Deploy**: step 16 adds `deploy.yml`.
+- **Deploy**: Phase 5 adds `deploy.yml` ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)).
 - The workflow has not yet run on GitHub: [V-31](Verification-Gaps.md).
 
 ## Notes

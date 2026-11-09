@@ -49,6 +49,7 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-035 Better Auth](ADR-035-Auth-Better-Auth.md): sign-in library (supersedes ADR-017's library choice)
 - [ADR-036 API access through the web server](ADR-036-API-Access-Through-Web-Server.md): the browser never holds the API token
 - [ADR-037 Headshots via the Next.js image cache](ADR-037-Headshots-Next-Image-Cache.md): resized, cached ESPN images with initials fallback (closes open question #13)
+- [ADR-042 Deploy becomes Phase 5](ADR-042-Deploy-As-Phase-5.md): build P1–P4 locally with CI; deploy once the app is complete (amends ADR-009; hosting choice waits)
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
 - [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in

@@ -26,4 +26,12 @@ Each phase gets its own detailed plan, owner decisions and build after the previ
 - Yahoo adapter: OAuth flow + token refresh; Yahoo scoring coverage.
 - Goal: no feature code changes, only new adapters (the [adapter pattern](../Concepts/Adapter-Pattern.md) payoff).
 
+## P5 — Deploy
+Moved here from P1 step 16 ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)), after P1–P4.
+- Re-decide the platform and domain against current prices ([Open Questions](../Specs/Open-Questions.md) #1–2); verify pgvector support on whatever hosts Postgres.
+- Staging deploy first, then production; `deploy.yml` on merge to main (migrate, then roll out); HTTPS; backups with a tested restore.
+- Production Google OAuth and Resend domain; trusted proxy header for rate limits (P-13); worker health check (P-10).
+- Close the deploy-dependent Verification Gaps (V-18, V-23 to V-27, V-30) and P-07 (sign-in in an installed iPhone app).
+- README with the live URL and screenshots.
+
 Related: [P1 Build Plan](P1-Build-Plan.md) · [Features by Phase](../Specs/Features-by-Phase.md)

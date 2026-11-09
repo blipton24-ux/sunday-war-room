@@ -54,6 +54,6 @@ matchup/lineup/accuracy endpoints, committed OpenAPI spec + generated TS client 
 `web/src/lib/api`, Next.js app with Better Auth sign-in, onboarding and the P1 screens);
 PWA manifest, icons, small service worker and install card); see `api/README.md` and `web/README.md`.
 Docker images for api (also the worker and the migration) and web, one `docker compose up --build`).
-Step 14 tests done: 160 backend tests (99% coverage), 71 web unit tests, 62 Playwright end-to-end tests (`web/e2e/README.md`). Step 15 (CI) written: `.github/workflows/ci.yml` + `docs/Build-Plan/CI.md`; not yet run on GitHub (no remote). Next: step 16 (deploy).
+Step 14 tests done: 160 backend tests (99% coverage), 71 web unit tests, 62 Playwright end-to-end tests (`web/e2e/README.md`). Step 15 (CI) written: `.github/workflows/ci.yml` + `docs/Build-Plan/CI.md`; not yet run on GitHub (no remote). Deploy moved to Phase 5 (ADR-042). Next: step 17 (docs), then P2.
 Backend change workflow: edit the API, then `python -m app.scripts.export_openapi` and
 `npm run generate:api` (in `web/`), and commit `api/openapi.json` and the generated client together.

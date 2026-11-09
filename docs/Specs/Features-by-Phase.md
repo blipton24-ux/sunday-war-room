@@ -5,9 +5,9 @@ tags: [spec, product, planning]
 ---
 # Features by Phase
 
-Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships deployed and working.
+Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working and passing CI; deployment is Phase 5 ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)).
 
-## P1 — Sleeper MVP (deployed)
+## P1 — Sleeper MVP
 - **Accounts:** sign in with Google or an email magic link; profile; sign out; delete account.
 - **Connect Sleeper:** enter a Sleeper username → pick leagues for the current season → choose "my team" in each.
 - **League switcher** for users in several leagues.
@@ -34,6 +34,9 @@ Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships deployed a
 - **ESPN adapter:** private leagues need the user's `espn_s2`/`SWID` cookies, so a secure capture flow and encrypted storage are needed.
 - **Yahoo adapter:** OAuth "Sign in with Yahoo" and token refresh.
 - Scoring-rule coverage for each platform (every rule scored or explicitly reported as unsupported).
+
+## P5 — Deploy
+Hosting platform, managed or self-run Postgres and Redis, `deploy.yml` (migrate, then roll out), domain and HTTPS, Google OAuth and Resend production setup, backups, live URL and screenshots in the README. Plan: [P2–P4 Outline § P5](../Build-Plan/P2-P4-Outline.md#p5--deploy).
 
 ## Later / optional
 Accuracy scoreboard vs external projections · paid tier (Stripe) ([ADR-011](../Decisions/ADR-011-Monetization.md)) · AWS + Terraform migration ([ADR-022](../Decisions/ADR-022-Hosting-Container-Platform.md)) · playoff odds simulation.

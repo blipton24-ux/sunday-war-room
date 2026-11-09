@@ -9,8 +9,8 @@ Not blocking Step 1. Each is decided by the owner (explain → side-by-side → 
 
 | # | Question | Needed by | Notes |
 |---|---|---|---|
-| 1 | Which container platform: Railway, Render or Fly.io? | P1 deploy | Verify current pricing, managed Postgres **pgvector** support, Redis, deploy-from-GitHub flow |
-| 2 | Domain name | P1 deploy | ~$10–15/yr; needed so web + api share cookies (`ffcc.app` / `api.ffcc.app`) |
+| 1 | Which container platform: Railway, Render or Fly.io? | P5 deploy ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)) | Verify current pricing, managed Postgres **pgvector** support, Redis, deploy-from-GitHub flow |
+| 2 | Domain name | P5 deploy | ~$10–15/yr; needed so web + api share cookies (`ffcc.app` / `api.ffcc.app`) |
 | 3 | ~~Repo license and repo name~~ | — | **Decided:** [ADR-028](../Decisions/ADR-028-Repo-Name-and-License.md) |
 | 4 | ~~Email provider for magic links~~ | — | **Decided:** Resend, [ADR-029](../Decisions/ADR-029-Email-Resend.md) |
 | 5 | ~~Stats storage~~ | — | **Decided:** PostgreSQL, bulk-loaded, [ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md) |
