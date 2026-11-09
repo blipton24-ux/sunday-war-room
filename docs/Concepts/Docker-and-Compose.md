@@ -24,7 +24,14 @@ docker compose up
   └─ redis
 ```
 
+## How Sunday War Room's images are built
+- **Two images, five services.** `web` (Next.js) and `api`. The `api` image runs three jobs depending on the command it is given: the web API, the background worker, and the one-shot database migration. Same code, same versions.
+- **Start order is enforced.** `db` and `redis` become healthy → `migrate` runs once and exits → `api` and `worker` start → `web` starts when `api` is healthy. A broken migration stops everything before any user-facing service runs.
+- **Exact versions.** Python packages come from `api/uv.lock` ([ADR-039](../Decisions/ADR-039-Python-Dependency-Lock-uv.md)); Node packages from `web/package-lock.json`.
+- **Small and unprivileged.** Multi-stage builds keep build tools out of the final image, both run as non-root users, and nothing secret is baked in: every setting is read from environment variables when the container starts.
+- **First start fills itself.** A brand-new database has no NFL history, so the worker queues a full nflverse load when it starts and finds none.
+
 ## Why "same image everywhere" matters
 CI builds the image, tests run against it, and **that exact image** is deployed. If it passed tests, production runs identical versions; only settings like the database address differ (environment variables). See [Hosting Options](Hosting-Options.md#same-docker-image-as-dev).
 
-Related: [ADR-020](../Decisions/ADR-020-Docker-Compose.md) · [CI/CD](CI-CD-GitHub-Actions.md) · [Hosting Options](Hosting-Options.md)
+Related: [ADR-039](../Decisions/ADR-039-Python-Dependency-Lock-uv.md) · [ADR-020](../Decisions/ADR-020-Docker-Compose.md) · [CI/CD](CI-CD-GitHub-Actions.md) · [Hosting Options](Hosting-Options.md)

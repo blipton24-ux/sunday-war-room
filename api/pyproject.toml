@@ -17,7 +17,10 @@ dependencies = [
   "structlog>=24.4",
   "numpy>=2.1",
   "pandas>=2.2",
-  "polars>=1.12",
+  # Windows: the default Polars build hangs at import on some CPUs, so Windows machines get the
+  # compatibility build. Linux (the Docker image, CI, production) gets the standard one.
+  "polars>=1.12; sys_platform != 'win32'",
+  "polars[rtcompat]>=1.12; sys_platform == 'win32'",
   "pyarrow>=18",
   "nflreadpy>=0.1",
 ]

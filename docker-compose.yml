@@ -1,7 +1,18 @@
-# Sunday War Room — local stack (ADR-020).
-# Step 1 runs only the data services; api, worker and web are added as they are built.
-#   docker compose up -d db redis
+# Sunday War Room: the whole stack (ADR-020).
+#
+#   docker compose up --build        everything: db, redis, migrate, api, worker, web
+#   docker compose up -d db redis    only the data services (develop the api and web natively)
+#
+# Local defaults live here so it works with no setup. Real deployments set their own values
+# (see .env.example); the web server refuses development secrets on a public address.
 name: sunday-war-room
+
+x-api-env: &api-env
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-swr}:${POSTGRES_PASSWORD:-swr}@db:5432/${POSTGRES_DB:-swr}
+  REDIS_URL: redis://redis:6379/0
+  API_JWT_SECRET: ${API_JWT_SECRET:-dev-only-secret-change-me-0123456789abcdef}
 
 services:
   db:
@@ -30,6 +41,73 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Runs once and exits: brings the database schema up to date before anything else starts.
+  migrate:
+    build: ./api
+    image: sunday-war-room-api
+    command: ["alembic", "upgrade", "head"]
+    environment: *api-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: ./api
+    image: sunday-war-room-api
+    environment: *api-env
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # The same image as the api, running the background jobs instead of the web server.
+  worker:
+    build: ./api
+    image: sunday-war-room-api
+    command: ["arq", "app.worker.WorkerSettings"]
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    image: sunday-war-room-web
+    environment:
+      # Must be the address you open in the browser (sign-in cookies and links depend on it).
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-better-auth-secret-change-me-0123456789}
+      AUTH_DATABASE_URL: postgres://${POSTGRES_USER:-swr}:${POSTGRES_PASSWORD:-swr}@db:5432/${POSTGRES_DB:-swr}
+      API_JWT_SECRET: ${API_JWT_SECRET:-dev-only-secret-change-me-0123456789abcdef}
+      API_INTERNAL_URL: http://api:8000
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Sunday War Room <signin@example.com>}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
 
 volumes:
   db-data:

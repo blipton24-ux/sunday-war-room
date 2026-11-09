@@ -16,6 +16,7 @@ from app.db.models import (
     Matchup,
     PlatformAccount,
     Player,
+    PlayerWeekStats,
     RosterEntry,
     SyncRun,
     Team,
@@ -183,3 +184,41 @@ async def test_real_redis_and_worker_run_a_sync(db: AsyncSession, ctx: dict[str,
     )
     assert run_after is not None and run_after.status == "done"
     assert await count(db, Team) == 12
+
+
+# --------------------------------------------------------------------------- first-run ingest
+async def test_empty_database_queues_one_full_nflverse_load(
+    db: AsyncSession, ctx: dict[str, Any]
+) -> None:
+    from app.jobs.nfl_jobs import INITIAL_INGEST_JOB_ID, enqueue_initial_ingest
+
+    queued: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+    class FakeRedis:
+        async def enqueue_job(self, *args: Any, **kwargs: Any) -> None:
+            queued.append((args, kwargs))
+
+    ctx["redis"] = FakeRedis()
+    assert await enqueue_initial_ingest(ctx) is True
+    # (function name, run_id=None, full=True): every season, tracked under a fixed job id
+    assert queued == [
+        (("ingest_nflverse_job", None, True), {"_job_id": INITIAL_INGEST_JOB_ID}),
+    ]
+
+
+async def test_existing_stats_mean_no_initial_load(db: AsyncSession, ctx: dict[str, Any]) -> None:
+    from app.jobs.nfl_jobs import enqueue_initial_ingest
+
+    db.add(
+        PlayerWeekStats(
+            gsis_id="00-1", season=2026, week=1, season_type="REG", position="WR", stats={}
+        )
+    )
+    await db.commit()
+
+    class FailingRedis:
+        async def enqueue_job(self, *args: Any, **kwargs: Any) -> None:
+            raise AssertionError("must not queue a load when data exists")
+
+    ctx["redis"] = FailingRedis()
+    assert await enqueue_initial_ingest(ctx) is False

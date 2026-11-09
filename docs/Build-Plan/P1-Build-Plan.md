@@ -43,8 +43,8 @@ Each step ends with something runnable and tested.
 17. **Docs:** update vault (any new ADRs, actual metrics), root README with live URL and screenshots.
 
 ## Verification checklist
-- [ ] `docker compose up` brings up all 5 services locally; `/health` is green on api.
-- [ ] `alembic upgrade head` runs clean on an empty database.
+- [x] `docker compose up` brings up all 5 services locally; `/health` is green on api. (verified 2026-11-09, plus the web health check)
+- [x] `alembic upgrade head` runs clean on an empty database. (verified 2026-11-09 by the compose `migrate` service)
 - [ ] Sign in with Google (and a magic link) works.
 - [ ] Connect a real Sleeper username → leagues listed → choose team → worker syncs the league.
 - [ ] Week N matchup shows projections, ranges and win probability; Lineup shows optimal lineup + swaps.

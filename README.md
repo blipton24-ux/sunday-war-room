@@ -5,8 +5,21 @@ leagues and helps you make weekly decisions: start/sit, matchup outlook,
 waivers, trades, a live game-day dashboard, and an AI assistant that answers
 questions using your league's real data and Sunday War Room's own projection model.
 
-> **Status:** design complete, Phase 1 build not started. All decisions and
-> specs live in the [docs vault](docs/README.md).
+> **Status:** Phase 1 is built and runs locally (backend, worker, web app, installable PWA,
+> Docker images); deployment is next. All decisions and specs live in the
+> [docs vault](docs/README.md).
+
+## Run it
+Needs only [Docker](https://docs.docker.com/get-docker/). From this folder:
+```bash
+docker compose up --build
+```
+Open **http://localhost:3000**. With no email service configured, **"Email me a link" prints the
+sign-in link in the web container's log** (`docker compose logs web`); then connect your Sleeper
+username. The first start also loads NFL history in the background (about 10 seconds).
+Settings and real credentials (Google, Resend): [.env.example](.env.example).
+
+Developing the code natively instead: [api/README.md](api/README.md) and [web/README.md](web/README.md).
 
 ## Stack at a glance
 

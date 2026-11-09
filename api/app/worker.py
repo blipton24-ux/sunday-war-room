@@ -20,7 +20,7 @@ from app.jobs.league_jobs import (
     sync_league_job,
     sync_players_job,
 )
-from app.jobs.nfl_jobs import ingest_nflverse_job
+from app.jobs.nfl_jobs import enqueue_initial_ingest, ingest_nflverse_job
 from app.jobs.tracking import MAX_TRIES
 from app.logging import configure_logging, get_logger
 
@@ -32,6 +32,8 @@ async def startup(ctx: dict[str, Any]) -> None:
     configure_logging(settings.log_level, json=settings.environment != "development")
     ctx["sessionmaker"] = get_sessionmaker()
     ctx["adapters"] = {"sleeper": SleeperAdapter()}
+    if await enqueue_initial_ingest(ctx):
+        log.info("initial_nflverse_ingest_queued")
     log.info("worker_started")
 
 

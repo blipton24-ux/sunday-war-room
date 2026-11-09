@@ -2,6 +2,23 @@
 
 One Python codebase that runs as the API server or the background worker ([ADR-013](../docs/Decisions/ADR-013-Backend-FastAPI.md)).
 
+## Run it in Docker
+`docker compose up --build` from the repo root runs everything; the image is `api/Dockerfile` (one image, three jobs:
+the API, the worker, the migration). Backend tests inside the locked image:
+```bash
+docker build --target test -t swr-api-test api
+docker compose up -d db redis     # then, on the compose network:
+docker run --rm --network sunday-war-room_default -e ENVIRONMENT=test   -e TEST_DATABASE_URL=postgresql+asyncpg://swr:swr@db:5432/swr_test -e REDIS_URL=redis://redis:6379/0 swr-api-test
+```
+
+## Dependencies
+`uv.lock` pins every package ([ADR-039](../docs/Decisions/ADR-039-Python-Dependency-Lock-uv.md)). After editing
+`pyproject.toml`, regenerate it (in Linux, so the result doesn't depend on your machine):
+```bash
+docker run --rm -v "$PWD:/work" -w /work python:3.12-slim-bookworm sh -c "pip install uv==0.13.7 && uv lock"
+```
+`pip install -e ".[dev]"` (below) still works for local development but does not use the lock.
+
 ## Local setup
 ```bash
 # from FFCC/: start Postgres (+pgvector) and Redis
@@ -26,9 +43,9 @@ python -m venv .venv
 | `app/db/` | SQLAlchemy models + session; migrations in `alembic/` |
 | `tests/fixtures/sleeper/` | Recorded, anonymized Sleeper responses from a real league |
 
-> **Windows note:** on some CPUs the default Polars build hangs at import. If
-> `python -c "import polars"` never returns, install the compatibility build:
-> `pip install "polars[rtcompat]"`. Docker/Linux is unaffected.
+> **Windows note:** on some CPUs the default Polars build hangs at import, so `pyproject.toml`
+> asks Windows for the compatibility build (`polars[rtcompat]`) automatically. Linux (Docker,
+> CI, production) gets the standard one.
 
 ## Checks
 ```bash

@@ -49,6 +49,16 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-21 | **How the offline page and the Settings install card look** in dark and light. Their text and behavior were checked; screenshots timed out three times on those pages. | Screenshot tool failure, not a page fault | Open both in each theme | Playwright screenshots | Open |
 | V-22 | **Installing from desktop Chrome or Edge**: the app opens in its own window with no browser bars. | Not completed | Click Install in Settings on a laptop | By hand | Open |
 
+## Not yet seen working: the containers (P1 step 13, 2026-11-09)
+
+| ID | What isn't verified | Why not | How to test | Where | Status |
+|---|---|---|---|---|---|
+| V-23 | **Images on other processors** (Apple Silicon, ARM servers). Only built and run on this PC's x86 Docker. | One machine | Build and run on an ARM machine, or build multi-platform in CI; check what the hosting platform builds | CI / hosting platform | Open |
+| V-24 | **A build from nothing on a clean machine or CI runner** (no Docker cache). The first build here pulled base images, but the dependency caches were warm afterwards. | One machine | Run the CI build on a fresh runner; note the time | CI (step 15) | Open |
+| V-25 | **Restart and recovery**: stopping and restarting the stack keeps data (the `db-data` volume) and the worker resumes; a worker or api crash restarts under the hosting platform's rules. | Only a clean first start was tried | `docker compose down` then `up` (without `-v`); kill the worker mid-sync | By hand; hosting platform (step 16) | Open |
+| V-26 | **Production settings**: the images with real secrets, a public HTTPS address, a real Resend key and Google OAuth. Locally everything ran with development secrets on `localhost`. | No domain or credentials yet | Deploy (step 16) and sign in with both methods | Deploy | Open |
+| V-27 | **The container browser experience**: pages were fetched with `curl` and a browser earlier against the non-container build, but the container's `localhost:3000` site wasn't opened in a browser. | Efficiency; same code | Open it once in a browser after `docker compose up` | By hand | Open |
+
 ## Verified
 
 | ID | What | When | How |
@@ -59,5 +69,10 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-P4 | With the web server stopped, loading `/lineup` shows the offline page; after restarting, "Try again" loads the real page | 2026-11-09 | Chrome, server stopped and restarted |
 | V-P5 | Manifest, icons, `apple-icon`, SVG favicon, install tags and the `sw.js` no-cache header are served correctly | 2026-11-09 | `curl` against the production build |
 | V-P6 | The desktop header and tab bar are unchanged by the iPhone safe-area padding | 2026-11-09 | Measured in Chrome: padding 0, header 62 px, nav offset 61 px | |
+| V-P7 | `docker compose up` from nothing: migrate runs and exits, api and web become healthy, worker starts. All four migrations ran clean on an empty database. | 2026-11-09 | A separate compose project with its own empty volume |
+| V-P8 | First start loads NFL history by itself (queued by the worker, 5 seasons, 9 seconds) | 2026-11-09 | Worker log in the test stack |
+| V-P9 | Sign-in, connecting Sleeper, syncing, picking a team and loading every screen work inside the containers; photos served through the image cache (3.7 KB, one-week cache header) | 2026-11-09 | `curl` against the stack |
+| V-P10 | A container set up like a public site but using development secrets refuses to run sign-in (HTTP 500 with a clear message); the health check still answers | 2026-11-09 | One-off container |
+| V-P11 | All 130 backend tests pass inside the image using exactly the locked package versions, against a real database and Redis | 2026-11-09 | `--target test` image on the stack's network |
 
 Related: [Improvement Backlog](Improvement-Backlog.md) · [P1 Build Plan](P1-Build-Plan.md) · [UI Screens](../Specs/UI-Screens.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)

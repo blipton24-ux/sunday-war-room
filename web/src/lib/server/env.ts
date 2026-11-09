@@ -1,5 +1,7 @@
 import "server-only";
 
+import { assertNotDevSecret } from "./policy";
+
 /**
  * Server environment variables, read in one place. `.env.example` (repo root) documents them.
  * Read lazily (getters): `next build` loads server modules without production secrets, so
@@ -28,7 +30,9 @@ export const env = {
     return required("BETTER_AUTH_URL", "http://localhost:3000");
   },
   get authSecret() {
-    return required("BETTER_AUTH_SECRET", "dev-only-better-auth-secret-change-me-0123456789");
+    const value = required("BETTER_AUTH_SECRET", "dev-only-better-auth-secret-change-me-0123456789");
+    assertNotDevSecret("BETTER_AUTH_SECRET", value, env.appUrl, isProduction);
+    return value;
   },
   /** Plain postgres:// URL for Better Auth (the API uses its own asyncpg URL). */
   get authDatabaseUrl() {
@@ -36,7 +40,9 @@ export const env = {
   },
   /** Shared with FastAPI: signs the short-lived API token (ADR-036). */
   get apiJwtSecret() {
-    return required("API_JWT_SECRET", "dev-only-secret-change-me-0123456789abcdef");
+    const value = required("API_JWT_SECRET", "dev-only-secret-change-me-0123456789abcdef");
+    assertNotDevSecret("API_JWT_SECRET", value, env.appUrl, isProduction);
+    return value;
   },
   /** Where the Next.js server reaches FastAPI (internal network in production). */
   get apiInternalUrl() {

@@ -1,17 +1,21 @@
 import "server-only";
 
 import { env } from "./env";
+import { canLogMagicLinks } from "./policy";
 
 /**
  * Sends the magic sign-in link (ADR-029: Resend).
  *
- * Without RESEND_API_KEY in local development, the link is printed to the server log so
- * sign-in works with no email account. In production a missing key is an error.
+ * Without RESEND_API_KEY, the link is printed to the server log so sign-in works with no email
+ * account, but only when the app's address is on this machine (policy.ts). Anywhere else a
+ * missing key is an error.
  */
 export async function sendMagicLinkEmail(to: string, url: string): Promise<void> {
   if (!env.resendApiKey) {
-    if (env.isProduction) throw new Error("RESEND_API_KEY is not set: cannot send sign-in email");
-    console.info(`\n[dev] Magic sign-in link for ${to}:\n${url}\n`);
+    if (!canLogMagicLinks(env.appUrl, false)) {
+      throw new Error("RESEND_API_KEY is not set: cannot send sign-in email");
+    }
+    console.info(`\n[local] Magic sign-in link for ${to}:\n${url}\n`);
     return;
   }
   const response = await fetch("https://api.resend.com/emails", {

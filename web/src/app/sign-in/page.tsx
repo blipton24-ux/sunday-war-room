@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { Logo, Wordmark } from "@/components/shell/logo";
 import { env, googleEnabled } from "@/lib/server/env";
+import { canLogMagicLinks } from "@/lib/server/policy";
 import { getSession } from "@/lib/server/session";
 
 import { SignInForm } from "./sign-in-form";
@@ -23,7 +24,7 @@ export default async function SignInPage() {
       </div>
       <SignInForm
         googleEnabled={googleEnabled()}
-        devLinkHint={!env.isProduction && !env.resendApiKey}
+        devLinkHint={canLogMagicLinks(env.appUrl, Boolean(env.resendApiKey))}
       />
       <p className="text-center text-[0.72rem] text-ink-faint">
         Read-only: Sunday War Room never changes anything in your league.

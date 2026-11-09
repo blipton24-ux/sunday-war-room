@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import select
+
 from app.config import get_settings
+from app.db.models import PlayerWeekStats
 from app.jobs.tracking import create_run, run_tracked
 from app.services.grading import grade_finished
 from app.services.ingest import ingest_nflverse
@@ -34,3 +37,20 @@ async def ingest_nflverse_job(ctx: Ctx, run_id: int | None = None, full: bool = 
         return {"seasons": seasons, **loaded, "graded": graded}
 
     return await run_tracked(sm, run_id, body, job_try=ctx.get("job_try", 1))
+
+
+INITIAL_INGEST_JOB_ID = "initial-nflverse-ingest"
+
+
+async def enqueue_initial_ingest(ctx: Ctx) -> bool:
+    """On worker start: if the database holds no NFL stats at all (a brand-new deploy), start
+    a full nflverse load now instead of waiting for tomorrow's scheduled one. Without history,
+    projections fall back to generic values. Returns True when a load was queued.
+    """
+    async with ctx["sessionmaker"]() as db:
+        has_stats = await db.scalar(select(PlayerWeekStats.gsis_id).limit(1))
+    if has_stats is not None:
+        return False
+    # Fixed job id: several workers starting together queue it once.
+    await ctx["redis"].enqueue_job("ingest_nflverse_job", None, True, _job_id=INITIAL_INGEST_JOB_ID)
+    return True
