@@ -1,0 +1,35 @@
+# Sunday War Room — local stack (ADR-020).
+# Step 1 runs only the data services; api, worker and web are added as they are built.
+#   docker compose up -d db redis
+name: sunday-war-room
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-swr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swr}
+      POSTGRES_DB: ${POSTGRES_DB:-swr}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./infra/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

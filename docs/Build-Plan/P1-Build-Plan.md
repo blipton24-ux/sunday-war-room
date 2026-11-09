@@ -1,0 +1,58 @@
+---
+title: "P1 Build Plan"
+date: 2026-11-08
+tags: [build-plan, p1]
+---
+# Phase 1 Build Plan — Sleeper MVP, deployed
+
+Built in one go after the owner approves the vault ([ADR-026](../Decisions/ADR-026-Execution-Order.md)). Scope: [Features by Phase § P1](../Specs/Features-by-Phase.md#p1--sleeper-mvp-deployed).
+
+## Before starting (owner decisions)
+Open questions #3–5 are decided ([ADR-028](../Decisions/ADR-028-Repo-Name-and-License.md), [ADR-029](../Decisions/ADR-029-Email-Resend.md), [ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md)). Reuses are decided in [ADR-031](../Decisions/ADR-031-Approved-Reuses.md). #1 (platform) and #2 (domain) can wait until the deploy step.
+
+## Repo layout
+```
+FFCC/
+  web/                 Next.js app (TypeScript)
+  api/                 FastAPI app + ARQ worker (Python), Alembic, tests
+  docs/                this vault
+  docker-compose.yml   web, api, worker, db, redis
+  .github/workflows/   ci.yml, deploy.yml
+  .env.example
+```
+
+## Build order
+Each step ends with something runnable and tested.
+
+1. **Compose stack:** Postgres (pgvector image) + Redis in `docker-compose.yml`; `.env.example`.
+2. **API skeleton:** FastAPI app, config from env, `/health`, structured logging, pytest + ruff + mypy set up.
+3. **Database:** SQLAlchemy models from [Data Model](../Specs/Data-Model.md), first Alembic migration, test DB fixture.
+4. **Auth verification:** FastAPI dependency that verifies the Auth.js token → `current_user`; ownership helper; tenant-isolation test pattern.
+5. **Adapter interface + Sleeper adapter:** `LeagueAdapter` protocol; Sleeper implementation with recorded-fixture tests ([Adapter Pattern](../Concepts/Adapter-Pattern.md)).
+6. **Worker + jobs:** ARQ settings, `sync_league` job, cron schedule, `sync_runs` tracking, job-status endpoint.
+7. **nflverse source module:** `nflreadpy` loads with schema contracts (fail loudly), player id crosswalk.
+8. **Projection model v1:** pure functions per [Projection Model](../Specs/Projection-Model.md): scoring with league rules, baseline, opponent, role, injury, range; unit tests; backtest script with MAE and coverage report.
+9. **Services + endpoints:** matchup, lineup optimizer + swap suggestions, win-probability simulation, accuracy; all routes in [API](../Specs/API.md).
+10. **OpenAPI → TS client:** generation script; CI check that it's up to date.
+11. **Next.js app:** Auth.js (Google + magic link, Postgres adapter), Tailwind + shadcn theme in the Sunday War Room style ([ADR-032](../Decisions/ADR-032-Visual-Sunday-War-Room-Style.md); reference: `mockups/p1-screens-v3.html`), bottom tabs + More menu, player headshots, onboarding, Home, Matchup, Lineup, Player detail, Accuracy, Settings ([UI Screens](../Specs/UI-Screens.md)).
+12. **PWA:** manifest, icons, service worker (installable).
+13. **Dockerfiles:** `web`, `api` (same image runs api or worker); full `docker compose up` works.
+14. **Tests:** fill gaps; Playwright E2E for sign-in → connect Sleeper → matchup → lineup (test auth bypass in E2E only).
+15. **CI:** `ci.yml`: lint, type-check, unit, integration (Postgres + Redis services), build images, E2E.
+16. **Deploy:** owner picks the platform ([Open Questions](../Specs/Open-Questions.md) #1); managed Postgres + Redis; `deploy.yml` on merge to main (migrate, then roll out); domain + HTTPS; Google OAuth production credentials.
+17. **Docs:** update vault (any new ADRs, actual metrics), root README with live URL and screenshots.
+
+## Verification checklist
+- [ ] `docker compose up` brings up all 5 services locally; `/health` is green on api.
+- [ ] `alembic upgrade head` runs clean on an empty database.
+- [ ] Sign in with Google (and a magic link) works.
+- [ ] Connect a real Sleeper username → leagues listed → choose team → worker syncs the league.
+- [ ] Week N matchup shows projections, ranges and win probability; Lineup shows optimal lineup + swaps.
+- [ ] Every projection shows its factors; past weeks' projections don't change on refresh (frozen).
+- [ ] User B cannot see user A's league (test + manual check).
+- [ ] pytest, Vitest and Playwright pass locally **and** in GitHub Actions.
+- [ ] Merge to main auto-deploys; the same flow works on the live URL.
+- [ ] PWA installs on a phone; dark/light toggle works.
+- [ ] Backtest report committed (MAE by position, range coverage).
+
+Related: [P2–P4 Outline](P2-P4-Outline.md) · [Architecture](../Specs/Architecture.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)

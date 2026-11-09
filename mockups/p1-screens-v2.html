@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FFCC — Phase 1 mockup v2 (War Room style)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* "Odyssey" palette from Sunday War Room: storm-blue room, bronze for what matters,
+     sea-steel as the quiet second colour, parchment text. Separation by layered
+     surfaces, never borders. */
+  :root[data-theme="dark"] {
+    --base:#0b1016; --raised:#141e28; --overlay:#1a2733; --high:#243341;
+    --ink-hi:#efe8da; --ink-mid:#c3cad1; --ink-lo:#8d99a6; --ink-faint:#5c6a78;
+    --line:#1c2834; --accent:#e6b95c; --accent-rgb:230,185,92;
+    --good:#3ddc97; --ok:#f5d36b; --bad:#ff5c6c; --warn:#f0a24b;
+    --sea:#7fa3bd; --ember:#e2683c; --wine:#c4566f;
+    --lamp:rgba(230,185,92,.09); --deep:rgba(44,93,120,.22);
+    --card-shadow: inset 0 1px 0 0 rgba(230,185,92,.07), 0 8px 24px -14px rgba(0,0,0,.7);
+    --pop: 0 16px 40px -12px rgba(0,0,0,.75);
+  }
+  :root[data-theme="light"] {
+    --base:#f4efe4; --raised:#fffaf0; --overlay:#f1e9d8; --high:#e7dcc6;
+    --ink-hi:#16202b; --ink-mid:#3a4652; --ink-lo:#66717d; --ink-faint:#98a1aa;
+    --line:#e2d6bf; --accent:#b8862b; --accent-rgb:184,134,43;
+    --good:#13915e; --ok:#b48a12; --bad:#d23a4b; --warn:#c06a12;
+    --sea:#3f6a88; --ember:#c24e22; --wine:#a63e57;
+    --lamp:rgba(184,134,43,.10); --deep:rgba(63,106,136,.10);
+    --card-shadow: 0 1px 0 0 rgba(255,255,255,.6) inset, 0 8px 24px -16px rgba(60,40,10,.35);
+    --pop: 0 16px 40px -16px rgba(60,40,10,.4);
+  }
+  :root { --QB:#fb7185; --RB:#34d399; --WR:#60a5fa; --TE:#fbbf24; --FLEX:#a3e635; --K:#c084fc; --DST:#22d3ee; --BN:#64748b; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-font-smoothing:antialiased; }
+  body { margin:0; min-height:100vh; background:var(--base); color:var(--ink-hi);
+    font-family:Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background-image: radial-gradient(70rem 28rem at 50% -12rem, var(--lamp), transparent 70%),
+                      radial-gradient(80rem 36rem at 50% 115%, var(--deep), transparent 70%);
+    background-attachment:fixed; }
+  button { font:inherit; color:inherit; cursor:pointer; background:none; border:none; padding:0; }
+  .nums { font-variant-numeric:tabular-nums; font-feature-settings:"tnum"; }
+  .stat { font-family:Archivo, Inter, sans-serif; font-weight:800; line-height:1; letter-spacing:-.01em;
+          font-stretch:112%; font-variant-numeric:tabular-nums; }
+  .page-title { font-family:Archivo, Inter, sans-serif; font-weight:900; font-size:1.75rem; line-height:1; margin:0;
+    font-stretch:118%; letter-spacing:-.01em;
+    background:linear-gradient(100deg, var(--ink-hi) 0%, var(--ink-hi) 55%, #f3cd77 85%, #e6b95c 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding-bottom:.08em; }
+  .eyebrow { font-size:.8rem; font-weight:600; color:var(--sea); margin:0 0 6px 4px; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:none; } }
+  .fade { animation: fadeUp 220ms cubic-bezier(.22,1,.36,1) both; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* App chrome */
+  .mock-banner { text-align:center; font-size:11px; padding:6px; background:var(--raised); color:var(--ink-lo); }
+  header { position:sticky; top:0; z-index:30; backdrop-filter:blur(16px); background:color-mix(in srgb, var(--base) 80%, transparent); }
+  .hdr { max-width:64rem; margin:0 auto; display:flex; align-items:center; gap:10px; padding:12px 16px; }
+  .mark { width:36px; height:36px; border-radius:10px; display:grid; place-items:center;
+    background:linear-gradient(180deg,#1a2735,#0f1720); box-shadow: inset 0 0 0 1px rgba(230,185,92,.25); }
+  .mark span { font-family:Archivo; font-weight:900; font-stretch:120%; font-size:12px;
+    background:linear-gradient(135deg,#f3cd77,#e6b95c 45%,#c58b2e); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .league-btn { display:flex; flex-direction:column; align-items:flex-start; line-height:1.15; padding:4px 8px; border-radius:12px; }
+  .league-btn:hover { background:var(--raised); }
+  .league-btn b { font-size:.95rem; }
+  .league-btn small { font-size:.72rem; color:var(--ink-lo); display:flex; align-items:center; gap:6px; }
+  .dot-ok { width:6px; height:6px; border-radius:50%; background:var(--good); }
+  .spacer { flex:1; }
+  .icon-btn { width:36px; height:36px; border-radius:999px; display:grid; place-items:center; background:var(--raised); color:var(--ink-mid); }
+  .icon-btn:hover { background:var(--overlay); color:var(--ink-hi); }
+  .week-step { display:flex; align-items:center; gap:2px; background:var(--raised); border-radius:999px; padding:3px; }
+  .week-step button { width:28px; height:28px; border-radius:999px; color:var(--ink-lo); }
+  .week-step button:hover { background:var(--overlay); color:var(--ink-hi); }
+  .week-step span { font-size:.8rem; font-weight:700; padding:0 6px; }
+
+  .topnav { display:none; }
+  @media (min-width:640px) {
+    .topnav { display:block; position:sticky; top:61px; z-index:29; backdrop-filter:blur(16px); background:color-mix(in srgb, var(--base) 80%, transparent); }
+    .topnav .in { max-width:64rem; margin:0 auto; padding:8px 16px; }
+    .pillbar { display:inline-flex; gap:4px; padding:4px; border-radius:999px; background:var(--raised); }
+    .pillbar button { display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; font-size:.875rem; font-weight:600; color:var(--ink-lo); }
+    .pillbar button:hover { color:var(--ink-mid); }
+    .pillbar button.on { background:var(--high); color:var(--ink-hi); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),.3); }
+    .pillbar button.on .ico { color:var(--accent); }
+    .pillbar .soon { font-size:.62rem; color:var(--ink-faint); }
+  }
+  .botnav { position:fixed; inset:auto 0 0 0; z-index:40; backdrop-filter:blur(16px);
+    background:color-mix(in srgb, var(--base) 90%, transparent); border-top:1px solid rgba(var(--accent-rgb),.15);
+    padding-bottom:env(safe-area-inset-bottom); }
+  .botnav .grid { display:grid; grid-template-columns:repeat(5,1fr); padding:6px 4px 0; }
+  .botnav button { display:flex; flex-direction:column; align-items:center; gap:4px; padding-bottom:6px; font-size:.68rem; font-weight:500; color:var(--ink-lo); }
+  .botnav .pill { width:48px; height:28px; border-radius:999px; display:grid; place-items:center; font-size:17px; transition:background .15s; }
+  .botnav button.on { color:var(--ink-hi); }
+  .botnav button.on .pill { background:rgba(var(--accent-rgb),.15); color:var(--accent); }
+  @media (min-width:640px) { .botnav { display:none; } }
+
+  main { max-width:64rem; margin:0 auto; padding:12px 16px 110px; display:flex; flex-direction:column; gap:14px; }
+  @media (min-width:640px) { main { padding-bottom:40px; } }
+  .title-row { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:4px; }
+  .title-row small { color:var(--ink-lo); font-size:.8rem; }
+
+  /* Card: the one surface */
+  .card { background:var(--raised); border-radius:1.25rem; box-shadow:var(--card-shadow); padding:16px; }
+  .card.glow { box-shadow: var(--card-shadow), 0 0 0 1px rgba(var(--accent-rgb),.25); }
+
+  /* Hero: colour comes from the two teams in it */
+  .hero { position:relative; overflow:hidden; border-radius:1.5rem; background:var(--raised); box-shadow:var(--card-shadow); padding:16px 18px 18px; }
+  .hero-top { display:flex; justify-content:space-between; align-items:center; font-size:.75rem; color:var(--ink-mid); font-weight:600; }
+  .chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:2px 8px; font-size:.66rem; font-weight:700; }
+  .chip.dim { background:rgba(0,0,0,.25); color:var(--ink-mid); }
+  :root[data-theme="light"] .chip.dim { background:rgba(0,0,0,.06); }
+  .chip.live { background:rgba(226,104,60,.15); color:var(--ember); }
+  .chip.live i { width:6px; height:6px; border-radius:50%; background:var(--ember); animation:pulse 1.4s infinite; }
+  .chip.final { background:var(--high); color:var(--ink-lo); }
+  .sides { display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:12px; margin-top:16px; }
+  .side { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .side.r { align-items:flex-end; text-align:right; }
+  .side .who { display:flex; align-items:center; gap:8px; min-width:0; width:100%; }
+  .side.r .who { flex-direction:row-reverse; }
+  .team-av { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-family:Archivo; font-weight:800; font-size:.85rem;
+    box-shadow: 0 0 0 2px rgba(0,0,0,.3); color:#fff; flex-shrink:0; }
+  .side .nm { font-size:.875rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .side .rec { font-size:.75rem; color:var(--ink-mid); }
+  .side .big { font-size:2.6rem; }
+  .side .big.trail { opacity:.45; }
+  @media (min-width:640px) { .side .big { font-size:3.75rem; } }
+  .vs { padding-bottom:12px; font-family:Archivo; font-weight:900; font-style:italic; font-size:.875rem; color:var(--ink-faint); }
+  .vibe { margin-top:14px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+  .vibe .good { background:rgba(61,220,151,.15); color:var(--good); padding:4px 12px; border-radius:999px; font-size:.875rem; font-weight:700; }
+
+  /* Win ring + lineup check */
+  .check { display:flex; gap:16px; align-items:flex-start; }
+  .ring { display:inline-flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; }
+  .ring svg { transform:rotate(-90deg); }
+  .ring .wrap { position:relative; }
+  .ring .val { position:absolute; inset:0; display:grid; place-items:center; color:var(--ink-hi); }
+  .ring .lbl { font-size:.72rem; font-weight:500; color:var(--ink-lo); }
+  .swap { display:flex; align-items:center; gap:8px; padding:10px 12px; margin-top:8px; border-radius:14px; background:var(--overlay); font-size:.875rem; }
+  .swap .in { color:var(--good); font-weight:700; }
+  .swap .out { color:var(--ink-lo); text-decoration:line-through; text-decoration-color:var(--wine); }
+  .swap .gain { margin-left:auto; color:var(--accent); font-weight:700; }
+  .hint { font-size:.75rem; color:var(--ink-lo); margin-top:8px; }
+
+  /* Shelf of posters */
+  .shelf { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -16px; padding:0 16px 4px; scrollbar-width:none; }
+  .shelf::-webkit-scrollbar { display:none; }
+  .poster { flex:0 0 132px; scroll-snap-align:start; border-radius:1.25rem; overflow:hidden; position:relative; height:176px;
+    box-shadow:var(--card-shadow); display:flex; flex-direction:column; justify-content:flex-end; padding:10px; }
+  .poster .rank { position:absolute; top:8px; left:10px; font-family:Archivo; font-weight:900; font-size:1.6rem; color:rgba(255,255,255,.9); text-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .poster .face { position:absolute; top:22px; left:50%; transform:translateX(-50%); width:78px; height:78px; border-radius:50%;
+    display:grid; place-items:center; font-family:Archivo; font-weight:800; font-size:1.6rem; color:#fff; background:rgba(255,255,255,.12); }
+  .poster .slot { position:absolute; top:10px; right:10px; border-radius:6px; padding:0 5px; font-size:.6rem; font-weight:900; line-height:1.15rem; color:#0b1016; }
+  .poster .pn { font-size:.8rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .poster .pv { display:flex; align-items:baseline; gap:6px; color:#fff; }
+  .poster .pv .stat { font-size:1.5rem; }
+  .poster .pv small { font-size:.68rem; opacity:.8; }
+
+  /* Player row */
+  .rows { display:flex; flex-direction:column; gap:6px; }
+  .prow { position:relative; overflow:hidden; border-radius:1.25rem; background:var(--raised); transition:background .15s; }
+  .prow:hover { background:color-mix(in srgb, var(--overlay) 70%, var(--raised)); }
+  .prow.open { background:var(--overlay); }
+  .prow.dim { opacity:.72; }
+  .prow > button { display:flex; width:100%; align-items:center; gap:12px; padding:10px 14px 10px 10px; text-align:left; }
+  .av { position:relative; flex-shrink:0; }
+  .av .c { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; font-family:Archivo; font-weight:800; font-size:.95rem; color:var(--ink-hi); }
+  .av .slot { position:absolute; bottom:-4px; left:-4px; border-radius:6px; padding:0 4px; font-size:.58rem; font-weight:900; line-height:1.15rem; color:#0b1016; }
+  .id { flex:1; min-width:0; }
+  .id .n { font-weight:600; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .id .m { margin-top:2px; font-size:.72rem; display:flex; gap:6px; align-items:center; }
+  .id .m .tm { color:var(--ink-faint); }
+  .tagq { background:rgba(240,162,75,.15); color:var(--warn); border-radius:999px; padding:0 6px; font-size:.62rem; font-weight:700; }
+  .tagbye { background:var(--high); color:var(--ink-lo); border-radius:999px; padding:0 6px; font-size:.62rem; font-weight:700; }
+  .pts { display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; }
+  .pts .top { display:flex; align-items:center; gap:6px; }
+  .pts .stat { font-size:1.4rem; }
+  .pts small { margin-top:4px; font-size:.68rem; color:var(--ink-faint); }
+  .boom { background:rgba(61,220,151,.15); color:var(--good); border-radius:999px; padding:1px 6px; font-size:.62rem; font-weight:700; }
+  .bust { background:rgba(226,104,60,.15); color:var(--ember); border-radius:999px; padding:1px 6px; font-size:.62rem; font-weight:700; }
+  .progress { position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--high); }
+  .progress div { height:100%; }
+  .expand { padding:0 12px 14px; display:none; }
+  .prow.open .expand { display:block; }
+  .prow.open .progress { display:none; }
+  .wr-head { display:flex; gap:6px; align-items:center; border-top:1px solid var(--line); padding-top:12px; }
+  .wr-head span:first-child { font-size:.75rem; font-weight:600; color:var(--ink-mid); }
+  .wr-chip { border-radius:999px; padding:2px 8px; font-size:.7rem; font-weight:700; background:var(--high); color:var(--ink-mid); }
+  .wr { position:relative; padding-top:20px; margin-top:6px; }
+  .wr .track { position:relative; height:10px; border-radius:999px; background:var(--high); }
+  .wr .band { position:absolute; top:0; bottom:0; border-radius:999px; background:linear-gradient(90deg, rgba(226,104,60,.7), rgba(var(--accent-rgb),.7), rgba(61,220,151,.7)); }
+  .wr .mid { position:absolute; top:0; bottom:0; border-radius:999px; background:rgba(255,255,255,.25); }
+  .wr .proj { position:absolute; top:-4px; bottom:-4px; width:2px; border-radius:2px; background:var(--ink-hi); opacity:.8; }
+  .wr .now { position:absolute; top:50%; width:14px; height:14px; border-radius:50%; transform:translate(-50%,-50%); background:var(--ink-hi); border:2px solid var(--base); }
+  .wr .nowlbl { position:absolute; top:0; transform:translateX(-50%); background:var(--ink-hi); color:var(--base); border-radius:999px; padding:0 6px; font-size:.62rem; font-weight:700; line-height:16px; }
+  .wr-foot { display:flex; justify-content:space-between; font-size:.7rem; margin-top:8px; }
+  .wr-foot .b { color:var(--ember); } .wr-foot .p { color:var(--ink-lo); } .wr-foot .g { color:var(--good); }
+  .wr-foot b { font-variant-numeric:tabular-nums; }
+  .why { margin-top:12px; display:flex; flex-wrap:wrap; gap:6px; }
+  .why span { background:var(--high); color:var(--ink-mid); border-radius:999px; padding:3px 9px; font-size:.7rem; font-weight:600; }
+  .why span b { color:var(--ink-hi); }
+  .conf { display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-size:.72rem; color:var(--ink-lo); }
+  .conf i { width:8px; height:8px; border-radius:50%; background:var(--good); }
+
+  /* Matchup board */
+  .mb { display:grid; grid-template-columns:1fr 42px 1fr; gap:8px; align-items:center; }
+  .mb + .mb { margin-top:6px; }
+  .mb .slotc { text-align:center; font-size:.62rem; font-weight:900; border-radius:6px; padding:3px 0; color:#0b1016; }
+  .mcell { background:var(--raised); border-radius:14px; padding:9px 12px; min-width:0; }
+  .mcell.r { text-align:right; }
+  .mcell .n { font-size:.85rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mcell .v { display:flex; gap:6px; align-items:baseline; margin-top:2px; }
+  .mcell.r .v { justify-content:flex-end; }
+  .mcell .v .stat { font-size:1.05rem; }
+  .mcell .v small { font-size:.66rem; color:var(--ink-faint); }
+  .mcell.lead { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),.25); }
+
+  /* Home */
+  .alerts { display:flex; flex-direction:column; gap:8px; }
+  .alert { display:flex; gap:12px; align-items:flex-start; background:var(--raised); border-radius:1.1rem; padding:12px 14px; box-shadow:var(--card-shadow); }
+  .alert .ic { width:32px; height:32px; border-radius:999px; display:grid; place-items:center; flex-shrink:0; font-size:15px; }
+  .alert p { margin:0; font-size:.9rem; font-weight:600; }
+  .alert small { color:var(--ink-lo); font-size:.78rem; }
+  .cta { display:flex; justify-content:center; align-items:center; gap:8px; padding:13px; border-radius:14px; font-weight:800; color:#2a1b00;
+    background:linear-gradient(135deg,#f3cd77 0%,#e6b95c 45%,#c58b2e 100%); box-shadow:0 8px 24px -10px rgba(230,185,92,.55); }
+  .acc { display:flex; align-items:center; gap:14px; }
+  .acc .stat { font-size:1.6rem; }
+  .acc small { color:var(--ink-lo); font-size:.78rem; }
+
+  .empty { text-align:center; padding:48px 20px; color:var(--ink-lo); }
+  .empty .ico { width:56px; height:56px; border-radius:50%; display:grid; place-items:center; margin:0 auto 12px; font-size:24px; background:rgba(var(--accent-rgb),.12); color:var(--accent); }
+  .empty h3 { color:var(--ink-hi); margin:0 0 6px; font-family:Archivo; font-stretch:112%; }
+
+  .toast { position:fixed; left:50%; bottom:100px; transform:translate(-50%,16px); opacity:0; background:var(--high); color:var(--ink-hi);
+    padding:10px 16px; border-radius:14px; font-size:.82rem; font-weight:600; box-shadow:var(--pop); transition:all .2s; z-index:60; pointer-events:none; }
+  .toast.show { opacity:1; transform:translate(-50%,0); }
+  .menu { position:absolute; top:56px; left:56px; z-index:50; min-width:13rem; background:var(--high); border-radius:1.1rem; padding:6px; box-shadow:var(--pop); display:none; }
+  .menu.show { display:block; }
+  .menu button { display:flex; width:100%; justify-content:space-between; padding:10px 12px; border-radius:12px; font-size:.875rem; font-weight:600; color:var(--ink-mid); }
+  .menu button:hover { background:var(--overlay); color:var(--ink-hi); }
+  .menu button.on { background:rgba(var(--accent-rgb),.15); color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="mock-banner">FFCC Phase 1 mockup v2 · War Room style · sample data, nothing is connected</div>
+<header><div class="hdr" style="position:relative">
+  <div class="mark" title="FFCC"><span>FFCC</span></div>
+  <button class="league-btn" id="leagueBtn"><b>Work League ▾</b><small><i class="dot-ok"></i><span id="fresh">synced 3m ago</span></small></button>
+  <div class="menu" id="leagueMenu">
+    <button class="on">Work League <span>●</span></button><button>Family League</button><button>Dynasty '26</button>
+    <button style="color:var(--accent)">+ Connect a league</button>
+  </div>
+  <span class="spacer"></span>
+  <div class="week-step"><button aria-label="Previous week">‹</button><span class="nums">Wk 10</span><button aria-label="Next week">›</button></div>
+  <button class="icon-btn" id="refreshBtn" aria-label="Refresh"><span id="refreshIco">↻</span></button>
+  <button class="icon-btn" id="themeBtn" aria-label="Theme">☾</button>
+</div></header>
+<nav class="topnav"><div class="in"><div class="pillbar" id="pillbar"></div></div></nav>
+<main id="view"></main>
+<nav class="botnav"><div class="grid" id="botnav"></div></nav>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- sample data (fake) ----------
+const TEAM = { BUF:'#00338D', ATL:'#A71930', KC:'#E31837', DET:'#0076B6', MIN:'#4F2683', DAL:'#003594', PIT:'#FFB612',
+               SF:'#AA0000', TEN:'#4B92DB', BAL:'#241773', PHI:'#004C54', CIN:'#FB4F14', LAR:'#003594', SEA:'#002244', NO:'#D3BC8D' };
+const me  = { name:'My Team', rec:'6-3', total:112.4, color:'#c58b2e' };
+const opp = { name:'Gridiron Gang', rec:'5-4', total:98.7, color:'#2c5d78' };
+const WIN = .71;
+const P = (slot,pos,name,team,opp,proj,p10,p90,actual,state,extra={}) => ({slot,pos,name,team,opp,proj,p10,p90,actual,state,...extra});
+// state: pre | live | final
+const starters = [
+  P('QB','QB','Josh Allen','BUF','@ MIA',22.4,14.8,31.2,24.1,'final'),
+  P('RB','RB','Bijan Robinson','ATL','vs NO',17.1,8.9,26.0,12.6,'live'),
+  P('RB','RB','Isiah Pacheco','KC','vs DEN',12.8,5.1,21.4,null,'pre',{q:true}),
+  P('WR','WR','Amon-Ra St. Brown','DET','@ GB',16.0,8.2,25.1,15.3,'live'),
+  P('WR','WR','Drake London','ATL','vs NO',13.9,5.5,22.7,9.8,'live'),
+  P('TE','TE','Sam LaPorta','DET','@ GB',9.4,3.0,16.5,6.2,'live'),
+  P('FLEX','WR','Jordan Addison','MIN','BYE',0,0,0,null,'pre',{bye:true}),
+  P('K','K','Brandon Aubrey','DAL','vs PHI',8.6,3.0,14.0,8.0,'final'),
+  P('DST','DST','Steelers','PIT','@ CLE',7.9,1.0,16.0,7.0,'final'),
+];
+const bench = [
+  P('BN','WR','Jauan Jennings','SF','vs TB',11.2,4.6,19.8,null,'pre',{rec:true}),
+  P('BN','RB','Tyjae Spears','TEN','@ IND',8.1,2.9,15.6,null,'pre'),
+  P('BN','QB','Brock Purdy','SF','vs TB',18.9,11.0,27.3,null,'pre'),
+];
+const theirs = [['QB','Lamar Jackson','BAL',18.3,23.9],['RB','Saquon Barkley','PHI',9.8,18.2],['RB','Kenneth Walker','SEA',11.4,13.0],
+  ['WR',"Ja'Marr Chase",'CIN',20.1,19.4],['WR','Puka Nacua','LAR',8.6,15.2],['TE','Travis Kelce','KC',5.5,10.1],
+  ['FLEX','James Cook','BUF',12.0,12.6],['K','Justin Tucker','BAL',7.0,8.1],['DST','49ers','SF',6.0,7.0]];
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const f1 = n => n==null ? '--' : n.toFixed(1);
+const initials = n => n.split(' ').map(w=>w[0]).filter(c=>/[A-Z]/i.test(c)).slice(0,2).join('').toUpperCase();
+const posVar = p => `var(--${p==='FLEX'?'FLEX':p})`;
+function vibeOf(p){ if (p.state==='pre' || p.actual==null) return null; if (p.actual>=p.p90) return 'boom'; if (p.state==='final' && p.actual<=p.p10) return 'bust'; return null; }
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+function avatar(p, size=46){
+  const c = TEAM[p.team] || '#555';
+  return `<span class="av"><span class="c" style="width:${size}px;height:${size}px;background:radial-gradient(circle at 50% 30%, ${c}66, ${c}22 70%);box-shadow:inset 0 0 0 1.5px ${c}55">${p.pos==='DST'?p.team:initials(p.name)}</span>
+    <span class="slot" style="background:${posVar(p.slot==='BN'?'BN':p.slot)}">${p.slot}</span></span>`;
+}
+function ring(v, size=76, stroke=7, label='Win chance'){
+  const r=(size-stroke)/2, c=2*Math.PI*r, tone = v>=.6?'var(--good)':v>=.4?'var(--ok)':'var(--bad)';
+  return `<span class="ring"><span class="wrap" style="width:${size}px;height:${size}px">
+    <svg width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke-width="${stroke}" stroke="var(--high)"/>
+    <circle class="arc" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke-width="${stroke}" stroke-linecap="round" stroke="${tone}"
+      stroke-dasharray="${c}" stroke-dashoffset="${c}" data-to="${c*(1-v)}" style="transition:stroke-dashoffset 1s ease-out;filter:drop-shadow(0 0 6px ${tone})"/></svg>
+    <span class="val stat" style="font-size:${Math.max(11,Math.round(size*.26))}px">${Math.round(v*100)}%</span></span>
+    ${label?`<span class="lbl">${label}</span>`:''}</span>`;
+}
+function stateChip(s){ return s==='live' ? '<span class="chip live"><i></i>Live</span>' : s==='final' ? '<span class="chip final">Final</span>' : ''; }
+
+// ---------- pieces ----------
+function hero(){
+  return `<div class="hero fade" style="background-image:radial-gradient(120% 90% at 0% 0%, ${me.color}55, transparent 60%), radial-gradient(90% 80% at 100% 0%, ${opp.color}33, transparent 60%), linear-gradient(180deg, transparent 40%, rgba(44,93,120,.28))">
+    <div class="hero-top"><span style="display:flex;gap:8px;align-items:center">Week 10 <span class="chip live"><i></i>Live</span></span><span class="chip dim nums">Projected final 128.6</span></div>
+    <div class="sides">
+      <div class="side"><div class="who"><span class="team-av" style="background:${me.color}">MT</span><div style="min-width:0"><div class="nm">${me.name}</div><div class="rec nums">${me.rec}</div></div></div>
+        <span class="stat big" data-count="${me.total}">0.0</span></div>
+      <span class="vs">VS</span>
+      <div class="side r"><div class="who"><span class="team-av" style="background:${opp.color}">GG</span><div style="min-width:0"><div class="nm">${opp.name}</div><div class="rec nums">${opp.rec}</div></div></div>
+        <span class="stat big trail" data-count="${opp.total}">0.0</span></div>
+    </div>
+    <div class="vibe"><span class="good">😎 Cruising: up 13.7 with 2 to play</span></div>
+  </div>`;
+}
+function lineupCheck(){
+  return `<div class="card glow check fade">${ring(WIN)}
+    <div style="flex:1;min-width:0;padding-top:4px">
+      <div style="font-weight:700">1 swap to make</div>
+      <div class="swap"><span class="in">▲ Jennings</span><span class="out">Addison</span><span class="gain nums">+11.2</span></div>
+      <div class="hint">Addison is on bye. Win chance 71% → 78%. Make the change in Sleeper.</div>
+    </div></div>`;
+}
+function shelf(list){
+  const top = [...list].filter(p=>!p.bye).sort((a,b)=>(b.actual??b.proj)-(a.actual??a.proj)).slice(0,6);
+  return `<section><h3 class="eyebrow">Top performers</h3><div class="shelf">${top.map((p,i)=>{
+    const c = TEAM[p.team]||'#555', v = vibeOf(p);
+    return `<div class="poster fade" style="animation-delay:${i*50}ms;background:linear-gradient(180deg, ${c} 0%, ${c}cc 45%, #0b1016 100%)">
+      <span class="rank">${i+1}</span><span class="slot" style="background:${posVar(p.slot)}">${p.slot}</span>
+      <span class="face">${p.pos==='DST'?p.team:initials(p.name)}</span>
+      <span class="pn">${p.name}</span>
+      <span class="pv"><span class="stat">${f1(p.actual??p.proj)}</span><small>${v==='boom'?'🔥 Boom':p.state==='pre'?'proj':p.state}</small></span></div>`;}).join('')}</div></section>`;
+}
+function playerRow(p,i,dim=false){
+  const started = p.state!=='pre', v = vibeOf(p);
+  const main = p.bye ? '--' : f1(started ? p.actual : p.proj);
+  const sub = p.bye ? 'on bye' : started ? `proj ${f1(p.proj)}` : `${f1(p.p10)}–${f1(p.p90)}`;
+  const prog = p.state==='live' && p.proj>0 ? Math.min(1,(p.actual||0)/p.proj) : null;
+  const max = Math.max(p.p90, p.actual||0, p.proj)*1.12 || 1, at = x => Math.max(0,Math.min(100,x/max*100));
+  const p25 = p.p10 + (p.proj-p.p10)*.55, p75 = p.proj + (p.p90-p.proj)*.45;
+  const expand = p.bye ? `<div class="wr-head"><span>This week</span><span class="wr-chip">On bye</span></div>` : `
+    <div class="wr-head"><span>This week</span>${v==='boom'?'<span class="boom">🔥 Boom</span>':started?`<span class="wr-chip">${p.state==='final'?'➖ Average':'In progress'}</span>`:`<span class="wr-chip">${(p.p90-p.p10)/p.proj>1.2?'🎢 Boom or bust':'🧱 Steady'}</span>`}</div>
+    <div class="wr">${started?`<span class="nowlbl nums" style="left:${at(p.actual)}%">${f1(p.actual)}</span>`:''}
+      <div class="track"><div class="band" style="left:${at(p.p10)}%;right:${100-at(p.p90)}%"></div><div class="mid" style="left:${at(p25)}%;right:${100-at(p75)}%"></div>
+      <div class="proj" style="left:${at(p.proj)}%"></div>${started?`<div class="now" style="left:${at(p.actual)}%"></div>`:''}</div></div>
+    <div class="wr-foot"><span class="b">Bust <b>${f1(p.p10)}</b></span><span class="p">Proj <b style="color:var(--ink-hi)">${f1(p.proj)}</b></span><span class="g">Boom <b>${f1(p.p90)}</b></span></div>
+    <div class="why"><span>Recent form <b class="nums">${f1(p.proj*.96)}</b></span><span>Opponent <b>×1.06</b></span><span>Role <b>×1.00</b></span>${p.q?'<span>Injury <b>×0.88</b></span>':''}</div>
+    <div class="conf"><i></i>High confidence · frozen at kickoff</div>`;
+  return `<div class="prow fade ${dim?'dim':''}" style="animation-delay:${Math.min(i,12)*35}ms">
+    <button data-toggle>${avatar(p)}
+      <span class="id"><span class="n" style="display:block">${p.name}</span>
+        <span class="m"><b style="color:${posVar(p.pos)}">${p.pos}</b><span class="tm">${p.team} ${p.opp}</span>${p.q?'<span class="tagq">Q</span>':''}${p.bye?'<span class="tagbye">BYE</span>':''}${p.rec?'<span class="tagq" style="background:rgba(61,220,151,.15);color:var(--good)">Start</span>':''}</span></span>
+      <span class="pts"><span class="top">${v==='boom'?'<span class="boom">🔥 Boom</span>':started&&!v?stateChip(p.state):''}<span class="stat">${main}</span></span><small class="nums">${sub}</small></span>
+    </button>
+    ${prog!==null?`<div class="progress"><div style="width:${prog*100}%;background:${TEAM[p.team]}"></div></div>`:''}
+    <div class="expand">${expand}</div></div>`;
+}
+
+// ---------- screens ----------
+const screens = {
+  home: () => `
+    <div class="title-row"><h2 class="page-title">Sunday</h2><small>Week 10 · 2 games left</small></div>
+    ${hero()}
+    <section><h3 class="eyebrow">Heads up</h3><div class="alerts">
+      <div class="alert fade"><span class="ic" style="background:rgba(255,92,108,.15);color:var(--bad)">!</span><div><p>Jordan Addison is on bye in your FLEX</p><small>Jauan Jennings (11.2 proj) is your best bench option.</small></div></div>
+      <div class="alert fade" style="animation-delay:40ms"><span class="ic" style="background:rgba(240,162,75,.15);color:var(--warn)">Q</span><div><p>Isiah Pacheco is questionable</p><small>Kickoff 4:25 ET. His projection already includes the discount.</small></div></div>
+    </div></section>
+    <button class="cta" data-go="lineup">Fix my lineup →</button>
+    <section><h3 class="eyebrow">How we've been doing</h3><div class="card acc fade">${ring(.62,46,5,'')}
+      <div><span class="stat">5.4</span> <small>pts off a typical week · closer than Sleeper on 58% of players</small></div></div></section>`,
+  matchup: () => `
+    <div class="title-row"><h2 class="page-title">Matchup</h2><small>vs Gridiron Gang</small></div>
+    ${hero()}
+    <section><h3 class="eyebrow">Head to head</h3>${starters.map((p,i)=>{ const o=theirs[i]; const mine=p.actual??0, them=o[3];
+      return `<div class="mb fade" style="animation-delay:${i*30}ms">
+        <div class="mcell ${mine>them?'lead':''}"><div class="n">${p.name}</div><div class="v"><span class="stat">${p.bye?'--':f1(p.actual??p.proj)}</span><small>${p.state==='pre'?'proj':'proj '+f1(p.proj)}</small></div></div>
+        <span class="slotc" style="background:${posVar(p.slot)}">${p.slot}</span>
+        <div class="mcell r ${them>mine?'lead':''}"><div class="n">${o[1]}</div><div class="v"><small>proj ${f1(o[4])}</small><span class="stat">${f1(o[3])}</span></div></div></div>`;}).join('')}</section>`,
+  lineup: () => `
+    <div class="title-row"><h2 class="page-title">Lineup</h2><small>tap a player for his week</small></div>
+    ${lineupCheck()}
+    ${shelf(starters)}
+    <section><h3 class="eyebrow">Starters</h3><div class="rows">${starters.map((p,i)=>playerRow(p,i)).join('')}</div></section>
+    <section><h3 class="eyebrow">Bench</h3><div class="rows">${bench.map((p,i)=>playerRow(p,i,true)).join('')}</div></section>`,
+  waivers: () => `<div class="empty"><div class="ico">⇄</div><h3>Waivers & trades</h3><p>Coming in Phase 2.</p></div>`,
+  chat: () => `<div class="empty"><div class="ico">✦</div><h3>Ask the war room</h3><p>Coming in Phase 3: "Should I start Robinson or Pacheco?" answered from your real data.</p></div>`,
+};
+const TABS = [['home','⌂','Home'],['matchup','⚔','Matchup'],['lineup','☰','Lineup'],['waivers','⇄','Waivers','P2'],['chat','✦','Chat','P3']];
+let cur = 'home';
+function render(){
+  $('#pillbar').innerHTML = TABS.map(([id,ico,l,s])=>`<button class="${id===cur?'on':''}" data-go="${id}"><span class="ico">${ico}</span>${l}${s?` <span class="soon">${s}</span>`:''}</button>`).join('');
+  $('#botnav').innerHTML = TABS.map(([id,ico,l])=>`<button class="${id===cur?'on':''}" data-go="${id}"><span class="pill">${ico}</span>${l}</button>`).join('');
+  $('#view').innerHTML = screens[cur]();
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.arc').forEach(a=>a.style.strokeDashoffset=a.dataset.to);
+    document.querySelectorAll('[data-count]').forEach(el=>{ const to=+el.dataset.count, t0=performance.now();
+      const step=t=>{ const k=Math.min(1,(t-t0)/700), e=1-Math.pow(1-k,3); el.textContent=(to*e).toFixed(1); if(k<1) requestAnimationFrame(step); }; requestAnimationFrame(step); });
+  });
+}
+document.addEventListener('click', e=>{
+  const go=e.target.closest('[data-go]'); if(go){ cur=go.dataset.go; render(); scrollTo(0,0); return; }
+  const tg=e.target.closest('[data-toggle]'); if(tg){ tg.parentElement.classList.toggle('open'); return; }
+  if(!e.target.closest('#leagueBtn')) $('#leagueMenu').classList.remove('show');
+});
+$('#leagueBtn').onclick = ()=> $('#leagueMenu').classList.toggle('show');
+$('#refreshBtn').onclick = ()=>{ const i=$('#refreshIco'); i.style.animation='spin .8s linear infinite'; $('#fresh').textContent='syncing…'; toast('Syncing in the background…');
+  setTimeout(()=>{ i.style.animation=''; $('#fresh').textContent='synced just now'; toast('League updated'); },1500); };
+const root=document.documentElement;
+if (matchMedia('(prefers-color-scheme: light)').matches) root.dataset.theme='light';
+const syncTheme=()=>$('#themeBtn').textContent = root.dataset.theme==='dark'?'☾':'☀';
+$('#themeBtn').onclick=()=>{ root.dataset.theme = root.dataset.theme==='dark'?'light':'dark'; syncTheme(); };
+syncTheme(); render();
+</script>
+</body>
+</html>

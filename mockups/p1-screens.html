@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FFCC — Phase 1 mockup</title>
+<style>
+  /* Semantic design tokens (ADR-023/024): components use these names only */
+  :root[data-theme="dark"] {
+    --surface:#0a0e16; --surface-2:#111827; --surface-3:#182133; --line:#243049;
+    --ink:#e8eef8; --ink-muted:#8d9ab0; --accent:#ffb21a; --accent-ink:#1a1200;
+    --positive:#2fd47a; --negative:#ff5a5f; --live:#ff3b47; --shadow:0 8px 30px rgba(0,0,0,.45);
+  }
+  :root[data-theme="light"] {
+    --surface:#f3f5f9; --surface-2:#ffffff; --surface-3:#eef1f6; --line:#d7dde8;
+    --ink:#0f1726; --ink-muted:#5b6578; --accent:#e09200; --accent-ink:#ffffff;
+    --positive:#15924f; --negative:#d63b40; --live:#e0242f; --shadow:0 8px 24px rgba(15,23,38,.12);
+  }
+  :root { --qb:#ef6461; --rb:#2fd4a0; --wr:#4fa3ff; --te:#f5a524; --k:#a78bfa; --def:#94a3b8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--surface); color:var(--ink);
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .num { font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+
+  /* Layout: phone-first; sidebar on wide screens (ADR-025) */
+  .app { max-width:460px; margin:0 auto; min-height:100vh; padding-bottom:84px; }
+  header { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px;
+           padding:12px 16px; background:var(--surface); border-bottom:1px solid var(--line); }
+  .brand { font-weight:900; letter-spacing:.08em; color:var(--accent); }
+  .league { background:none; border:none; font-weight:700; padding:6px 8px; border-radius:8px; }
+  .league:hover { background:var(--surface-3); }
+  .spacer { flex:1; }
+  .fresh { font-size:12px; color:var(--ink-muted); }
+  .icon-btn { width:36px; height:36px; border-radius:10px; border:1px solid var(--line); background:var(--surface-2); }
+  .spin { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  main { padding:16px; }
+  nav.tabs { position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:center;
+             background:var(--surface-2); border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom); }
+  nav.tabs .inner { display:flex; width:100%; max-width:460px; }
+  nav.tabs button { flex:1; background:none; border:none; padding:10px 0 12px; font-size:12px; color:var(--ink-muted);
+                    display:flex; flex-direction:column; align-items:center; gap:4px; min-height:60px; }
+  nav.tabs button .ico { font-size:20px; }
+  nav.tabs button.active { color:var(--accent); }
+  nav.tabs button .soon { font-size:9px; opacity:.7; }
+  @media (min-width: 900px) {
+    .app { max-width:1100px; display:grid; grid-template-columns:220px 1fr; padding-bottom:0; }
+    header { grid-column: 1 / -1; }
+    nav.tabs { position:sticky; top:61px; height:calc(100vh - 61px); border-top:none; border-right:1px solid var(--line);
+               background:var(--surface); justify-content:flex-start; }
+    nav.tabs .inner { flex-direction:column; padding:12px; gap:4px; }
+    nav.tabs button { flex:none; flex-direction:row; justify-content:flex-start; gap:12px; padding:12px; font-size:14px;
+                      border-radius:10px; min-height:auto; }
+    nav.tabs button.active { background:var(--surface-3); }
+    main { max-width:720px; padding:24px; }
+  }
+
+  /* Broadcast score bug */
+  .bug { background:linear-gradient(135deg, var(--surface-2), var(--surface-3)); border:1px solid var(--line);
+         border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+  .bug-top { display:flex; justify-content:space-between; align-items:center; padding:8px 14px;
+             background:var(--accent); color:var(--accent-ink); font-weight:800; font-size:12px; letter-spacing:.12em; }
+  .live { display:inline-flex; align-items:center; gap:6px; }
+  .live .dot { width:8px; height:8px; border-radius:50%; background:var(--live); box-shadow:0 0 0 3px rgba(255,59,71,.25);
+               animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  .bug-score { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:16px 14px 6px; gap:8px; }
+  .team { display:flex; flex-direction:column; gap:2px; }
+  .team.right { text-align:right; }
+  .team .name { font-size:13px; font-weight:700; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.06em; }
+  .team .score { font-size:40px; font-weight:800; line-height:1; }
+  .team .proj { font-size:12px; color:var(--ink-muted); }
+  .vs { font-size:12px; color:var(--ink-muted); font-weight:700; }
+  .wp { padding:8px 14px 14px; }
+  .wp-row { display:flex; justify-content:space-between; font-size:12px; color:var(--ink-muted); margin-bottom:6px; }
+  .wp-bar { height:8px; border-radius:6px; background:var(--surface); overflow:hidden; display:flex; }
+  .wp-bar .me { background:var(--accent); }
+  .wp-bar .opp { background:var(--line); flex:1; }
+
+  .section-title { margin:22px 0 10px; font-size:12px; font-weight:800; letter-spacing:.14em; color:var(--ink-muted); text-transform:uppercase; }
+  .card { background:var(--surface-2); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .alert { display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:12px; border:1px solid var(--line);
+           background:var(--surface-2); margin-bottom:8px; }
+  .alert .tag { font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; white-space:nowrap; }
+  .tag.bad { background:rgba(255,90,95,.15); color:var(--negative); }
+  .tag.warn { background:rgba(255,178,26,.15); color:var(--accent); }
+  .tag.good { background:rgba(47,212,122,.15); color:var(--positive); }
+  .alert p { margin:0; font-size:14px; }
+  .alert small { color:var(--ink-muted); }
+  .cta { width:100%; margin-top:8px; padding:14px; border-radius:12px; border:none; background:var(--accent); color:var(--accent-ink); font-weight:800; }
+
+  /* Player rows */
+  .row { display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line); }
+  .row:last-child { border-bottom:none; }
+  .row.click { cursor:pointer; border-radius:8px; }
+  .row.click:hover { background:var(--surface-3); }
+  .pos { font-size:11px; font-weight:800; text-align:center; padding:4px 0; border-radius:6px; color:#0a0e16; }
+  .pname { font-weight:650; font-size:15px; }
+  .pmeta { font-size:12px; color:var(--ink-muted); }
+  .pts { text-align:right; }
+  .pts .big { font-size:18px; font-weight:800; }
+  .pts .sub { font-size:11px; color:var(--ink-muted); }
+  .range { position:relative; height:6px; background:var(--surface); border-radius:4px; margin-top:6px; width:120px; margin-left:auto; }
+  .range .band { position:absolute; top:0; bottom:0; background:var(--line); border-radius:4px; }
+  .range .mid { position:absolute; top:-3px; width:2px; height:12px; background:var(--accent); }
+  .badge { font-size:10px; font-weight:800; padding:2px 6px; border-radius:5px; margin-left:6px; vertical-align:middle; }
+  .badge.out { background:rgba(255,90,95,.18); color:var(--negative); }
+  .badge.q { background:rgba(255,178,26,.18); color:var(--accent); }
+  .badge.bye { background:var(--surface-3); color:var(--ink-muted); }
+  .badge.rec { background:rgba(47,212,122,.18); color:var(--positive); }
+
+  /* Matchup side-by-side */
+  .mrow { display:grid; grid-template-columns:1fr 40px 1fr; gap:8px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .mrow:last-child { border-bottom:none; }
+  .mrow .r { text-align:right; }
+  .mrow .slot { text-align:center; font-size:11px; font-weight:800; color:var(--ink-muted); }
+  .mrow .pp { font-size:12px; color:var(--ink-muted); }
+  .up { color:var(--positive); }
+
+  .swap { border:1px solid var(--accent); background:linear-gradient(0deg, rgba(255,178,26,.06), rgba(255,178,26,.06)), var(--surface-2); }
+  .swap h4 { margin:0 0 6px; font-size:15px; }
+  .swap .delta { font-weight:800; color:var(--positive); }
+  .swap small { color:var(--ink-muted); }
+
+  .placeholder { text-align:center; padding:48px 20px; color:var(--ink-muted); }
+  .placeholder .big { font-size:44px; }
+
+  /* Bottom sheet: player detail */
+  .scrim { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:20; }
+  .sheet { position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:460px; background:var(--surface-2);
+           border-radius:20px 20px 0 0; padding:18px 18px 28px; z-index:21; transform:translateY(105%); transition:transform .25s ease;
+           box-shadow:var(--shadow); max-height:85vh; overflow:auto; }
+  .sheet.open { transform:none; }
+  .scrim.open { display:block; }
+  .grab { width:40px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 14px; }
+  .factor { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .factor small { display:block; color:var(--ink-muted); font-size:12px; margin-top:2px; }
+  .bigrange { position:relative; height:12px; background:var(--surface); border-radius:6px; margin:24px 0 8px; }
+  .bigrange .band { position:absolute; top:0; bottom:0; background:linear-gradient(90deg, var(--line), var(--accent), var(--line)); border-radius:6px; opacity:.8; }
+  .bigrange .lbl { position:absolute; top:-20px; font-size:11px; color:var(--ink-muted); transform:translateX(-50%); }
+
+  .toast { position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(20px); opacity:0;
+           background:var(--ink); color:var(--surface); padding:10px 16px; border-radius:10px; font-size:13px; font-weight:600;
+           transition:all .2s; z-index:30; pointer-events:none; }
+  .toast.show { opacity:1; transform:translateX(-50%); }
+  .mock-banner { text-align:center; font-size:11px; padding:6px; background:var(--surface-3); color:var(--ink-muted); }
+</style>
+</head>
+<body>
+<div class="mock-banner">FFCC Phase 1 mockup: sample data, nothing is connected</div>
+<div class="app">
+  <header>
+    <span class="brand">FFCC</span>
+    <button class="league" id="leagueBtn" title="Switch league">Work League ▾</button>
+    <span class="spacer"></span>
+    <span class="fresh" id="fresh">updated 3 min ago</span>
+    <button class="icon-btn" id="refreshBtn" title="Refresh league" aria-label="Refresh league"><span id="refreshIco">↻</span></button>
+    <button class="icon-btn" id="themeBtn" title="Toggle light/dark" aria-label="Toggle theme">☾</button>
+  </header>
+  <nav class="tabs"><div class="inner" id="tabs"></div></nav>
+  <main id="view"></main>
+</div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- sample data (fake) ----------
+const POS_COLOR = { QB:'var(--qb)', RB:'var(--rb)', WR:'var(--wr)', TE:'var(--te)', K:'var(--k)', DEF:'var(--def)' };
+const me  = { name:'My Team', score:112.4, proj:131.0 };
+const opp = { name:'Gridiron Gang', score:98.7, proj:117.5 };
+const WIN = 71;
+const myStarters = [
+  { slot:'QB',  pos:'QB',  name:'J. Allen',     team:'BUF', opp:'@MIA', pts:24.1, proj:22.4, p10:14.8, p90:31.2, status:'' },
+  { slot:'RB',  pos:'RB',  name:'B. Robinson',  team:'ATL', opp:'vs NO', pts:12.6, proj:17.1, p10:8.9,  p90:26.0, status:'' },
+  { slot:'RB',  pos:'RB',  name:'I. Pacheco',   team:'KC',  opp:'vs DEN', pts:null, proj:12.8, p10:5.1, p90:21.4, status:'Q' },
+  { slot:'WR',  pos:'WR',  name:'A. St. Brown', team:'DET', opp:'@GB',  pts:15.3, proj:16.0, p10:8.2,  p90:25.1, status:'' },
+  { slot:'WR',  pos:'WR',  name:'D. London',    team:'ATL', opp:'vs NO', pts:9.8,  proj:13.9, p10:5.5,  p90:22.7, status:'' },
+  { slot:'TE',  pos:'TE',  name:'S. LaPorta',   team:'DET', opp:'@GB',  pts:6.2,  proj:9.4,  p10:3.0,  p90:16.5, status:'' },
+  { slot:'FLEX',pos:'WR',  name:'J. Addison',   team:'MIN', opp:'BYE',  pts:null, proj:0,    p10:0,    p90:0,    status:'BYE' },
+  { slot:'K',   pos:'K',   name:'B. Aubrey',    team:'DAL', opp:'vs PHI', pts:8.0, proj:8.6,  p10:3.0,  p90:14.0, status:'' },
+  { slot:'DEF', pos:'DEF', name:'Steelers',     team:'PIT', opp:'@CLE', pts:7.0,  proj:7.9,  p10:1.0,  p90:16.0, status:'' },
+];
+const myBench = [
+  { slot:'BN', pos:'WR', name:'J. Jennings', team:'SF',  opp:'vs TB', pts:null, proj:11.2, p10:4.6, p90:19.8, status:'', rec:true },
+  { slot:'BN', pos:'RB', name:'T. Spears',   team:'TEN', opp:'@IND', pts:null, proj:8.1,  p10:2.9, p90:15.6, status:'' },
+  { slot:'BN', pos:'QB', name:'B. Purdy',    team:'SF',  opp:'vs TB', pts:null, proj:18.9, p10:11.0,p90:27.3, status:'' },
+];
+const oppStarters = [
+  ['QB','L. Jackson',18.3,23.9],['RB','S. Barkley',9.8,18.2],['RB','K. Walker',11.4,13.0],['WR','J. Chase',20.1,19.4],
+  ['WR','P. Nacua',8.6,15.2],['TE','T. Kelce',5.5,10.1],['FLEX','J. Cook',12.0,12.6],['K','J. Tucker',7.0,8.1],['DEF','49ers',6.0,7.0]
+];
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const fmt = n => n == null ? '–' : n.toFixed(1);
+function posChip(pos){ return `<div class="pos" style="background:${POS_COLOR[pos]}">${pos}</div>`; }
+function statusBadge(p){
+  if (p.status==='Q') return '<span class="badge q">Q</span>';
+  if (p.status==='OUT') return '<span class="badge out">OUT</span>';
+  if (p.status==='BYE') return '<span class="badge bye">BYE</span>';
+  return p.rec ? '<span class="badge rec">START</span>' : '';
+}
+function rangeBar(p, max=35){
+  if (!p.p90) return '';
+  const l = p.p10/max*100, w = (p.p90-p.p10)/max*100, m = p.proj/max*100;
+  return `<div class="range"><div class="band" style="left:${l}%;width:${w}%"></div><div class="mid" style="left:${m}%"></div></div>`;
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+
+function scoreBug(){
+  return `<div class="bug">
+    <div class="bug-top"><span>WEEK 10</span><span class="live"><span class="dot"></span>LIVE · SUN 4:12 Q3</span></div>
+    <div class="bug-score">
+      <div class="team"><span class="name">${me.name}</span><span class="score num">${fmt(me.score)}</span><span class="proj num">proj ${fmt(me.proj)}</span></div>
+      <span class="vs">VS</span>
+      <div class="team right"><span class="name">${opp.name}</span><span class="score num">${fmt(opp.score)}</span><span class="proj num">proj ${fmt(opp.proj)}</span></div>
+    </div>
+    <div class="wp"><div class="wp-row"><span>Win probability</span><span class="num"><b style="color:var(--accent)">${WIN}%</b> · ${100-WIN}%</span></div>
+      <div class="wp-bar"><div class="me" style="width:${WIN}%"></div><div class="opp"></div></div></div>
+  </div>`;
+}
+
+// ---------- screens ----------
+const screens = {
+  home(){
+    return scoreBug() + `
+    <div class="section-title">Alerts</div>
+    <div class="alert"><span class="tag bad">BYE</span><div><p><b>J. Addison</b> is on bye in your FLEX.</p><small>J. Jennings (11.2 proj) is your best bench option.</small></div></div>
+    <div class="alert"><span class="tag warn">QUESTIONABLE</span><div><p><b>I. Pacheco</b> is questionable (ankle).</p><small>Game at 4:25 ET. Projection already includes a discount.</small></div></div>
+    <div class="alert"><span class="tag good">ON TRACK</span><div><p>Your projected total leads by <b class="num">13.5</b>.</p><small>Starters left to play: 2 · Opponent: 1</small></div></div>
+    <button class="cta" data-go="lineup">Fix my lineup →</button>`;
+  },
+  matchup(){
+    const rows = myStarters.map((p,i)=>{
+      const o = oppStarters[i];
+      return `<div class="mrow">
+        <div><div>${p.name} ${statusBadge(p)}</div><div class="pp num">${p.pts==null?'not started':fmt(p.pts)+' pts'} · proj ${fmt(p.proj)}</div></div>
+        <div class="slot">${p.slot}</div>
+        <div class="r"><div>${o[1]}</div><div class="pp num">${fmt(o[2])} pts · proj ${fmt(o[3])}</div></div>
+      </div>`; }).join('');
+    return scoreBug() + `<div class="section-title">Starters</div><div class="card">${rows}</div>`;
+  },
+  lineup(){
+    const row = p => `<div class="row click" data-player="${p.name}">
+        ${posChip(p.pos)}
+        <div><div class="pname">${p.name}${statusBadge(p)}</div><div class="pmeta">${p.slot} · ${p.team} ${p.opp}</div></div>
+        <div class="pts"><div class="big num">${p.status==='BYE'?'—':fmt(p.proj)}</div><div class="sub num">${p.p90?fmt(p.p10)+'–'+fmt(p.p90):''}</div>${rangeBar(p)}</div>
+      </div>`;
+    return `
+      <div class="card swap">
+        <h4>Recommended: start J. Jennings over J. Addison</h4>
+        <div><span class="delta num">+11.2 pts</span> · <span class="num">win 71% → 78%</span></div>
+        <small>Addison is on bye. FFCC is read-only, so make the change in the Sleeper app.</small>
+      </div>
+      <div class="section-title">Starters · tap a player for details</div>
+      <div class="card">${myStarters.map(row).join('')}</div>
+      <div class="section-title">Bench</div>
+      <div class="card">${myBench.map(row).join('')}</div>`;
+  },
+  waivers(){ return `<div class="placeholder"><div class="big">🔎</div><h3>Waivers & trades</h3><p>Coming in Phase 2.</p></div>`; },
+  chat(){ return `<div class="placeholder"><div class="big">💬</div><h3>AI assistant</h3><p>Coming in Phase 3: ask "Should I start Robinson or Pacheco?" and get answers from your real data.</p></div>`; },
+};
+const TABS = [['home','⌂','Home'],['matchup','⚔','Matchup'],['lineup','☰','Lineup'],['waivers','⇄','Waivers','P2'],['chat','✦','Chat','P3']];
+let current = 'home';
+function render(){
+  $('#tabs').innerHTML = TABS.map(([id,ico,label,soon])=>`<button class="${id===current?'active':''}" data-go="${id}"><span class="ico">${ico}</span><span>${label}${soon?` <span class="soon">${soon}</span>`:''}</span></button>`).join('');
+  $('#view').innerHTML = screens[current]();
+}
+document.addEventListener('click', e=>{
+  const go = e.target.closest('[data-go]'); if (go){ current = go.dataset.go; render(); window.scrollTo(0,0); return; }
+  const pl = e.target.closest('[data-player]'); if (pl){ openPlayer(pl.dataset.player); }
+});
+
+// ---------- player detail sheet ----------
+function openPlayer(name){
+  const p = [...myStarters, ...myBench].find(x=>x.name===name); if (!p) return;
+  const max = 35;
+  const body = p.status==='BYE'
+    ? `<p style="color:var(--ink-muted)">On bye this week. Projection is 0.</p>`
+    : `<div class="bigrange"><div class="band" style="left:${p.p10/max*100}%;width:${(p.p90-p.p10)/max*100}%"></div>
+         <span class="lbl num" style="left:${p.p10/max*100}%">${fmt(p.p10)}</span>
+         <span class="lbl num" style="left:${p.proj/max*100}%;color:var(--accent);font-weight:800">${fmt(p.proj)}</span>
+         <span class="lbl num" style="left:${p.p90/max*100}%">${fmt(p.p90)}</span></div>
+       <small style="color:var(--ink-muted)">80% of outcomes land between ${fmt(p.p10)} and ${fmt(p.p90)} points.</small>
+       <div class="section-title">Why this number</div>
+       <div class="factor"><div>Recent form<small>Weighted average of last 4 games, league scoring</small></div><b class="num">${fmt(p.proj*0.96)}</b></div>
+       <div class="factor"><div>Opponent<small>${p.opp}: allows 6% more to ${p.pos}s than average</small></div><b class="num up">×1.06</b></div>
+       <div class="factor"><div>Role<small>Snap share 78%, depth chart #1</small></div><b class="num">×1.00</b></div>
+       <div class="factor"><div>Injury<small>${p.status==='Q'?'Questionable: discounted':'Healthy'}</small></div><b class="num">${p.status==='Q'?'×0.88':'×1.00'}</b></div>
+       <div class="factor" style="border-bottom:none"><div><b>Projection</b><small>Frozen at kickoff · model v1</small></div><b class="num" style="color:var(--accent)">${fmt(p.proj)}</b></div>`;
+  $('#sheet').innerHTML = `<div class="grab"></div>
+    <div style="display:flex;gap:12px;align-items:center">${posChip(p.pos)}<div><div class="pname" style="font-size:20px">${p.name}${statusBadge(p)}</div>
+    <div class="pmeta">${p.team} · Week 10 ${p.opp}</div></div></div>${body}`;
+  $('#sheet').classList.add('open'); $('#scrim').classList.add('open');
+}
+function closeSheet(){ $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); }
+$('#scrim').onclick = closeSheet;
+document.addEventListener('keydown', e=>{ if (e.key==='Escape') closeSheet(); });
+
+// ---------- header actions ----------
+$('#refreshBtn').onclick = ()=>{
+  const ico = $('#refreshIco'); ico.classList.add('spin'); $('#fresh').textContent='syncing…'; toast('Syncing league in the background…');
+  setTimeout(()=>{ ico.classList.remove('spin'); $('#fresh').textContent='updated just now'; toast('League updated'); }, 1600);
+};
+$('#leagueBtn').onclick = ()=> toast('League switcher: Work League · Family League · Dynasty');
+const root = document.documentElement;
+const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+if (prefersLight) root.dataset.theme = 'light';
+function syncThemeIcon(){ $('#themeBtn').textContent = root.dataset.theme==='dark' ? '☾' : '☀'; }
+$('#themeBtn').onclick = ()=>{ root.dataset.theme = root.dataset.theme==='dark' ? 'light' : 'dark'; syncThemeIcon(); };
+syncThemeIcon();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Keep LF line endings in the repo and in checkouts: files are run inside Linux containers.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

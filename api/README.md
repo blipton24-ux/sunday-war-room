@@ -1,0 +1,36 @@
+# api — FastAPI server + ARQ worker
+
+One Python codebase that runs as the API server or the background worker ([ADR-013](../docs/Decisions/ADR-013-Backend-FastAPI.md)).
+
+## Local setup
+```bash
+# from FFCC/: start Postgres (+pgvector) and Redis
+docker compose up -d db redis
+
+# from FFCC/api/
+python -m venv .venv
+.venv/Scripts/python -m pip install -e ".[dev]"      # macOS/Linux: .venv/bin/python
+.venv/Scripts/alembic upgrade head                   # build the schema in the dev database
+.venv/Scripts/uvicorn app.main:app --reload          # http://localhost:8000/health
+```
+
+> **Windows note:** on some CPUs the default Polars build hangs at import. If
+> `python -c "import polars"` never returns, install the compatibility build:
+> `pip install "polars[rtcompat]"`. Docker/Linux is unaffected.
+
+## Checks
+```bash
+.venv/Scripts/python -m pytest          # unit + integration (needs db + redis running)
+.venv/Scripts/ruff check . && .venv/Scripts/ruff format --check .
+.venv/Scripts/mypy app tests
+```
+Integration tests use the separate `swr_test` database and rebuild it from the
+Alembic migrations on every run, so the migrations are exercised too.
+
+## Schema changes
+Edit `app/db/models.py`, then:
+```bash
+.venv/Scripts/alembic revision --autogenerate -m "what changed"
+.venv/Scripts/alembic upgrade head
+```
+`tests/integration/test_schema.py` fails if models and migrations disagree.

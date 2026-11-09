@@ -1,0 +1,44 @@
+---
+title: "Projection Model (v1 spec)"
+date: 2026-11-08
+tags: [spec, model, data-science]
+---
+# Projection Model — v1
+
+Own model from nflverse data ([ADR-008](../Decisions/ADR-008-Own-Projection-Model.md)), a cleaner rebuild of the old project's lessons. Approved reuses (method only, rewritten, numbers refit): range method and grading definitions ([ADR-031](../Decisions/ADR-031-Approved-Reuses.md)).
+
+## Inputs
+- nflverse weekly player stats, schedules, depth charts, snap counts, player id crosswalk (via `nflreadpy`, through one source module with **schema contracts**).
+- Sleeper: rosters, injury status, league scoring rules.
+
+## Output per player-week (per scoring setup)
+`points` (median-ish point estimate), **range** `p10 / p50 / p90`, **factors** list, `model_version`, `computed_at`.
+
+## v1 method (simple, explainable)
+1. **Score history with the league's own rules.** Compute fantasy points from raw stat columns using each league's scoring settings; never trust a generic "PPR points" column. Unsupported rules are reported, not silently dropped.
+2. **Baseline:** weighted recent average of the player's games (recent weeks weigh more), blended with last season's per-game mean early in the season.
+3. **Opponent factor:** how much this week's opponent allows to the position vs league average, clamped (e.g. ±25%) and **faded toward 1.0 early in the season** (last season's defensive ratings barely predict this season's).
+4. **Role/depth adjustment:** depth-chart rank and recent snap share.
+5. **Injury discount:** OUT/IR → 0; Doubtful/Questionable → discounted.
+6. **Range:** turn the point estimate into a distribution from backtested errors (empirical residual quantiles by position, **per-position floors**, not a normal curve clipped at zero).
+
+Each step adds a `factor` entry: `{name, value, effect, note}`, shown in Player detail.
+
+## Lineup and matchup
+- **Optimal lineup:** fill slots to maximize projected points respecting eligibility (FLEX etc.). Swap suggestions pair each incoming starter with the specific player whose slot it takes.
+- **Win probability:** simulate both lineups jointly (~10k draws) from each player's range (v1: independent draws; correlations such as QB↔own receivers are a later upgrade).
+
+## Integrity rules (non-negotiable)
+- **Frozen at kickoff:** a projection is never overwritten once that player's game starts.
+- **Genuine-only grading:** accuracy counts only projections computed before kickoff.
+- **`model_version`** on every row, bumped in the same commit as any math change. Never compare or subtract projections from different versions.
+- **Two seasons in play:** the season stats come from vs the season being played are named separately and never assumed equal.
+- **Fail loudly** if an nflverse file or column disappears; never silently fall back to an older season.
+
+## Evaluation
+Backtest on past seasons (walk-forward: only data available before each week). Metrics: MAE by position, range coverage (80% interval should contain ~80%). A model change ships only if it beats the current one on held-out weeks without making any position notably worse.
+
+## Later upgrades (P2+)
+Per-position models on expected points/opportunity, player-level correlations in simulation, rookie priors, weekly auto-refit with a promotion gate, news as a measured factor.
+
+Related: [Lessons from Old Projects](../Lessons-from-Old-Projects.md) · [Data Model](Data-Model.md) · [Testing Levels](../Concepts/Testing-Levels.md)
