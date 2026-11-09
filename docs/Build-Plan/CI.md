@@ -18,7 +18,8 @@ tags: [build-plan, ci]
 - **WebKit (Safari's engine)** in the end-to-end suite: [P-14](Improvement-Backlog.md).
 - **Image pinning and vulnerability scanning**: [P-09](Improvement-Backlog.md), waiting on the owner's choice of scanner.
 - **Deploy**: Phase 5 adds `deploy.yml` ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)).
-- The workflow has not yet run on GitHub: [V-31](Verification-Gaps.md).
+- First run on GitHub (2026-11-09) passed all four jobs, about 6.5 minutes end to end.
+- GitHub warns that `actions/checkout@v4`, `setup-node@v4` and others still target Node 20 (forced onto Node 24); bump them when new major versions ship.
 
 ## Notes
 - ESLint's `react-hooks/set-state-in-effect` rule is a warning, not an error, for seven existing effects ([P-16](Improvement-Backlog.md)).

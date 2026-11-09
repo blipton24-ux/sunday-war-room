@@ -44,7 +44,6 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | ID | What isn't verified | Why not | How to test | Where | Status |
 |---|---|---|---|---|---|
 | V-23 | **Images on other processors** (Apple Silicon, ARM servers). Only built and run on this PC's x86 Docker. | One machine | Build and run on an ARM machine, or build multi-platform in CI; check what the hosting platform builds | CI / hosting platform | Open |
-| V-24 | **A build from nothing on a clean machine or CI runner** (no Docker cache). The first build here pulled base images, but the dependency caches were warm afterwards. | One machine | Run the CI build on a fresh runner; note the time | CI (step 15) | Open |
 | V-25 | **Restart and recovery**: stopping and restarting the stack keeps data (the `db-data` volume) and the worker resumes; a worker or api crash restarts under the hosting platform's rules. | Only a clean first start was tried | `docker compose down` then `up` (without `-v`); kill the worker mid-sync | By hand; hosting platform (P5) | Open |
 | V-26 | **Production settings**: the images with real secrets, a public HTTPS address, a real Resend key and Google OAuth. Locally everything ran with development secrets on `localhost`. | No domain or credentials yet | Deploy (P5) and sign in with both methods | Deploy | Open |
 | V-27 | **The container browser experience**: pages were fetched with `curl` and a browser earlier against the non-container build, but the container's `localhost:3000` site wasn't opened in a browser. | Efficiency; same code | Open it once in a browser after `docker compose up` | By hand | Open |
@@ -61,8 +60,6 @@ Things that are **built but not yet seen working** in a real browser or with rea
 
 | ID | What isn't verified | Why not | How to test | Where | Status |
 |---|---|---|---|---|---|
-| V-31 | **The workflow has never run on GitHub.** `.github/workflows/ci.yml` is written and its commands were run here one by one (ruff, mypy, OpenAPI and client checks, Vitest, ESLint, tsc), but this folder has no GitHub remote yet. The services-on-Linux parts (Postgres/Redis start, pytest, image builds, Playwright with its own Chromium) have not run on a runner. | No remote | Push to a GitHub repo; open the Actions tab; fix whatever fails | GitHub | Open |
-| V-32 | **pytest with coverage on Linux** (`--cov`) and the full end-to-end suite with Playwright's Chromium (locally it uses Edge). | Same | Same | GitHub | Open |
 
 ## Verified
 
@@ -81,5 +78,6 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-P11 | All 130 backend tests pass inside the image using exactly the locked package versions, against a real database and Redis | 2026-11-09 | `--target test` image on the stack's network |
 | V-P12 | Step 14 end-to-end suite, 62 tests in Edge against the full container stack with a seeded league: first-run onboarding (V-07), every screen with live, bye, questionable and boom states, swaps and alerts (V-02, V-04, V-05, V-06), fixture grades (V-11), phone size at 390 and 360 px with 44 px touch targets (V-01), both themes scanned by axe with no serious findings (V-10), header and Settings actions including unfollow and delete account (V-08, V-09), isolation between users, service worker, offline page and install card (V-20, V-21) | 2026-11-09 | `npm run e2e` in `web/` |
 | V-P13 | Playwright runs under Windows Smart App Control using the installed Edge (V-14) | 2026-11-09 | `PW_CHANNEL=msedge` |
+| V-C1 | CI passes on a GitHub runner from a clean state: lint, types, OpenAPI and client checks, 160 backend tests at 99% coverage, 71 web tests, both images build (3 min 48 s), 62 Playwright tests in Chromium (full stack build and tests, 5 min); whole run about 6.5 min | 2026-11-09 | GitHub Actions run 42716212296 on `main` |
 
 Related: [Improvement Backlog](Improvement-Backlog.md) · [P1 Build Plan](P1-Build-Plan.md) · [UI Screens](../Specs/UI-Screens.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)
