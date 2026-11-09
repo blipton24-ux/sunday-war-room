@@ -48,12 +48,12 @@ to Verified when it's tested.
 ## Status
 
 Vault written and pre-build decisions made (ADR-028 to ADR-033), 2026-11-08. Next: Phase 1 build per
-`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–14 done (backend complete: compose db+redis,
+`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–15 done (backend complete: compose db+redis,
 schema, auth, Sleeper adapter, worker + jobs, nflverse ingest, projection model v1 + backtest,
 matchup/lineup/accuracy endpoints, committed OpenAPI spec + generated TS client in
 `web/src/lib/api`, Next.js app with Better Auth sign-in, onboarding and the P1 screens);
 PWA manifest, icons, small service worker and install card); see `api/README.md` and `web/README.md`.
 Docker images for api (also the worker and the migration) and web, one `docker compose up --build`).
-Step 14 tests done: 160 backend tests (99% coverage), 71 web unit tests, 62 Playwright end-to-end tests (`web/e2e/README.md`). Next: step 15 (CI).
+Step 14 tests done: 160 backend tests (99% coverage), 71 web unit tests, 62 Playwright end-to-end tests (`web/e2e/README.md`). Step 15 (CI) written: `.github/workflows/ci.yml` + `docs/Build-Plan/CI.md`; not yet run on GitHub (no remote). Next: step 16 (deploy).
 Backend change workflow: edit the API, then `python -m app.scripts.export_openapi` and
 `npm run generate:api` (in `web/`), and commit `api/openapi.json` and the generated client together.

@@ -38,7 +38,7 @@ Each step ends with something runnable and tested.
 12. **PWA:** manifest, icons, service worker (installable).
 13. **Dockerfiles:** `web`, `api` (same image runs api or worker); full `docker compose up` works.
 14. **Tests:** fill gaps, starting with the open items in [Verification Gaps](Verification-Gaps.md); Playwright E2E for sign-in → connect Sleeper → matchup → lineup (real magic-link flow in E2E, no bypass; [ADR-040](../Decisions/ADR-040-End-to-End-Test-Approach.md)).
-15. **CI:** `ci.yml`: lint, type-check, unit, integration (Postgres + Redis services), build images, E2E.
+15. **CI** (done, not yet run on GitHub; see [CI](CI.md)): `ci.yml`: lint, type-check, unit, integration (Postgres + Redis services), build images, E2E.
 16. **Deploy:** owner picks the platform ([Open Questions](../Specs/Open-Questions.md) #1); managed Postgres + Redis; `deploy.yml` on merge to main (migrate, then roll out); domain + HTTPS; Google OAuth production credentials.
 17. **Docs:** update vault (any new ADRs, actual metrics), root README with live URL and screenshots.
 

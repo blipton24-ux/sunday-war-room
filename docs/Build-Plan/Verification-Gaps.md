@@ -57,6 +57,13 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-29 | **Keyboard-only and screen-reader use.** Axe checks about a third of accessibility problems automatically ([ADR-041](../Decisions/ADR-041-Accessibility-Standard.md)). | Needs a person | Tab through every screen; listen with VoiceOver or NVDA | By hand | Open |
 | V-30 | **Rate limits behind a real proxy.** Better Auth limits sign-in links per IP; behind the hosting proxy every visitor may look like one address unless it reads the forwarded-IP header (backlog P-13). | Only tested on localhost | Request several links from different networks on the deployed site | Deploy (step 16) | Open |
 
+## Added in step 15 (2026-11-09)
+
+| ID | What isn't verified | Why not | How to test | Where | Status |
+|---|---|---|---|---|---|
+| V-31 | **The workflow has never run on GitHub.** `.github/workflows/ci.yml` is written and its commands were run here one by one (ruff, mypy, OpenAPI and client checks, Vitest, ESLint, tsc), but this folder has no GitHub remote yet. The services-on-Linux parts (Postgres/Redis start, pytest, image builds, Playwright with its own Chromium) have not run on a runner. | No remote | Push to a GitHub repo; open the Actions tab; fix whatever fails | GitHub | Open |
+| V-32 | **pytest with coverage on Linux** (`--cov`) and the full end-to-end suite with Playwright's Chromium (locally it uses Edge). | Same | Same | GitHub | Open |
+
 ## Verified
 
 | ID | What | When | How |

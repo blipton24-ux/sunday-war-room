@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { FIXTURE_LEAGUE, MY_TEAM } from "./support/helpers";
 
-async function api<T = any>(page: Page, path: string): Promise<T> {
+async function api<T = unknown>(page: Page, path: string): Promise<T> {
   const res = await page.request.get(path);
   expect(res.status(), path).toBe(200);
   return res.json();

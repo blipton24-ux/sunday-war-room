@@ -1,0 +1,139 @@
+# Continuous integration (P1 step 15): every push and pull request runs the checks below.
+# A change merges only when all of them pass. What each job proves is in docs/Build-Plan/CI.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.13.7" # keep in step with api/Dockerfile
+
+jobs:
+  api:
+    name: API (lint, types, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: api/uv.lock
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Lock file matches pyproject.toml
+        run: uv lock --check
+      - name: Install exactly what the lock says
+        run: uv sync --frozen --extra dev
+      - name: Lint (ruff)
+        run: uv run ruff check .
+      - name: Type-check (mypy, strict)
+        run: uv run mypy app
+      - name: OpenAPI spec is up to date
+        run: uv run python -m app.scripts.export_openapi --check
+      # Same data services as local development; the compose file creates the swr_test database.
+      - name: Start Postgres and Redis
+        working-directory: .
+        run: docker compose up -d --wait db redis
+      - name: Unit and integration tests
+        run: uv run pytest -q --cov --cov-report=term-missing
+
+  web:
+    name: Web (lint, types, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Type-check (tsc)
+        run: npm run typecheck
+      - name: Generated API client matches the OpenAPI spec
+        run: npm run check:api
+      - name: Unit tests (Vitest)
+        run: npm test
+
+  images:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the api image (also runs the worker and the migration)
+        uses: docker/build-push-action@v6
+        with:
+          context: api
+          push: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+      - name: Build the web image
+        uses: docker/build-push-action@v6
+        with:
+          context: web
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+  e2e:
+    name: End-to-end (Playwright)
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build and start the full stack (seeded, stand-in Sleeper)
+        run: npm run e2e:up
+      - name: Run the end-to-end tests
+        run: npm run e2e
+      - name: Stack logs (on failure)
+        if: failure()
+        run: node e2e/stack.mjs logs
+      - name: Upload test report and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report
+            web/e2e/.results
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Stop the stack
+        if: always()
+        run: npm run e2e:down
