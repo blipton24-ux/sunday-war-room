@@ -51,8 +51,8 @@ Each step ends with something runnable and tested.
 - [ ] Every projection shows its factors; past weeks' projections don't change on refresh (frozen).
 - [ ] User B cannot see user A's league (test + manual check).
 - [ ] pytest, Vitest and Playwright pass locally **and** in GitHub Actions.
-- [ ] Merge to main auto-deploys; the same flow works on the live URL.
-- [ ] PWA installs on a phone; dark/light toggle works.
+- [ ] (Phase 5) Merge to main auto-deploys; the same flow works on the live URL.
+- [ ] PWA installs on a phone (needs a real HTTPS address, so P5); dark/light toggle works.
 - [ ] Backtest report committed (MAE by position, range coverage).
 
 Related: [P2–P4 Outline](P2-P4-Outline.md) · [Architecture](../Specs/Architecture.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)
