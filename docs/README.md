@@ -8,7 +8,7 @@ aliases: [Home, 00 Home]
 
 The source of truth for every decision, spec and explanation behind Sunday War Room. No code lives here. Start with the Product Vision, then skim the Decisions.
 
-**Status (2026-11-08):** 33 decisions made; pre-build questions answered; ready for the Phase 1 build ([ADR-026](Decisions/ADR-026-Execution-Order.md)).
+**Status (2026-11-08):** 34 decisions made; Phase 1 build in progress (backend done) ([ADR-026](Decisions/ADR-026-Execution-Order.md)).
 
 ## Start here
 - [Product Vision](Specs/Product-Vision.md): what Sunday War Room is, who it's for, its principles
@@ -16,7 +16,7 @@ The source of truth for every decision, spec and explanation behind Sunday War R
 - [Architecture](Specs/Architecture.md): the five services and how a request flows
 
 ## Sections
-- [Decisions](Decisions/INDEX.md): 33 ADRs, one per choice, with options and trade-offs
+- [Decisions](Decisions/INDEX.md): 34 ADRs, one per choice, with options and trade-offs
 - [Concepts](Concepts/INDEX.md): plain-language explainers for every technology used
 - [Specs](Specs/INDEX.md): vision, features, architecture, data model, API, UI, projection model, non-goals, open questions
 - [Build Plan](Build-Plan/INDEX.md): P1 step-by-step build + verification checklist; P2–P4 outline

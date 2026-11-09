@@ -47,6 +47,8 @@ Constants live in `api/app/model/projection.py`; fitted ranges in `api/app/model
 - Lineup: exact assignment (Hungarian algorithm), so overlapping flex slots are handled. Win probability: 10,000 seeded draws from a split normal through p10/p50/p90.
 
 ## Later upgrades (P2+)
+Decided to come after the P1 deploy, with the comparison that motivated them: [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md).
+
 Per-position models on expected points/opportunity, player-level correlations in simulation, rookie priors, weekly auto-refit with a promotion gate, news as a measured factor.
 
 Related: [Lessons from Old Projects](../Lessons-from-Old-Projects.md) · [Data Model](Data-Model.md) · [Testing Levels](../Concepts/Testing-Levels.md)

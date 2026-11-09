@@ -13,7 +13,7 @@ Each phase gets its own detailed plan, owner decisions and build after the previ
 - Trade analyzer for both sides, plus trade suggestions.
 - `poll_live_scores` job; live win probability; Matchup screen updates during games.
 - Web push: VAPID keys, `push_subscriptions`, `send_push_alerts` job, iPhone install prompt.
-- Model upgrades: correlated simulation (QB ↔ own receivers), possibly per-position opportunity models.
+- Model upgrades ([ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)): per-position expected-points models, depth-chart adjustments, defenses from betting totals, correlated simulation (QB ↔ own receivers). Each needs reuse approval (ADR-002) and must beat model 1.0.0 on held-out weeks, including the startable-player slice.
 
 ## P3 — AI assistant
 - Decide: news sources, embedding provider, daily message limit ([Open Questions](../Specs/Open-Questions.md) #9–11).

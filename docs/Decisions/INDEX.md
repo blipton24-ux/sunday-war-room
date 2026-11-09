@@ -45,5 +45,6 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-031 Approved reuses](ADR-031-Approved-Reuses.md): what's adapted from the earlier projects, and when
 - [ADR-032 Sunday War Room style](ADR-032-Visual-Sunday-War-Room-Style.md): flat Odyssey palette, player photos (replaces ADR-023)
 - [ADR-033 Name: Sunday War Room](ADR-033-Name-Sunday-War-Room.md): app name, logo, repo `sunday-war-room`
+- [ADR-034 Ship model v1, upgrade later](ADR-034-Ship-Model-v1-Upgrade-Later.md): P1 launches on model 1.0.0; upgrades after deploy, each gated on the backtest
 
 Up: [Home](../README.md)
