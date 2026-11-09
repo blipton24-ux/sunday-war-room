@@ -27,14 +27,14 @@ Each step ends with something runnable and tested.
 1. **Compose stack:** Postgres (pgvector image) + Redis in `docker-compose.yml`; `.env.example`.
 2. **API skeleton:** FastAPI app, config from env, `/health`, structured logging, pytest + ruff + mypy set up.
 3. **Database:** SQLAlchemy models from [Data Model](../Specs/Data-Model.md), first Alembic migration, test DB fixture.
-4. **Auth verification:** FastAPI dependency that verifies the Auth.js token → `current_user`; ownership helper; tenant-isolation test pattern.
+4. **Auth verification:** FastAPI dependency that verifies the web app's signed API token → `current_user`; ownership helper; tenant-isolation test pattern.
 5. **Adapter interface + Sleeper adapter:** `LeagueAdapter` protocol; Sleeper implementation with recorded-fixture tests ([Adapter Pattern](../Concepts/Adapter-Pattern.md)).
 6. **Worker + jobs:** ARQ settings, `sync_league` job, cron schedule, `sync_runs` tracking, job-status endpoint.
 7. **nflverse source module:** `nflreadpy` loads with schema contracts (fail loudly), player id crosswalk.
 8. **Projection model v1:** pure functions per [Projection Model](../Specs/Projection-Model.md): scoring with league rules, baseline, opponent, role, injury, range; unit tests; backtest script with MAE and coverage report.
 9. **Services + endpoints:** matchup, lineup optimizer + swap suggestions, win-probability simulation, accuracy; all routes in [API](../Specs/API.md).
 10. **OpenAPI → TS client:** generation script; CI check that it's up to date.
-11. **Next.js app:** Auth.js (Google + magic link, Postgres adapter), Tailwind + shadcn theme in the Sunday War Room style ([ADR-032](../Decisions/ADR-032-Visual-Sunday-War-Room-Style.md); reference: `mockups/p1-screens-v3.html`), bottom tabs + More menu, player headshots, onboarding, Home, Matchup, Lineup, Player detail, Accuracy, Settings ([UI Screens](../Specs/UI-Screens.md)).
+11. **Next.js app:** Better Auth (Google + magic link, our Postgres; [ADR-035](../Decisions/ADR-035-Auth-Better-Auth.md)), `/api/v1` pass-through to FastAPI ([ADR-036](../Decisions/ADR-036-API-Access-Through-Web-Server.md)), headshots via `next/image` ([ADR-037](../Decisions/ADR-037-Headshots-Next-Image-Cache.md)), Tailwind + shadcn theme in the Sunday War Room style ([ADR-032](../Decisions/ADR-032-Visual-Sunday-War-Room-Style.md); reference: `mockups/p1-screens-v3.html`), bottom tabs + More menu, player headshots, onboarding, Home, Matchup, Lineup, Player detail, Accuracy, Settings ([UI Screens](../Specs/UI-Screens.md)).
 12. **PWA:** manifest, icons, service worker (installable).
 13. **Dockerfiles:** `web`, `api` (same image runs api or worker); full `docker compose up` works.
 14. **Tests:** fill gaps; Playwright E2E for sign-in → connect Sleeper → matchup → lineup (test auth bypass in E2E only).

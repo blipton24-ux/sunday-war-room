@@ -8,7 +8,8 @@ tags: [spec, architecture]
 ## System diagram
 ```
                          ┌──────────────────────────────┐
-  Phone / browser ──────▶│ web: Next.js (TypeScript)    │  screens only; Auth.js sign-in
+  Phone / browser ──────▶│ web: Next.js (TypeScript)    │  screens + sign-in (Better Auth);
+                         │                              │  /api/v1/* pass-through adds token
   (PWA, service worker)  └──────────────┬───────────────┘
                                         │ REST /api/v1 (generated TS client) + signed token
                          ┌──────────────▼───────────────┐

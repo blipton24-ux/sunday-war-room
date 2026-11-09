@@ -44,11 +44,11 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 
 | ID | Item | Evidence | Priority | Needs | Status |
 |---|---|---|---|---|---|
-| U-01 | **Player headshots**: loaded straight from ESPN's image CDN. Decide whether to cache or proxy them, and add an initials fallback for missing images (a rookie without an ESPN ID has no photo; defenses use team logos). | [Open question #13](../Specs/Open-Questions.md); the API returns direct ESPN URLs; CJ Daniels has no ESPN ID | Med | An owner decision with a side-by-side (ADR-003) | Open |
 | U-02 | **Accuracy page before the first graded week.** It is empty until a week of genuine pre-kickoff projections finishes, so it needs an honest empty state that says what is measured and when numbers will appear. | The API returns `n: 0` and null metrics until then | Med | Copy and a layout for the empty state | Open |
 | U-03 | **Show scoring rules we can't score.** The matchup, lineup and player endpoints return `unsupported_rules`; the UI should say so near the projection instead of hiding it. | API contract; relates to M-12 | Med | Wording | Open |
 | U-04 | **Games in progress.** A player whose game has started shows the pre-game projection and no partial score. Label it clearly until live scores exist (P2). | `game_status: in_progress` has no points attached | Low (P2) | Live dashboard design | Open |
 | U-05 | **Explain the numbers on screen**: "why this number" factors, the 80% range, and "frozen at kickoff" need one short plain-language explanation reachable from every projection. | The API returns `factors`, ranges and `frozen`; the mockup shows chips | Med | Copy | Open |
+| U-06 | **Check ESPN's terms for showing their player images** in a public app before launch. If they don't allow it, switch to stored copies or another image source (option C in ADR-037). | ADR-037 trade-offs | **High** (before public launch) | Read the terms; owner decision if a change is needed | Open |
 
 ## Platform and tooling
 
@@ -63,6 +63,6 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 
 | ID | Item | Where |
 |---|---|---|
-| (none yet) | | |
+| U-01 | Player headshots: decided to serve them through the Next.js image cache with an initials fallback | [ADR-037](../Decisions/ADR-037-Headshots-Next-Image-Cache.md) |
 
 Related: [Backtest Report](Backtest-Report.md) · [P1 Build Plan](P1-Build-Plan.md) · [P2–P4 Outline](P2-P4-Outline.md) · [Projection Model](../Specs/Projection-Model.md) · [Open Questions](../Specs/Open-Questions.md) · [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)

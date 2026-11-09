@@ -16,7 +16,7 @@ questions using your league's real data and Sunday War Room's own projection mod
 | Backend | Python FastAPI (API server + background worker) |
 | API | REST + OpenAPI, generated TypeScript client |
 | Data | PostgreSQL (+ pgvector), Redis job queue (ARQ) |
-| Auth | Auth.js — Google sign-in + email magic links |
+| Auth | Better Auth — Google sign-in + email magic links |
 | AI | Claude tool-using agent + news retrieval (RAG) |
 | Quality | pytest, Vitest, Playwright, GitHub Actions CI/CD |
 | Ops | Docker + Compose, deployed to a container platform |

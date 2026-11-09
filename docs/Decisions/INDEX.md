@@ -26,7 +26,7 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-014 API: REST + OpenAPI](ADR-014-API-REST-OpenAPI.md): generated TS client
 - [ADR-015 Database: PostgreSQL](ADR-015-Database-PostgreSQL.md): SQLAlchemy + Alembic
 - [ADR-016 Ingestion: job queue](ADR-016-Ingestion-Job-Queue.md): Redis + ARQ
-- [ADR-017 Auth: Auth.js](ADR-017-Auth-AuthJS.md): Google + magic links
+- [ADR-017 Auth: Auth.js](ADR-017-Auth-AuthJS.md): Google + magic links (library superseded by ADR-035)
 - [ADR-018 AI: agent + RAG](ADR-018-AI-Agent-With-RAG.md): Claude, tools, pgvector news search
 - [ADR-019 Testing](ADR-019-Testing.md): unit + integration + E2E
 - [ADR-020 Docker + Compose](ADR-020-Docker-Compose.md): five containers
@@ -46,5 +46,8 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-032 Sunday War Room style](ADR-032-Visual-Sunday-War-Room-Style.md): flat Odyssey palette, player photos (replaces ADR-023)
 - [ADR-033 Name: Sunday War Room](ADR-033-Name-Sunday-War-Room.md): app name, logo, repo `sunday-war-room`
 - [ADR-034 Ship model v1, upgrade later](ADR-034-Ship-Model-v1-Upgrade-Later.md): P1 launches on model 1.0.0; upgrades after deploy, each gated on the backtest
+- [ADR-035 Better Auth](ADR-035-Auth-Better-Auth.md): sign-in library (supersedes ADR-017's library choice)
+- [ADR-036 API access through the web server](ADR-036-API-Access-Through-Web-Server.md): the browser never holds the API token
+- [ADR-037 Headshots via the Next.js image cache](ADR-037-Headshots-Next-Image-Cache.md): resized, cached ESPN images with initials fallback (closes open question #13)
 
 Up: [Home](../README.md)

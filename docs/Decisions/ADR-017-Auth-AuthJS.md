@@ -2,9 +2,12 @@
 title: "ADR-017: Auth — Auth.js with Google + magic links"
 date: 2026-11-08
 tags: [adr, auth, security]
-status: accepted
+status: superseded
 ---
 # ADR-017: Auth — Auth.js (Google sign-in + email magic links)
+
+> [!NOTE]
+> **The library choice is superseded by [ADR-035](ADR-035-Auth-Better-Auth.md) (Better Auth), 2026-11-09.** Everything else here still holds: Google + magic links, users in our PostgreSQL, a signed token verified by FastAPI. How the token reaches the API: [ADR-036](ADR-036-API-Access-Through-Web-Server.md).
 
 ## Context
 A public product needs sign-up/login (**authentication**: who are you?) and per-user data isolation (**authorization**: what may you see?). Authorization is the same whichever option is picked: every row has a `user_id` checked on every request. Full explanation: [Auth, OAuth and Tokens](../Concepts/Auth-OAuth-Tokens.md).
