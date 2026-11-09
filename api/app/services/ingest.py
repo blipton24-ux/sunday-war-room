@@ -146,12 +146,32 @@ async def apply_crosswalk(db: AsyncSession, ids: pl.DataFrame) -> int:
     return len(changes)
 
 
+async def fill_espn_ids(db: AsyncSession, ids: pl.DataFrame) -> int:
+    """ESPN ids (used for headshots, ADR-032) where Sleeper didn't provide one."""
+    mapping = {
+        r["sleeper_id"]: r["espn_id"]
+        for r in ids.filter(
+            pl.col("sleeper_id").is_not_null() & pl.col("espn_id").is_not_null()
+        ).iter_rows(named=True)
+    }
+    rows = await db.execute(
+        select(Player.id, Player.sleeper_id).where(
+            Player.espn_id.is_(None), Player.sleeper_id.is_not(None)
+        )
+    )
+    updates = [{"id": pid, "espn_id": mapping[sid]} for pid, sid in rows if sid in mapping]
+    if updates:
+        await db.execute(update(Player), updates)
+    return len(updates)
+
+
 async def ingest_nflverse(db: AsyncSession, seasons: Sequence[int]) -> dict[str, int]:
     frames = await asyncio.to_thread(fetch_frames, seasons)
     games = await upsert_games(db, frames.schedule)
     stats = await replace_week_stats(db, stats_rows(frames))
     linked = await apply_crosswalk(db, frames.ids)
+    espn = await fill_espn_ids(db, frames.ids)
     await db.commit()
-    result = {"games": games, "player_weeks": stats, "players_linked": linked}
+    result = {"games": games, "player_weeks": stats, "players_linked": linked, "espn_ids": espn}
     log.info("nflverse_ingested", seasons=list(seasons), **result)
     return result

@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.base import LeagueAdapter, LeagueData, MatchupData, PlayerData, RosterSpot
 from app.db.models import League, Matchup, Player, RosterEntry, Team
 from app.logging import get_logger
+from app.model.scoring import scoring_key
 
 log = get_logger("sync")
 BATCH = 1000
@@ -92,6 +93,7 @@ async def upsert_league(db: AsyncSession, data: LeagueData, current_week: int | 
         name=data.ref.name,
         avatar_url=data.avatar_url,
         scoring_rules=data.scoring_rules,
+        scoring_key=scoring_key(data.scoring_rules),
         roster_slots=data.roster_slots,
         current_week=current_week,
     )
@@ -102,6 +104,7 @@ async def upsert_league(db: AsyncSession, data: LeagueData, current_week: int | 
             "name": ex.name,
             "avatar_url": ex.avatar_url,
             "scoring_rules": ex.scoring_rules,
+            "scoring_key": ex.scoring_key,
             "roster_slots": ex.roster_slots,
             "current_week": ex.current_week,
         },

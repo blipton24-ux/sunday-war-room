@@ -134,6 +134,8 @@ class League(Base):
     name: Mapped[str] = mapped_column(String(255))
     avatar_url: Mapped[str | None] = mapped_column(Text)
     scoring_rules: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    # Hash of scoring_rules (app/model/scoring.py): leagues sharing it share projections.
+    scoring_key: Mapped[str | None] = mapped_column(String(64), index=True)
     roster_slots: Mapped[list[str]] = mapped_column(JSONB, default=list)
     current_week: Mapped[int | None] = mapped_column(Integer)
     last_synced_at: Mapped[datetime | None] = mapped_column(TZ)

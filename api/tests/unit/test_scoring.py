@@ -85,9 +85,8 @@ def test_vectorized_matches_single_rows() -> None:
         ]
     )
     vec = score(df, HALF_PPR).tolist()
-    singles = [
-        score_one({str(k): v for k, v in r.items() if k != "position" and pd.notna(v)}, r["position"],
-                  HALF_PPR)
-        for r in df.to_dict("records")
-    ]  # fmt: skip
+    singles = []
+    for r in df.to_dict("records"):
+        stats = {str(k): v for k, v in r.items() if k != "position" and pd.notna(v)}
+        singles.append(score_one(stats, str(r["position"]), HALF_PPR))
     assert vec == pytest.approx(singles)

@@ -13,7 +13,7 @@ from app.config import get_settings
 from app.errors import install_error_handlers
 from app.logging import configure_logging, get_logger
 from app.queue import close_queue
-from app.routers import jobs, leagues, me, platforms
+from app.routers import jobs, leagues, me, platforms, views
 
 settings = get_settings()
 configure_logging(settings.log_level, json=settings.environment != "development")
@@ -33,7 +33,7 @@ app = FastAPI(
     description="Read-only fantasy football assistant API. All data routes live under /api/v1.",
 )
 install_error_handlers(app)
-for router in (me.router, platforms.router, leagues.router, jobs.router):
+for router in (me.router, platforms.router, leagues.router, jobs.router, views.router):
     app.include_router(router)
 app.add_middleware(
     CORSMiddleware,

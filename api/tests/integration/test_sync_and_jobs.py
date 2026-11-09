@@ -95,7 +95,8 @@ async def test_sync_job_first_run_backfills_history(db: AsyncSession, ctx: dict[
 
     result = await sync_league_job(ctx, run.id, league.id)
 
-    assert result == {"league_id": league.id, "week": 9}
+    assert result["league_id"] == league.id and result["week"] == 9
+    assert result["computed"] == 313  # every rostered player was projected after the sync
     assert await count(db, Player) > 250  # players were stale (empty) so they were loaded
     # First sync back-fills weeks 1..8 plus the current week.
     weeks = (await db.scalars(select(Matchup.week).distinct())).all()

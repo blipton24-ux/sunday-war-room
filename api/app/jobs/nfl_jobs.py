@@ -6,6 +6,7 @@ from typing import Any
 
 from app.config import get_settings
 from app.jobs.tracking import create_run, run_tracked
+from app.services.grading import grade_finished
 from app.services.ingest import ingest_nflverse
 from app.sources.nflverse import current_season
 
@@ -28,6 +29,8 @@ async def ingest_nflverse_job(ctx: Ctx, run_id: int | None = None, full: bool = 
     seasons = seasons_to_load(current) if full else [current]
 
     async def body(db: Any) -> dict[str, Any]:
-        return {"seasons": seasons, **await ingest_nflverse(db, seasons)}
+        loaded = await ingest_nflverse(db, seasons)
+        graded = await grade_finished(db, current)
+        return {"seasons": seasons, **loaded, "graded": graded}
 
     return await run_tracked(sm, run_id, body, job_try=ctx.get("job_try", 1))

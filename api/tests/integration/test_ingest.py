@@ -41,7 +41,7 @@ def frames(receiving_yards: float = 80.0) -> NflverseFrames:
                 "opponent": "KC", "def_sacks": 3.0, "points_allowed": 17.0}]
     )  # fmt: skip
     snaps = pl.DataFrame({"gsis_id": ["00-1"], "season": [2026], "week": [1], "offense_pct": [0.9]})
-    ids = pl.DataFrame({"gsis_id": ["00-1"], "sleeper_id": ["9001"]})
+    ids = pl.DataFrame({"gsis_id": ["00-1"], "sleeper_id": ["9001"], "espn_id": ["4426515"]})
     return NflverseFrames(schedule, player_stats, defense, snaps, ids)
 
 
@@ -74,6 +74,8 @@ async def test_ingest_is_idempotent_and_links_players(
 
     links = dict((await db.execute(select(Player.sleeper_id, Player.gsis_id))).all())
     assert links == {"9001": "00-1", "LAR": "TEAM_LA", "7777": None}
+    espn = dict((await db.execute(select(Player.sleeper_id, Player.espn_id))).all())
+    assert espn["9001"] == "4426515"  # filled for headshots
     assert second["players_linked"] == 0  # nothing changed the second time
 
 

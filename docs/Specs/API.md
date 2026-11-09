@@ -20,16 +20,18 @@ REST + OpenAPI ([ADR-014](../Decisions/ADR-014-API-REST-OpenAPI.md)). Every endp
 | DELETE | `/api/v1/leagues/{id}` | Unfollow |
 | POST | `/api/v1/leagues/{id}/refresh` | Enqueue sync → returns `{job_id}` (202 Accepted) |
 | GET | `/api/v1/jobs/{job_id}` | Job status (queued/running/done/failed) + small `result`; visible to the requester and members of the job's league |
-| GET | `/api/v1/leagues/{id}/matchup?week=` | Head-to-head: both lineups, projections, ranges, win probability, scores |
+| GET | `/api/v1/leagues/{id}/matchup?week=` | Head-to-head: both lineups, projections, ranges, win probability, scores. 409 `team_not_chosen` until my team is set |
 | GET | `/api/v1/leagues/{id}/lineup?week=` | My lineup: current vs optimal, swap suggestions |
-| GET | `/api/v1/players/{id}/projection?league_id=&week=` | One projection with factors and range |
+| GET | `/api/v1/players/{id}/projection?league_id=&week=` | One projection with factors and range, plus the last 4 games scored with the league's rules. Membership of `league_id` is checked (404) |
 | GET | `/api/v1/leagues/{id}/accuracy` | Graded past weeks (genuine predictions only) |
 
 ## Conventions
 - JSON, snake_case on the wire; the generated TS client exposes the same names.
 - Errors: `{ "detail": "...", "code": "..." }` with proper HTTP status codes.
 - Long work never happens in a request: it's **202 + job id**.
-- Data responses include `as_of` (last sync time) so the UI can show freshness.
+- Data responses include `as_of` (last sync time) so the UI can show freshness, and `model_version`.
+- Player rows carry `game_status` (upcoming / in_progress / final / bye); players whose game started are locked in lineup suggestions. `actual_points` is filled from nflverse once a game is final.
+- Screens list `unsupported_rules`: league scoring rules that aren't scored yet (shown, never hidden).
 - Rate limiting per user on refresh endpoints (and the P3 chat): one manual refresh per league per minute; a refresh while a sync is already queued returns that job instead of starting another.
 
 Related: [REST vs GraphQL](../Concepts/REST-vs-GraphQL.md) · [Data Model](Data-Model.md) · [UI Screens](UI-Screens.md)

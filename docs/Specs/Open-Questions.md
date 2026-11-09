@@ -20,7 +20,7 @@ Not blocking Step 1. Each is decided by the owner (explain → side-by-side → 
 | 9 | News sources for RAG (licensing, coverage, athlete-id tagging) | P3 spec | Old project used ESPN's public news, tagged by athlete id |
 | 10 | Embedding model/provider for RAG | P3 spec | |
 | 11 | AI daily message limit value | P3 spec | Cost-driven |
-| 13 | Player headshots: cache/proxy ESPN's image CDN vs another source; fallback to initials | P1 build | Mockup v3 loads ESPN headshots directly ([ADR-032](../Decisions/ADR-032-Visual-Sunday-War-Room-Style.md)) |
+| 13 | Player headshots: cache/proxy ESPN's image CDN vs another source; fallback to initials | P1 build (web step) | The API currently returns direct ESPN headshot/logo URLs (ESPN ids filled from nflverse), matching mockup v3 ([ADR-032](../Decisions/ADR-032-Visual-Sunday-War-Room-Style.md)). Proxy vs direct still to decide |
 | 12 | ESPN cookie capture flow for a web app (old one used a desktop window) | P4 spec | Security: encrypt at rest |
 
 Related: [Features by Phase](Features-by-Phase.md) · [ADR-022 Hosting](../Decisions/ADR-022-Hosting-Container-Platform.md) · [ADR-018 AI](../Decisions/ADR-018-AI-Agent-With-RAG.md)

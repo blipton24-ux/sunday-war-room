@@ -84,3 +84,119 @@ class TeamOut(Schema):
     wins: int
     losses: int
     ties: int
+
+
+# --------------------------------------------------------------------------- projections & views
+class Factor(Schema):
+    name: str  # baseline / opponent / role / depth / injury / bye
+    value: float
+    effect: float  # points this step added (+) or removed (-)
+    note: str
+
+
+class ProjectionOut(Schema):
+    points: float
+    p10: float
+    p50: float
+    p90: float
+    frozen: bool
+    computed_at: datetime
+    model_version: str
+
+
+class PlayerLine(Schema):
+    player_id: int
+    name: str
+    position: str | None
+    nfl_team: str | None
+    headshot_url: str | None
+    slot: str
+    injury_status: str | None
+    opponent: str | None  # "@KC" / "vs KC"; None = bye
+    kickoff_at: datetime | None
+    game_status: Literal["upcoming", "in_progress", "final", "bye"]
+    projection: ProjectionOut | None
+    actual_points: float | None  # final games only (nflverse)
+
+
+class TeamSide(Schema):
+    team_id: int
+    name: str
+    owner_name: str | None
+    avatar_url: str | None
+    record: str
+    score: float | None  # as of the last Sleeper sync
+    projected_total: float  # final games' actual points + everyone else's projection
+    starters: list[PlayerLine]
+
+
+class WinOutlook(Schema):
+    win_probability: float  # my chance, 0-1
+    my_median: float
+    opponent_median: float
+    my_range: tuple[float, float]  # p10, p90 of my total
+    opponent_range: tuple[float, float]
+
+
+class MatchupOut(Schema):
+    league_id: int
+    week: int
+    as_of: datetime | None
+    model_version: str
+    me: TeamSide
+    opponent: TeamSide | None  # None = no opponent this week
+    outlook: WinOutlook | None
+    unsupported_rules: list[str]
+
+
+class SwapOut(Schema):
+    slot: str
+    player_in: PlayerLine
+    player_out: PlayerLine | None
+    gain: float
+
+
+class LineupOut(Schema):
+    league_id: int
+    week: int
+    as_of: datetime | None
+    model_version: str
+    starters: list[PlayerLine]
+    bench: list[PlayerLine]
+    optimal: list[tuple[str, int | None]]  # (slot, player_id) in league slot order
+    swaps: list[SwapOut]
+    current_points: float
+    optimal_points: float
+    win_probability_current: float | None
+    win_probability_optimal: float | None
+
+
+class GameLine(Schema):
+    week: int
+    opponent: str | None
+    points: float
+
+
+class PlayerProjectionOut(Schema):
+    player: PlayerLine
+    factors: list[Factor]
+    recent_games: list[GameLine]  # this season, scored with the league's rules
+    unsupported_rules: list[str]
+
+
+class AccuracyWeek(Schema):
+    week: int
+    n: int
+    mae: float
+    coverage_80: float
+
+
+class AccuracyOut(Schema):
+    league_id: int
+    model_version: str
+    n: int
+    mae: float | None
+    bias: float | None
+    coverage_80: float | None
+    by_position: dict[str, dict[str, float]]
+    weeks: list[AccuracyWeek]
