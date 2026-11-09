@@ -23,4 +23,4 @@ Not blocking Step 1. Each is decided by the owner (explain → side-by-side → 
 | 13 | Player headshots: cache/proxy ESPN's image CDN vs another source; fallback to initials | P1 build (web step) | The API currently returns direct ESPN headshot/logo URLs (ESPN ids filled from nflverse), matching mockup v3 ([ADR-032](../Decisions/ADR-032-Visual-Sunday-War-Room-Style.md)). Proxy vs direct still to decide |
 | 12 | ESPN cookie capture flow for a web app (old one used a desktop window) | P4 spec | Security: encrypt at rest |
 
-Related: [Features by Phase](Features-by-Phase.md) · [ADR-022 Hosting](../Decisions/ADR-022-Hosting-Container-Platform.md) · [ADR-018 AI](../Decisions/ADR-018-AI-Agent-With-RAG.md)
+Related: [Improvement Backlog](../Build-Plan/Improvement-Backlog.md) (known improvements, as opposed to open decisions) · [Features by Phase](Features-by-Phase.md) · [ADR-022 Hosting](../Decisions/ADR-022-Hosting-Container-Platform.md) · [ADR-018 AI](../Decisions/ADR-018-AI-Agent-With-RAG.md)

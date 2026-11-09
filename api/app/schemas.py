@@ -10,6 +10,13 @@ class Schema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ErrorOut(Schema):
+    """Every error the API returns has this shape (app/errors.py)."""
+
+    detail: str
+    code: str  # stable machine-readable code, e.g. league_not_found, rate_limited
+
+
 class MembershipOut(Schema):
     league_id: int
     league_name: str

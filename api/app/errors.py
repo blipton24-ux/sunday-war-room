@@ -1,9 +1,29 @@
 """One error shape for the whole API: {"detail": "...", "code": "..."} (docs/Specs/API.md)."""
 
+from typing import Any
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+
+def error_responses() -> dict[int | str, dict[str, Any]]:
+    """OpenAPI `responses` for authenticated routers, so the generated client types errors.
+
+    Declared on routers, not per route: every code here can occur somewhere in the router,
+    and they all share one body shape.
+    """
+    from app.schemas import ErrorOut  # local import: schemas must not depend on errors
+
+    descriptions = {
+        401: "Missing, invalid or expired token",
+        404: "Not found (also returned for another user's league)",
+        409: "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+        422: "Invalid request",
+        429: "Rate limited",
+    }
+    return {code: {"model": ErrorOut, "description": d} for code, d in descriptions.items()}
 
 
 class ApiError(Exception):

@@ -3,10 +3,10 @@ from sqlalchemy import select
 
 from app.auth.deps import DB, CurrentUser
 from app.db.models import LeagueMembership, SyncRun
-from app.errors import NotFound
+from app.errors import NotFound, error_responses
 from app.schemas import JobOut
 
-router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
+router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"], responses=error_responses())
 
 
 @router.get("/{job_id}", response_model=JobOut)

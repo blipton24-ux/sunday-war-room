@@ -1,0 +1,2414 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sunday War Room API",
+    "description": "Read-only fantasy football assistant API. All data routes live under /api/v1.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Get Me",
+        "description": "The signed-in user and the leagues they follow.",
+        "operationId": "get_me",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Delete Me",
+        "description": "Delete the account and everything owned by it.\n\nMemberships, platform links and Auth.js sessions cascade from `users`. Shared league and\nNFL data stay: they belong to no single user.",
+        "operationId": "delete_me",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platforms/sleeper/connect": {
+      "post": {
+        "tags": [
+          "platforms"
+        ],
+        "summary": "Connect Sleeper",
+        "description": "Look up a Sleeper username and its leagues for the current season.\n\nRuns in the worker (the API never calls Sleeper during a request). Poll\nGET /api/v1/jobs/{job_id}; when done, `result.leagues` lists what can be followed.",
+        "operationId": "connect_sleeper",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SleeperConnectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues": {
+      "get": {
+        "tags": [
+          "leagues"
+        ],
+        "summary": "List Leagues",
+        "operationId": "list_leagues",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LeagueOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Leagues"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "leagues"
+        ],
+        "summary": "Follow League",
+        "description": "Follow a league found by the user's latest Sleeper connect, then sync it.",
+        "operationId": "follow_league",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowLeagueIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowLeagueOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}/teams": {
+      "get": {
+        "tags": [
+          "leagues"
+        ],
+        "summary": "List Teams",
+        "description": "Teams in a league (for choosing \"my team\").",
+        "operationId": "list_teams",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamOut"
+                  },
+                  "title": "Response List Teams"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}": {
+      "patch": {
+        "tags": [
+          "leagues"
+        ],
+        "summary": "Set My Team",
+        "operationId": "set_my_team",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMyTeamIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "leagues"
+        ],
+        "summary": "Unfollow League",
+        "operationId": "unfollow_league",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}/refresh": {
+      "post": {
+        "tags": [
+          "leagues"
+        ],
+        "summary": "Refresh League",
+        "description": "Queue a sync now. Returns the running job if one is already in flight.\n\nRate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS).",
+        "operationId": "refresh_league",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job",
+        "description": "Status of a background job. Visible to whoever asked for it, or to members of its league.",
+        "operationId": "get_job",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}/matchup": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Get Matchup",
+        "description": "Head-to-head: both lineups with projections and ranges, win probability, scores.",
+        "operationId": "get_matchup",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 18,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the current week",
+              "title": "Week"
+            },
+            "description": "Defaults to the current week"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchupOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}/lineup": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Get Lineup",
+        "description": "My lineup: current vs optimal, swap suggestions, win chance before/after.",
+        "operationId": "get_lineup",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 18,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the current week",
+              "title": "Week"
+            },
+            "description": "Defaults to the current week"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineupOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}/accuracy": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Get Accuracy",
+        "description": "How frozen, pre-kickoff projections compared with actual results in past weeks.",
+        "operationId": "get_accuracy",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccuracyOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/players/{player_id}/projection": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Get Player Projection",
+        "description": "One player's projection with every factor, range, and recent games.",
+        "operationId": "get_player_projection",
+        "parameters": [
+          {
+            "name": "player_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Player Id"
+            }
+          },
+          {
+            "name": "league_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "Scores with this league's rules",
+              "title": "League Id"
+            },
+            "description": "Scores with this league's rules"
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 18,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the current week",
+              "title": "Week"
+            },
+            "description": "Defaults to the current week"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerProjectionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Health",
+        "description": "Liveness check (no auth).",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccuracyOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "mae": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mae"
+          },
+          "bias": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bias"
+          },
+          "coverage_80": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage 80"
+          },
+          "by_position": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "By Position"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/AccuracyWeek"
+            },
+            "type": "array",
+            "title": "Weeks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "model_version",
+          "n",
+          "mae",
+          "bias",
+          "coverage_80",
+          "by_position",
+          "weeks"
+        ],
+        "title": "AccuracyOut"
+      },
+      "AccuracyWeek": {
+        "properties": {
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "mae": {
+            "type": "number",
+            "title": "Mae"
+          },
+          "coverage_80": {
+            "type": "number",
+            "title": "Coverage 80"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week",
+          "n",
+          "mae",
+          "coverage_80"
+        ],
+        "title": "AccuracyWeek"
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail",
+          "code"
+        ],
+        "title": "ErrorOut",
+        "description": "Every error the API returns has this shape (app/errors.py)."
+      },
+      "Factor": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "effect": {
+            "type": "number",
+            "title": "Effect"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "value",
+          "effect",
+          "note"
+        ],
+        "title": "Factor"
+      },
+      "FollowLeagueIn": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "const": "sleeper",
+            "title": "Platform"
+          },
+          "external_id": {
+            "type": "string",
+            "pattern": "^\\d{1,32}$",
+            "title": "External Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "external_id"
+        ],
+        "title": "FollowLeagueIn"
+      },
+      "FollowLeagueOut": {
+        "properties": {
+          "league": {
+            "$ref": "#/components/schemas/LeagueOut"
+          },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league",
+          "job_id"
+        ],
+        "title": "FollowLeagueOut"
+      },
+      "GameLine": {
+        "properties": {
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "opponent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opponent"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week",
+          "opponent",
+          "points"
+        ],
+        "title": "GameLine"
+      },
+      "JobAccepted": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "JobAccepted"
+      },
+      "JobOut": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "league_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "League Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "kind",
+          "status",
+          "league_id",
+          "error",
+          "result",
+          "created_at",
+          "finished_at"
+        ],
+        "title": "JobOut"
+      },
+      "LeagueOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "external_id": {
+            "type": "string",
+            "title": "External Id"
+          },
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "current_week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Week"
+          },
+          "my_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Team Id"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "sync_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "platform",
+          "external_id",
+          "season",
+          "name",
+          "avatar_url",
+          "current_week",
+          "my_team_id",
+          "last_synced_at",
+          "sync_status"
+        ],
+        "title": "LeagueOut"
+      },
+      "LineupOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerLine"
+            },
+            "type": "array",
+            "title": "Starters"
+          },
+          "bench": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerLine"
+            },
+            "type": "array",
+            "title": "Bench"
+          },
+          "optimal": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Optimal"
+          },
+          "swaps": {
+            "items": {
+              "$ref": "#/components/schemas/SwapOut"
+            },
+            "type": "array",
+            "title": "Swaps"
+          },
+          "current_points": {
+            "type": "number",
+            "title": "Current Points"
+          },
+          "optimal_points": {
+            "type": "number",
+            "title": "Optimal Points"
+          },
+          "win_probability_current": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Probability Current"
+          },
+          "win_probability_optimal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Probability Optimal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "week",
+          "as_of",
+          "model_version",
+          "starters",
+          "bench",
+          "optimal",
+          "swaps",
+          "current_points",
+          "optimal_points",
+          "win_probability_current",
+          "win_probability_optimal"
+        ],
+        "title": "LineupOut"
+      },
+      "MatchupOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "me": {
+            "$ref": "#/components/schemas/TeamSide"
+          },
+          "opponent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeamSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outlook": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WinOutlook"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unsupported_rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unsupported Rules"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "week",
+          "as_of",
+          "model_version",
+          "me",
+          "opponent",
+          "outlook",
+          "unsupported_rules"
+        ],
+        "title": "MatchupOut"
+      },
+      "MeOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "plan": {
+            "type": "string",
+            "title": "Plan"
+          },
+          "sleeper_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sleeper Username"
+          },
+          "memberships": {
+            "items": {
+              "$ref": "#/components/schemas/MembershipOut"
+            },
+            "type": "array",
+            "title": "Memberships"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name",
+          "image",
+          "plan",
+          "sleeper_username",
+          "memberships"
+        ],
+        "title": "MeOut"
+      },
+      "MembershipOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "league_name": {
+            "type": "string",
+            "title": "League Name"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "my_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Team Id"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "league_name",
+          "platform",
+          "season",
+          "my_team_id",
+          "last_synced_at"
+        ],
+        "title": "MembershipOut"
+      },
+      "PlayerLine": {
+        "properties": {
+          "player_id": {
+            "type": "integer",
+            "title": "Player Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "nfl_team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nfl Team"
+          },
+          "headshot_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headshot Url"
+          },
+          "slot": {
+            "type": "string",
+            "title": "Slot"
+          },
+          "injury_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Injury Status"
+          },
+          "opponent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opponent"
+          },
+          "kickoff_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kickoff At"
+          },
+          "game_status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "in_progress",
+              "final",
+              "bye"
+            ],
+            "title": "Game Status"
+          },
+          "projection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actual_points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "player_id",
+          "name",
+          "position",
+          "nfl_team",
+          "headshot_url",
+          "slot",
+          "injury_status",
+          "opponent",
+          "kickoff_at",
+          "game_status",
+          "projection",
+          "actual_points"
+        ],
+        "title": "PlayerLine"
+      },
+      "PlayerProjectionOut": {
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/PlayerLine"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/Factor"
+            },
+            "type": "array",
+            "title": "Factors"
+          },
+          "recent_games": {
+            "items": {
+              "$ref": "#/components/schemas/GameLine"
+            },
+            "type": "array",
+            "title": "Recent Games"
+          },
+          "unsupported_rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unsupported Rules"
+          }
+        },
+        "type": "object",
+        "required": [
+          "player",
+          "factors",
+          "recent_games",
+          "unsupported_rules"
+        ],
+        "title": "PlayerProjectionOut"
+      },
+      "ProjectionOut": {
+        "properties": {
+          "points": {
+            "type": "number",
+            "title": "Points"
+          },
+          "p10": {
+            "type": "number",
+            "title": "P10"
+          },
+          "p50": {
+            "type": "number",
+            "title": "P50"
+          },
+          "p90": {
+            "type": "number",
+            "title": "P90"
+          },
+          "frozen": {
+            "type": "boolean",
+            "title": "Frozen"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Computed At"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "points",
+          "p10",
+          "p50",
+          "p90",
+          "frozen",
+          "computed_at",
+          "model_version"
+        ],
+        "title": "ProjectionOut"
+      },
+      "SetMyTeamIn": {
+        "properties": {
+          "my_team_id": {
+            "type": "integer",
+            "title": "My Team Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "my_team_id"
+        ],
+        "title": "SetMyTeamIn"
+      },
+      "SleeperConnectIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.\\-]+$",
+            "title": "Username"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username"
+        ],
+        "title": "SleeperConnectIn"
+      },
+      "SwapOut": {
+        "properties": {
+          "slot": {
+            "type": "string",
+            "title": "Slot"
+          },
+          "player_in": {
+            "$ref": "#/components/schemas/PlayerLine"
+          },
+          "player_out": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerLine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gain": {
+            "type": "number",
+            "title": "Gain"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot",
+          "player_in",
+          "player_out",
+          "gain"
+        ],
+        "title": "SwapOut"
+      },
+      "TeamOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins"
+          },
+          "losses": {
+            "type": "integer",
+            "title": "Losses"
+          },
+          "ties": {
+            "type": "integer",
+            "title": "Ties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "owner_name",
+          "avatar_url",
+          "wins",
+          "losses",
+          "ties"
+        ],
+        "title": "TeamOut"
+      },
+      "TeamSide": {
+        "properties": {
+          "team_id": {
+            "type": "integer",
+            "title": "Team Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "record": {
+            "type": "string",
+            "title": "Record"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "projected_total": {
+            "type": "number",
+            "title": "Projected Total"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerLine"
+            },
+            "type": "array",
+            "title": "Starters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_id",
+          "name",
+          "owner_name",
+          "avatar_url",
+          "record",
+          "score",
+          "projected_total",
+          "starters"
+        ],
+        "title": "TeamSide"
+      },
+      "WinOutlook": {
+        "properties": {
+          "win_probability": {
+            "type": "number",
+            "title": "Win Probability"
+          },
+          "my_median": {
+            "type": "number",
+            "title": "My Median"
+          },
+          "opponent_median": {
+            "type": "number",
+            "title": "Opponent Median"
+          },
+          "my_range": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "My Range"
+          },
+          "opponent_range": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Opponent Range"
+          }
+        },
+        "type": "object",
+        "required": [
+          "win_probability",
+          "my_median",
+          "opponent_median",
+          "my_range",
+          "opponent_range"
+        ],
+        "title": "WinOutlook"
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "sunday-war-room-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sunday War Room web app (Next.js). The typed API client lives in src/lib/api.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "generate:api": "node scripts/generate-api.mjs",
+    "check:api": "node scripts/generate-api.mjs --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~5.9",
+    "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4"
+  }
+}

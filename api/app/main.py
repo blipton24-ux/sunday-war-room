@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
 
 from app.config import get_settings
 from app.errors import install_error_handlers
@@ -26,8 +27,14 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await close_queue()
 
 
+def operation_id(route: APIRoute) -> str:
+    """Short, stable operation ids for the generated client: the route function's name."""
+    return route.name
+
+
 app = FastAPI(
     lifespan=lifespan,
+    generate_unique_id_function=operation_id,
     title="Sunday War Room API",
     version="0.1.0",
     description="Read-only fantasy football assistant API. All data routes live under /api/v1.",

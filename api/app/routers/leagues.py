@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert
 from app.auth.deps import DB, CurrentUser, Membership
 from app.config import Settings, get_settings
 from app.db.models import League, LeagueMembership, SyncRun, Team
-from app.errors import ApiError, NotFound
+from app.errors import ApiError, NotFound, error_responses
 from app.jobs.tracking import create_run
 from app.queue import Queue, get_queue
 from app.schemas import (
@@ -22,7 +22,7 @@ from app.schemas import (
     TeamOut,
 )
 
-router = APIRouter(prefix="/api/v1/leagues", tags=["leagues"])
+router = APIRouter(prefix="/api/v1/leagues", tags=["leagues"], responses=error_responses())
 QueueDep = Annotated[Queue, Depends(get_queue)]
 ACTIVE = ("queued", "running")
 

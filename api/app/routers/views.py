@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, Query
 
 from app.auth.deps import DB, CurrentUser, Membership, get_membership, require_league
 from app.db.models import League
+from app.errors import error_responses
 from app.schemas import AccuracyOut, LineupOut, MatchupOut, PlayerProjectionOut
 from app.services import views
 
-router = APIRouter(prefix="/api/v1", tags=["views"])
+router = APIRouter(prefix="/api/v1", tags=["views"], responses=error_responses())
 LeagueDep = Annotated[League, Depends(require_league)]
 Week = Annotated[int | None, Query(ge=1, le=18, description="Defaults to the current week")]
 

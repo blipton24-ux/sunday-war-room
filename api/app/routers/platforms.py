@@ -3,11 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.auth.deps import DB, CurrentUser
+from app.errors import error_responses
 from app.jobs.tracking import create_run
 from app.queue import Queue, get_queue
 from app.schemas import JobAccepted, SleeperConnectIn
 
-router = APIRouter(prefix="/api/v1/platforms", tags=["platforms"])
+router = APIRouter(prefix="/api/v1/platforms", tags=["platforms"], responses=error_responses())
 
 
 @router.post("/sleeper/connect", status_code=202, response_model=JobAccepted)

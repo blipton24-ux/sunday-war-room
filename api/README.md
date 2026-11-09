@@ -39,6 +39,16 @@ python -m venv .venv
 Integration tests use the separate `swr_test` database and rebuild it from the
 Alembic migrations on every run, so the migrations are exercised too.
 
+## API contract
+`api/openapi.json` is committed and is what the web app's TypeScript client is generated from.
+After changing any route, request or response model:
+```bash
+.venv/Scripts/python -m app.scripts.export_openapi     # rewrite api/openapi.json
+cd ../web && npm run generate:api                      # regenerate src/lib/api/schema.d.ts
+```
+`tests/unit/test_openapi_contract.py` fails if the file is stale, and also checks that every
+error response is declared with the one `{detail, code}` shape the API really returns.
+
 ## Schema changes
 Edit `app/db/models.py`, then:
 ```bash

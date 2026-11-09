@@ -19,7 +19,7 @@ The source of truth for every decision, spec and explanation behind Sunday War R
 - [Decisions](Decisions/INDEX.md): 34 ADRs, one per choice, with options and trade-offs
 - [Concepts](Concepts/INDEX.md): plain-language explainers for every technology used
 - [Specs](Specs/INDEX.md): vision, features, architecture, data model, API, UI, projection model, non-goals, open questions
-- [Build Plan](Build-Plan/INDEX.md): P1 step-by-step build + verification checklist; P2–P4 outline
+- [Build Plan](Build-Plan/INDEX.md): P1 step-by-step build + verification checklist; P2–P4 outline; [Improvement Backlog](Build-Plan/Improvement-Backlog.md) of things to improve later
 - [Lessons from Old Projects](Lessons-from-Old-Projects.md): what the earlier fantasy apps taught, and what Sunday War Room does differently
 
 ## Stack in one table

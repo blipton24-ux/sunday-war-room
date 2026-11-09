@@ -33,9 +33,20 @@ Relative markdown links (no wikilinks), no spaces in file names, frontmatter
 (`title`, `date`, `tags`), every note ends with a `Related:` line. Lint with
 the `obsidian-notes` skill after editing.
 
+## Improvement backlog
+
+`docs/Build-Plan/Improvement-Backlog.md` is the running list of things to improve later
+(projection model, UI, platform). **Whenever you notice a gap, a weak measurement or a
+shortcut, add a row** with its evidence and priority instead of leaving it in chat; when an item
+ships, move it to Done. It lists improvements, not decisions: anything that needs a choice still
+follows ADR-003.
+
 ## Status
 
 Vault written and pre-build decisions made (ADR-028 to ADR-033), 2026-11-08. Next: Phase 1 build per
-`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–9 done (backend complete: compose db+redis,
+`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–10 done (backend complete: compose db+redis,
 schema, auth, Sleeper adapter, worker + jobs, nflverse ingest, projection model v1 + backtest,
-matchup/lineup/accuracy endpoints); see `api/README.md`. Next: step 10 (OpenAPI → TS client).
+matchup/lineup/accuracy endpoints, committed OpenAPI spec + generated TS client in
+`web/src/lib/api`); see `api/README.md` and `web/README.md`. Next: step 11 (Next.js app).
+Backend change workflow: edit the API, then `python -m app.scripts.export_openapi` and
+`npm run generate:api` (in `web/`), and commit `api/openapi.json` and the generated client together.

@@ -3,9 +3,10 @@ from sqlalchemy import delete, select
 
 from app.auth.deps import DB, CurrentUser
 from app.db.models import League, LeagueMembership, PlatformAccount, User
+from app.errors import error_responses
 from app.schemas import MembershipOut, MeOut
 
-router = APIRouter(prefix="/api/v1/me", tags=["me"])
+router = APIRouter(prefix="/api/v1/me", tags=["me"], responses=error_responses())
 
 
 @router.get("", response_model=MeOut)
