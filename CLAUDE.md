@@ -41,6 +41,10 @@ shortcut, add a row** with its evidence and priority instead of leaving it in ch
 ships, move it to Done. It lists improvements, not decisions: anything that needs a choice still
 follows ADR-003.
 
+`docs/Build-Plan/Verification-Gaps.md` lists things that are **built but not yet seen working**
+(no browser check, no real credentials). Add a row whenever something ships unwatched; move it
+to Verified when it's tested.
+
 ## Status
 
 Vault written and pre-build decisions made (ADR-028 to ADR-033), 2026-11-08. Next: Phase 1 build per

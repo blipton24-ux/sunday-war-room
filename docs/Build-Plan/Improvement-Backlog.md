@@ -71,4 +71,4 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 |---|---|---|
 | U-01 | Player headshots: decided to serve them through the Next.js image cache with an initials fallback | [ADR-037](../Decisions/ADR-037-Headshots-Next-Image-Cache.md) |
 
-Related: [Backtest Report](Backtest-Report.md) · [P1 Build Plan](P1-Build-Plan.md) · [P2–P4 Outline](P2-P4-Outline.md) · [Projection Model](../Specs/Projection-Model.md) · [Open Questions](../Specs/Open-Questions.md) · [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)
+Related: [Verification Gaps](Verification-Gaps.md) (built but not yet seen working) · [Backtest Report](Backtest-Report.md) · [P1 Build Plan](P1-Build-Plan.md) · [P2–P4 Outline](P2-P4-Outline.md) · [Projection Model](../Specs/Projection-Model.md) · [Open Questions](../Specs/Open-Questions.md) · [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)
