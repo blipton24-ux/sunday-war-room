@@ -49,5 +49,6 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-035 Better Auth](ADR-035-Auth-Better-Auth.md): sign-in library (supersedes ADR-017's library choice)
 - [ADR-036 API access through the web server](ADR-036-API-Access-Through-Web-Server.md): the browser never holds the API token
 - [ADR-037 Headshots via the Next.js image cache](ADR-037-Headshots-Next-Image-Cache.md): resized, cached ESPN images with initials fallback (closes open question #13)
+- [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 
 Up: [Home](../README.md)

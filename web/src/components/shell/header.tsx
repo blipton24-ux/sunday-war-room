@@ -20,7 +20,7 @@ import { Logo, Wordmark } from "./logo";
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-accent/20 bg-base">
+    <header className="sticky top-0 z-40 border-b border-accent/20 bg-base pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
         <Link href="/" aria-label="Home" className="shrink-0">
           <Logo size={40} className="rounded-xl" />

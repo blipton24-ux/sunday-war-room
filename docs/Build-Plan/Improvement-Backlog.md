@@ -53,6 +53,8 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 | U-08 | **Browse the league's other matchups** (mockup v3's "1 / 5" arrows). The API returns only your own matchup. | Matchup screen shows one board | Low | An endpoint for all matchups of a week | Open |
 | U-09 | **Phone-size check of every screen.** Screens were checked in a desktop window; the browser window couldn't be resized to phone width. Bottom tabs and layouts use standard breakpoints but haven't been looked at at 390 px. | Visual check 2026-11-09 | **High** (P1 step 14) | Playwright run at a phone viewport | Open |
 | U-10 | **Compare against the platform's own projections** on the Accuracy page (mockup v3 says "closer than Sleeper on 58% of players"). We don't store Sleeper's projections, so the line was left out rather than invented. | Mockup vs data | Low | Store Sleeper's weekly projections when we freeze ours | Open |
+| U-11 | **Show last-known data when offline** (owner decision, [ADR-038](../Decisions/ADR-038-Service-Worker-Scope.md) option B). Today an offline phone shows an offline page. Option B would keep a per-user copy of the last matchup and lineup on the phone, clearly marked "as of 12:05", and clear it on sign-out. Trade-offs: data on the device, stale numbers on game day, more to build and test. | PWA concept note lists it as a benefit; deferred for privacy and staleness | Med | Owner decision with a side-by-side (ADR-003) | Open |
+| U-12 | **Prompt people to install**, especially iPhone users, once push alerts exist (P2): on iPhone, web push only works for an installed app. P1 only has the card in Settings. | [PWA concept](../Concepts/PWA.md) | Low (P2) | Where and when to ask, without nagging | Open |
 
 ## Platform and tooling
 
@@ -64,6 +66,7 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 | P-04 | **Per-user rate limits beyond refresh** (before the chat in P3). | Only manual refresh is limited today | Low (P3) | P3 spec | Open |
 | P-05 | **Better Auth's schema check warns** "user_id … expected string but got int4" for `sessions` and `accounts`. Harmless today (integer ids are a supported mode and sign-in works end to end), but re-check after Better Auth upgrades. | `npm run auth:schema` output | Low | None | Open |
 | P-06 | **No linter for the web app yet.** Next.js 16 removed `next lint`; add ESLint (flat config, Next + React hooks rules) before CI. | Only `tsc` and Vitest run today | Med (P1 step 15) | None | Open |
+| P-07 | **Sign-in inside an installed iPhone app.** A magic link in an email opens in Safari, and on iPhone an installed web app may not share Safari's sign-in, which could leave the installed app signed out. Not confirmed: needs an iPhone. If it is a problem, options include a one-time code typed into the app, or relying on Google sign-in inside the app. | Concern from how iOS separates installed apps; see V-18 | **High** (before launch, if confirmed) | An iPhone to test; then an owner decision | Open |
 
 ## Done
 

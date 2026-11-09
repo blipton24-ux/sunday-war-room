@@ -38,6 +38,13 @@ The browser never talks to FastAPI and never holds the API token.
 | `src/lib/*.ts` | Pure helpers (formatting, insights, positions, team colors), unit tested |
 | `src/components/` | Shell (header, tabs), player rows, matchup and lineup pieces, UI primitives |
 
+## Installable app (PWA)
+`src/app/manifest.ts` + icons make the site installable ([ADR-010](../docs/Decisions/ADR-010-PWA.md)); Settings has the install card.
+`public/sw.js` is a deliberately small service worker ([ADR-038](../docs/Decisions/ADR-038-Service-Worker-Scope.md)): it keeps the
+app's content-hashed files and shows `public/offline.html` when there's no connection. It **never touches `/api/*` and never
+stores a page or any user data**. It registers only in production builds, so to try it: `npm run build && npm run start`.
+`npm run generate:icons` regenerates the PNG icons from `src/app/icon.svg` (the logo) with `sharp`.
+
 ## Commands
 | Command | What it does |
 |---|---|
@@ -45,6 +52,7 @@ The browser never talks to FastAPI and never holds the API token.
 | `npm run typecheck` | `tsc --noEmit`: a renamed backend field is a build error here |
 | `npm test` | Vitest: client, pass-through URL safety, token claims, screen helpers |
 | `npm run generate:api` / `npm run check:api` | Regenerate / verify `src/lib/api/schema.d.ts` from `../api/openapi.json` |
+| `npm run generate:icons` | Regenerate the app icons from `src/app/icon.svg` |
 | `npm run auth:schema` | Print the tables Better Auth expects (point `AUTH_SCHEMA_DATABASE_URL` at an empty DB); Alembic's migration must match |
 
 ```ts

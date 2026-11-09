@@ -37,10 +37,27 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-14 | **Playwright's browsers under Windows Smart App Control** | Not installed yet | Install Playwright in step 14; fall back to Docker if blocked | Step 14 | Open (backlog P-02) |
 | V-15 | **Better Auth after upgrades**: its schema check warns that `user_id` is an integer, harmless today | Can only be checked when Better Auth is upgraded | After each upgrade: `npm run auth:schema` and one sign-in | Each upgrade | Open (backlog P-05) |
 
+## Not yet seen working: the installed app (P1 step 12, 2026-11-09)
+
+| ID | What isn't verified | Why not | How to test | Where | Status |
+|---|---|---|---|---|---|
+| V-16 | **Installing on Android**: Install button → Chrome's dialog → icon on the home screen → opens full screen. Also: the maskable icon's crop looks right (circle and squircle), and long-pressing the icon shows the Lineup and Matchup shortcuts. | Needs a phone. In desktop Chrome the button appeared (Chrome considered the app installable), but the install itself wasn't completed. | Install on an Android phone against the deployed site | By hand, real phone | Open |
+| V-17 | **Installing on iPhone**: Share → Add to Home Screen, the icon (apple-icon), the "Installed" card. Also the full-screen layout: the header isn't hidden under the status bar or notch (safe-area padding), and the bottom tabs clear the home indicator. | Needs an iPhone. Desktop layout was measured unchanged, but safe areas are 0 there. | Install on an iPhone; check the top and bottom edges in both themes | By hand, real iPhone | Open |
+| V-18 | **Signing in inside the installed iPhone app.** A magic link opens in Safari; the installed app may not share that sign-in. | Needs an iPhone. This is a suspected iOS behavior, not a confirmed bug. | Install, sign out, request a link from inside the app, tap it in Mail | By hand, real iPhone | Open (backlog P-07) |
+| V-19 | **A new version reaching installed users.** The worker takes over right away (`skipWaiting` + `clients.claim`), which is safe for content-hashed files, but no update has happened yet. | Only one version exists | After the second deploy, open the app on a device that has the first version | By hand, after step 16 | Open |
+| V-20 | **Real offline and bad-signal behavior.** Tested by stopping the server. Not tested: airplane mode, or a very slow connection where a request neither succeeds nor fails (the offline page only appears when a request fails). | Browser tools can't change the network | Airplane mode; then throttle to a very slow connection | By hand, or Playwright offline mode | Open |
+| V-21 | **How the offline page and the Settings install card look** in dark and light. Their text and behavior were checked; screenshots timed out three times on those pages. | Screenshot tool failure, not a page fault | Open both in each theme | Playwright screenshots | Open |
+| V-22 | **Installing from desktop Chrome or Edge**: the app opens in its own window with no browser bars. | Not completed | Click Install in Settings on a laptop | By hand | Open |
+
 ## Verified
 
 | ID | What | When | How |
 |---|---|---|---|
-| (none yet) | | | |
+| V-P1 | Service worker registers, activates and controls the page in real Chrome (production build) | 2026-11-09 | Chrome: scope `/`, `activated`, controlling |
+| V-P2 | Chrome treats the app as installable: the Install button appeared in Settings | 2026-11-09 | Chrome fired `beforeinstallprompt` |
+| V-P3 | The worker stores only fixed files: after visiting Lineup, Matchup and Settings it held 20 font/CSS/JS files and its 3 precached files, no `/api` entries, no pages | 2026-11-09 | Inspected Cache Storage in Chrome |
+| V-P4 | With the web server stopped, loading `/lineup` shows the offline page; after restarting, "Try again" loads the real page | 2026-11-09 | Chrome, server stopped and restarted |
+| V-P5 | Manifest, icons, `apple-icon`, SVG favicon, install tags and the `sw.js` no-cache header are served correctly | 2026-11-09 | `curl` against the production build |
+| V-P6 | The desktop header and tab bar are unchanged by the iPhone safe-area padding | 2026-11-09 | Measured in Chrome: padding 0, header 62 px, nav offset 61 px | |
 
 Related: [Improvement Backlog](Improvement-Backlog.md) · [P1 Build Plan](P1-Build-Plan.md) · [UI Screens](../Specs/UI-Screens.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)

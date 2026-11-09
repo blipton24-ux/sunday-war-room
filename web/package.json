@@ -14,7 +14,8 @@
     "check:api": "node scripts/generate-api.mjs --check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "auth:schema": "node scripts/auth-schema.ts"
+    "auth:schema": "node scripts/auth-schema.ts",
+    "generate:icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
@@ -40,6 +41,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "openapi-typescript": "^7.13.0",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4.3.5",
     "typescript": "~5.9",
     "vitest": "^5.1.0"

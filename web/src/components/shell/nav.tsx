@@ -72,7 +72,7 @@ export function PillNav() {
       on && "bg-high text-ink shadow-[inset_0_0_0_1px_rgb(var(--accent-rgb)/0.3)] [&_svg]:text-accent",
     );
   return (
-    <nav className="sticky top-[61px] z-30 hidden bg-base sm:block" aria-label="Main">
+    <nav className="sticky top-[calc(61px+env(safe-area-inset-top))] z-30 hidden bg-base sm:block" aria-label="Main">
       <div className="mx-auto max-w-5xl px-4 py-2">
         <div className="inline-flex gap-1 rounded-full bg-raised p-1">
           {MAIN.map(({ href, label, icon: Icon }) => (

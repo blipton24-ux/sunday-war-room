@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
 import { isApiError } from "@/lib/api/client";
+import { InstallProvider } from "@/components/install-provider";
 import { ToastProvider } from "@/components/ui/toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -27,7 +28,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     // ADR-024: dark by default, the phone's setting respected on first visit, toggle in header.
     <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <InstallProvider>{children}</InstallProvider>
+        </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

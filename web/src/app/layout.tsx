@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: { default: "Sunday War Room", template: "%s · Sunday War Room" },
   description: "Your fantasy football war room: start/sit, matchup odds and projections that explain themselves.",
   applicationName: "Sunday War Room",
+  // iPhone home-screen app: full screen, status bar takes the page color (the header adds the
+  // safe-area padding). Icons come from src/app/icon.svg and apple-icon.png.
+  appleWebApp: { capable: true, title: "War Room", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

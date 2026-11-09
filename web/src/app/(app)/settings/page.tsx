@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import { InstallCard } from "@/components/install-card";
 import { TitleRow } from "@/components/screen";
 import { ConfirmDialog } from "@/components/ui/menu";
 import { Card, ScreenSkeleton, Section, SecondaryButton } from "@/components/ui/primitives";
@@ -68,6 +69,10 @@ export default function SettingsPage() {
             <LeagueSettings key={l.id} league={l} />
           ))}
         </div>
+      </Section>
+
+      <Section title="App">
+        <InstallCard />
       </Section>
 
       <Section title="Theme">
