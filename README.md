@@ -5,9 +5,17 @@ leagues and helps you make weekly decisions: start/sit, matchup outlook,
 waivers, trades, a live game-day dashboard, and an AI assistant that answers
 questions using your league's real data and Sunday War Room's own projection model.
 
-> **Status:** Phase 1 is built and runs locally (backend, worker, web app, installable PWA,
-> Docker images); deployment is next. All decisions and specs live in the
-> [docs vault](docs/README.md).
+> **Status:** Phase 1 (Sleeper: sign-in, matchup, lineup optimizer, own projection model,
+> accuracy tracking) is built, runs locally with one command and passes CI on every push
+> (160 backend, 71 web and 62 end-to-end tests). Waivers, trades, live game day and the AI
+> assistant are next; deployment comes last ([ADR-042](docs/Decisions/ADR-042-Deploy-As-Phase-5.md)).
+> All decisions and specs live in the [docs vault](docs/README.md).
+
+| Lineup | Matchup |
+|---|---|
+| ![Lineup: win chance, suggested swaps, top performers](docs/screenshots/lineup-desktop.png) | ![Matchup: projected final, win chance, starters](docs/screenshots/matchup-desktop.png) |
+
+*Screenshots from demo data (a recorded Sleeper league and an invented NFL week), not a real person's league.*
 
 ## Run it
 Needs only [Docker](https://docs.docker.com/get-docker/). From this folder:

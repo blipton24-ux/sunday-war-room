@@ -21,3 +21,6 @@ Rebuild with `npm run e2e:up` after changing web or api code: the tests run agai
 | `actions.spec.ts` | refresh, menu, theme, team, unfollow, sign out, delete account |
 | `isolation.spec.ts` | one person cannot reach another's league |
 | `pwa.spec.ts` | manifest, service worker, offline page, install card |
+
+## README screenshots
+With the stack up, `npm run screenshots` (set `PW_CHANNEL=msedge` on Windows) saves desktop screenshots of Home, Matchup, Lineup and Accuracy to `docs/screenshots/`. They show seeded demo data, not a real league.

@@ -48,11 +48,11 @@ Each step ends with something runnable and tested.
 - [ ] Sign in with Google (and a magic link) works.
 - [ ] Connect a real Sleeper username → leagues listed → choose team → worker syncs the league.
 - [ ] Week N matchup shows projections, ranges and win probability; Lineup shows optimal lineup + swaps.
-- [ ] Every projection shows its factors; past weeks' projections don't change on refresh (frozen).
-- [ ] User B cannot see user A's league (test + manual check).
-- [ ] pytest, Vitest and Playwright pass locally **and** in GitHub Actions.
+- [x] Past weeks' projections don't change on refresh (frozen). (`test_projections_freeze_at_kickoff`) [ ] Every projection shows its factors: checked in the end-to-end screens test on seeded data.
+- [x] User B cannot see user A's league. (`test_tenant_isolation.py` and `e2e/isolation.spec.ts`, both in CI; no separate manual check done)
+- [x] pytest, Vitest and Playwright pass locally **and** in GitHub Actions. (run 42716212296, 2026-11-09)
 - [ ] (Phase 5) Merge to main auto-deploys; the same flow works on the live URL.
 - [ ] PWA installs on a phone (needs a real HTTPS address, so P5); dark/light toggle works.
-- [ ] Backtest report committed (MAE by position, range coverage).
+- [x] Backtest report committed (MAE by position, range coverage): [Backtest Report](Backtest-Report.md).
 
 Related: [P2–P4 Outline](P2-P4-Outline.md) · [Architecture](../Specs/Architecture.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)

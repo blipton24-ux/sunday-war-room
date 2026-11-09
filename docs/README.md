@@ -8,7 +8,7 @@ aliases: [Home, 00 Home]
 
 The source of truth for every decision, spec and explanation behind Sunday War Room. No code lives here. Start with the Product Vision, then skim the Decisions.
 
-**Status (2026-11-09):** 41 decisions made; Phase 1 build in progress (backend done) ([ADR-026](Decisions/ADR-026-Execution-Order.md)).
+**Status (2026-11-09):** 42 decisions made; Phase 1 built and passing CI on GitHub (backend, worker, web app, PWA, Docker images, 160 + 71 + 62 tests); deployment is Phase 5 ([ADR-042](Decisions/ADR-042-Deploy-As-Phase-5.md)) ([ADR-026](Decisions/ADR-026-Execution-Order.md)).
 
 ## Start here
 - [Product Vision](Specs/Product-Vision.md): what Sunday War Room is, who it's for, its principles
@@ -16,10 +16,10 @@ The source of truth for every decision, spec and explanation behind Sunday War R
 - [Architecture](Specs/Architecture.md): the five services and how a request flows
 
 ## Sections
-- [Decisions](Decisions/INDEX.md): 41 ADRs, one per choice, with options and trade-offs
+- [Decisions](Decisions/INDEX.md): 42 ADRs, one per choice, with options and trade-offs
 - [Concepts](Concepts/INDEX.md): plain-language explainers for every technology used
 - [Specs](Specs/INDEX.md): vision, features, architecture, data model, API, UI, projection model, non-goals, open questions
-- [Build Plan](Build-Plan/INDEX.md): P1 step-by-step build + verification checklist; P2–P4 outline; [Improvement Backlog](Build-Plan/Improvement-Backlog.md) of things to improve later
+- [Build Plan](Build-Plan/INDEX.md): P1 step-by-step build, [CI](Build-Plan/CI.md), verification checklist; P2–P4 outline; [Improvement Backlog](Build-Plan/Improvement-Backlog.md) of things to improve later
 - [Lessons from Old Projects](Lessons-from-Old-Projects.md): what the earlier fantasy apps taught, and what Sunday War Room does differently
 
 ## Stack in one table

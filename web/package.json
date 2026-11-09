@@ -20,6 +20,7 @@
     "e2e:up": "node e2e/stack.mjs up",
     "e2e:down": "node e2e/stack.mjs down",
     "e2e": "playwright test",
+    "screenshots": "node scripts/screenshots.ts",
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
