@@ -92,6 +92,8 @@ async def test_full_onboarding_flow(
     teams = (await client.get(f"/api/v1/leagues/{lid}/teams", headers=h)).json()
     assert len(teams) == 12
     team1 = next(t for t in teams if t["name"] == "Team 1")
+    # The connected Sleeper user owns Team 1, so onboarding can pre-select it.
+    assert team1["owner_external_id"] == status["result"]["sleeper_user_id"]
     resp = await client.patch(f"/api/v1/leagues/{lid}", json={"my_team_id": team1["id"]}, headers=h)
     assert resp.status_code == 200 and resp.json()["my_team_id"] == team1["id"]
     me = (await client.get("/api/v1/me", headers=h)).json()

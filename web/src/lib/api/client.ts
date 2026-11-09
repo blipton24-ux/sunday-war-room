@@ -11,10 +11,16 @@
  *   matchup.outlook?.win_probability; // number, fully typed
  */
 import createClient from "openapi-fetch";
+import type { Readable } from "openapi-typescript-helpers";
 
 import type { components, paths } from "./schema";
 
-export type Schemas = components["schemas"];
+/**
+ * API shapes as responses deliver them. `Readable` is the same transform openapi-fetch
+ * applies to response bodies (it also turns fixed-length tuples into arrays), so props typed
+ * with `Schemas[...]` accept exactly what the hooks return.
+ */
+export type Schemas = { [K in keyof components["schemas"]]: Readable<components["schemas"][K]> };
 export type ApiClient = ReturnType<typeof createApiClient>;
 
 export interface ApiClientOptions {

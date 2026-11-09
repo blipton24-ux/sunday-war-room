@@ -87,6 +87,8 @@ class TeamOut(Schema):
     id: int
     name: str
     owner_name: str | None
+    # The platform's user id of the owner: lets onboarding pre-select the user's own team.
+    owner_external_id: str | None
     avatar_url: str | None
     wins: int
     losses: int

@@ -49,15 +49,21 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 | U-04 | **Games in progress.** A player whose game has started shows the pre-game projection and no partial score. Label it clearly until live scores exist (P2). | `game_status: in_progress` has no points attached | Low (P2) | Live dashboard design | Open |
 | U-05 | **Explain the numbers on screen**: "why this number" factors, the 80% range, and "frozen at kickoff" need one short plain-language explanation reachable from every projection. | The API returns `factors`, ranges and `frozen`; the mockup shows chips | Med | Copy | Open |
 | U-06 | **Check ESPN's terms for showing their player images** in a public app before launch. If they don't allow it, switch to stored copies or another image source (option C in ADR-037). | ADR-037 trade-offs | **High** (before public launch) | Read the terms; owner decision if a change is needed | Open |
+| U-07 | **"Projected final" while games are live** can read below the current score: players in progress keep their pre-game projection while the score already includes their points. | Seen 2026-11-09: projected 133.9 against a live 151.1 | Med | Live per-player points (P2 live dashboard) | Open |
+| U-08 | **Browse the league's other matchups** (mockup v3's "1 / 5" arrows). The API returns only your own matchup. | Matchup screen shows one board | Low | An endpoint for all matchups of a week | Open |
+| U-09 | **Phone-size check of every screen.** Screens were checked in a desktop window; the browser window couldn't be resized to phone width. Bottom tabs and layouts use standard breakpoints but haven't been looked at at 390 px. | Visual check 2026-11-09 | **High** (P1 step 14) | Playwright run at a phone viewport | Open |
+| U-10 | **Compare against the platform's own projections** on the Accuracy page (mockup v3 says "closer than Sleeper on 58% of players"). We don't store Sleeper's projections, so the line was left out rather than invented. | Mockup vs data | Low | Store Sleeper's weekly projections when we freeze ours | Open |
 
 ## Platform and tooling
 
 | ID | Item | Evidence | Priority | Needs | Status |
 |---|---|---|---|---|---|
 | P-01 | **Lock Python dependencies.** `pyproject.toml` has lower bounds only, so a fresh install gets whatever is newest. Add a lockfile before the Dockerfiles (step 13) so CI and production match local. | No lock exists; versions were resolved on 2026-11-08 | **High** (do in step 13) | Pick a lock tool (`pip-tools` or `uv`; `uv` couldn't be installed on this machine earlier) | Open |
-| P-02 | **Windows Smart App Control blocks unsigned native binaries.** `rollup`'s native file was refused, so the web package uses Rollup's WebAssembly build (`overrides` in `web/package.json`). Check Next.js's compiler (step 11) and Playwright's browsers (step 14) for the same problem; the fallback is running web builds and tests in Docker. | `Application Control policy has blocked this file`; `VerifiedAndReputablePolicyState = 1` | Med | Nothing from you unless a tool has no fallback | Open |
+| P-02 | **Windows Smart App Control blocks unsigned native files.** Rollup's native file was refused in step 10; since then Vitest 5 (Rolldown), Next.js 16 and its image library all load fine, and the Rollup workaround was removed. Still to check: Playwright's browsers (step 14). Fallback: run those in Docker. | `Application Control policy has blocked this file`; `VerifiedAndReputablePolicyState = 1` | Low | Nothing unless a tool has no fallback | Open |
 | P-03 | **Windows Polars build.** The default build hangs at import on this CPU; the compatibility build (`polars[rtcompat]`) is installed locally. Make sure Docker and CI install what they need and the README note stays accurate. | `api/README.md` | Low | None | Open |
 | P-04 | **Per-user rate limits beyond refresh** (before the chat in P3). | Only manual refresh is limited today | Low (P3) | P3 spec | Open |
+| P-05 | **Better Auth's schema check warns** "user_id … expected string but got int4" for `sessions` and `accounts`. Harmless today (integer ids are a supported mode and sign-in works end to end), but re-check after Better Auth upgrades. | `npm run auth:schema` output | Low | None | Open |
+| P-06 | **No linter for the web app yet.** Next.js 16 removed `next lint`; add ESLint (flat config, Next + React hooks rules) before CI. | Only `tsc` and Vitest run today | Med (P1 step 15) | None | Open |
 
 ## Done
 

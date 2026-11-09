@@ -2248,6 +2248,17 @@
             ],
             "title": "Owner Name"
           },
+          "owner_external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner External Id"
+          },
           "avatar_url": {
             "anyOf": [
               {
@@ -2277,6 +2288,7 @@
           "id",
           "name",
           "owner_name",
+          "owner_external_id",
           "avatar_url",
           "wins",
           "losses",

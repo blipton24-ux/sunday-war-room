@@ -557,6 +557,8 @@ export interface components {
             name: string;
             /** Owner Name */
             owner_name: string | null;
+            /** Owner External Id */
+            owner_external_id: string | null;
             /** Avatar Url */
             avatar_url: string | null;
             /** Wins */

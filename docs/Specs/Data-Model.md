@@ -7,11 +7,11 @@ tags: [spec, database]
 
 PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](../Decisions/ADR-015-Database-PostgreSQL.md)). Field lists are a starting point for the build, not final.
 
-## Accounts (Auth.js-managed + ours)
+## Accounts (Better Auth-managed + ours, [ADR-035](../Decisions/ADR-035-Auth-Better-Auth.md))
 | Table | Key fields | Notes |
 |---|---|---|
 | `users` | id, email, name, image, `plan` (default `free`), created_at | `plan` leaves room for a paid tier ([ADR-011](../Decisions/ADR-011-Monetization.md)) |
-| `accounts`, `sessions`, `verification_tokens` | per Auth.js adapter schema | Google OAuth links, magic-link tokens |
+| `accounts`, `sessions`, `verifications` | Better Auth's shape, snake_case (`npm run auth:schema` in web/) | Google sign-in links, browser sessions, magic-link tokens; `users.id` stays an integer |
 
 ## Platform connections (per user)
 | Table | Key fields | Notes |

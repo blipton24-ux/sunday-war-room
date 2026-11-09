@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+/*
+ * Sunday War Room design system (ADR-032, docs/Specs/UI-Screens.md, mockups/p1-screens-v3.html).
+ * Flat: no gradients anywhere. Dark-first with a light parchment variant (ADR-024).
+ * Semantic tokens only; Tailwind's built-in palettes are left alone.
+ */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root,
+[data-theme="dark"] {
+  --base: #0b1016;
+  --raised: #141e28;
+  --overlay: #1a2733;
+  --high: #243341;
+  --ink-hi: #efe8da;
+  --ink-mid: #c3cad1;
+  --ink-lo: #8d99a6;
+  --ink-faint: #5c6a78;
+  --line: #1c2834;
+  --line-strong: #2a3a49;
+  --accent: #e6b95c;
+  --accent-rgb: 230 185 92;
+  --on-accent: #1b1406;
+  --good: #3ddc97;
+  --ok: #f5d36b;
+  --bad: #ff5c6c;
+  --warn: #f0a24b;
+  --sea: #7fa3bd;
+  --ember: #e2683c;
+  --wine: #c4566f;
+  --scrim: rgb(0 0 0 / 0.25);
+  --card-shadow: inset 0 1px 0 0 rgb(230 185 92 / 0.07), 0 8px 24px -14px rgb(0 0 0 / 0.7);
+  --pop: 0 16px 40px -12px rgb(0 0 0 / 0.75);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --base: #f4efe4;
+  --raised: #fffaf0;
+  --overlay: #f3ead9;
+  --high: #e8ddc7;
+  --ink-hi: #16202b;
+  --ink-mid: #3a4652;
+  --ink-lo: #66717d;
+  --ink-faint: #98a1aa;
+  --line: #e6dac4;
+  --line-strong: #d6c7aa;
+  --accent: #a8761c;
+  --accent-rgb: 168 118 28;
+  --on-accent: #fffaf0;
+  --good: #13915e;
+  --ok: #9c7a10;
+  --bad: #d23a4b;
+  --warn: #c06a12;
+  --sea: #3f6a88;
+  --ember: #c24e22;
+  --wine: #a63e57;
+  --scrim: rgb(0 0 0 / 0.06);
+  --card-shadow: 0 8px 24px -18px rgb(60 40 10 / 0.45);
+  --pop: 0 16px 40px -16px rgb(60 40 10 / 0.4);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-base: var(--base);
+  --color-raised: var(--raised);
+  --color-overlay: var(--overlay);
+  --color-high: var(--high);
+  --color-ink: var(--ink-hi);
+  --color-ink-mid: var(--ink-mid);
+  --color-ink-lo: var(--ink-lo);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-good: var(--good);
+  --color-ok: var(--ok);
+  --color-bad: var(--bad);
+  --color-warn: var(--warn);
+  --color-sea: var(--sea);
+  --color-ember: var(--ember);
+  --color-wine: var(--wine);
+  --color-scrim: var(--scrim);
+
+  /* Position colors: identical everywhere (UI Screens spec) */
+  --color-pos-qb: #fb7185;
+  --color-pos-rb: #34d399;
+  --color-pos-wr: #60a5fa;
+  --color-pos-te: #fbbf24;
+  --color-pos-flex: #a3e635;
+  --color-pos-k: #c084fc;
+  --color-pos-def: #22d3ee;
+  --color-pos-bn: #64748b;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter), sans-serif;
+
+  --shadow-card: var(--card-shadow);
+  --shadow-pop: var(--pop);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--base);
+    color: var(--ink-hi);
+    min-height: 100dvh;
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+/* Archivo for scores and titles; tabular numbers so columns line up */
+@utility stat {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-stretch: 112%;
+  font-variant-numeric: tabular-nums;
+}
+@utility page-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.75rem;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-stretch: 118%;
+}
+@utility eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sea);
+  margin: 0 0 6px 4px;
+}
+@utility nums {
+  font-variant-numeric: tabular-nums;
+}
+@utility accent-ring {
+  box-shadow: var(--card-shadow), 0 0 0 1px rgb(var(--accent-rgb) / 0.25);
+}
+@utility accent-soft {
+  background: rgb(var(--accent-rgb) / 0.15);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes live-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@utility animate-fade-up {
+  animation: fade-up 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-live {
+  animation: live-pulse 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

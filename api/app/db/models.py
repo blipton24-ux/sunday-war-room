@@ -2,8 +2,9 @@
 
 Schema changes only through Alembic migrations (ADR-015).
 
-The first four tables follow the schema the Auth.js Postgres adapter (@auth/pg-adapter)
-expects, including its camelCase column names, so Next.js and FastAPI share one `users` table.
+The first four tables are the ones Better Auth reads and writes from the web app
+(ADR-035). Their shape must match what `npm run auth:schema` (web/) prints for our field
+mapping in web/src/lib/server/auth-schema.ts; Better Auth checks this at startup.
 """
 
 from __future__ import annotations
@@ -12,17 +13,18 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
-    BigInteger,
     Boolean,
     DateTime,
     Float,
     ForeignKey,
+    Identity,
     Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -32,64 +34,75 @@ from app.db.base import Base
 TZ = DateTime(timezone=True)
 
 
-# --------------------------------------------------------------------------- accounts (Auth.js)
+# --------------------------------------------------------------------------- accounts (Better Auth)
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str | None] = mapped_column(String(255))
-    email: Mapped[str | None] = mapped_column(String(255), unique=True)
-    email_verified: Mapped[datetime | None] = mapped_column("emailVerified", TZ)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     image: Mapped[str | None] = mapped_column(Text)
-    # Ours, not Auth.js's: room for a paid tier later (ADR-011).
+    # Ours, not Better Auth's: room for a paid tier later (ADR-011).
     plan: Mapped[str] = mapped_column(String(20), default="free", server_default="free")
-    created_at: Mapped[datetime] = mapped_column(TZ, server_default=func.now())
-
-
-class AuthAccount(Base):
-    """An OAuth link (e.g. Google) for a user. Written by Auth.js."""
-
-    __tablename__ = "accounts"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        "userId", ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    created_at: Mapped[datetime] = mapped_column(TZ, nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TZ, nullable=False, server_default=func.now(), onupdate=func.now()
     )
-    type: Mapped[str] = mapped_column(String(255), nullable=False)
-    provider: Mapped[str] = mapped_column(String(255), nullable=False)
-    provider_account_id: Mapped[str] = mapped_column(
-        "providerAccountId", String(255), nullable=False
-    )
-    refresh_token: Mapped[str | None] = mapped_column(Text)
-    access_token: Mapped[str | None] = mapped_column(Text)
-    expires_at: Mapped[int | None] = mapped_column(BigInteger)
-    id_token: Mapped[str | None] = mapped_column(Text)
-    scope: Mapped[str | None] = mapped_column(Text)
-    session_state: Mapped[str | None] = mapped_column(Text)
-    token_type: Mapped[str | None] = mapped_column(Text)
 
 
 class AuthSession(Base):
-    """A signed-in browser session. Written by Auth.js."""
+    """A signed-in browser session (the cookie holds `token`). Written by Better Auth."""
 
     __tablename__ = "sessions"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    expires_at: Mapped[datetime] = mapped_column(TZ, nullable=False)
+    token: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(TZ, nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TZ, nullable=False)
+    ip_address: Mapped[str | None] = mapped_column(Text)
+    user_agent: Mapped[str | None] = mapped_column(Text)
     user_id: Mapped[int] = mapped_column(
-        "userId", ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    expires: Mapped[datetime] = mapped_column(TZ, nullable=False)
-    session_token: Mapped[str] = mapped_column("sessionToken", String(255), nullable=False)
 
 
-class VerificationToken(Base):
-    """Magic-link tokens. The Auth.js pg adapter names this table in the singular."""
+class AuthAccount(Base):
+    """A sign-in method linked to a user (e.g. Google). Written by Better Auth."""
 
-    __tablename__ = "verification_token"
+    __tablename__ = "accounts"
 
-    identifier: Mapped[str] = mapped_column(Text, primary_key=True)
-    token: Mapped[str] = mapped_column(Text, primary_key=True)
-    expires: Mapped[datetime] = mapped_column(TZ, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    account_id: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_id: Mapped[str] = mapped_column(Text, nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    access_token: Mapped[str | None] = mapped_column(Text)
+    refresh_token: Mapped[str | None] = mapped_column(Text)
+    id_token: Mapped[str | None] = mapped_column(Text)
+    access_token_expires_at: Mapped[datetime | None] = mapped_column(TZ)
+    refresh_token_expires_at: Mapped[datetime | None] = mapped_column(TZ)
+    scope: Mapped[str | None] = mapped_column(Text)
+    password: Mapped[str | None] = mapped_column(Text)  # unused: no passwords (ADR-017)
+    created_at: Mapped[datetime] = mapped_column(TZ, nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TZ, nullable=False)
+
+
+class Verification(Base):
+    """One-time values such as magic-link tokens. Written by Better Auth."""
+
+    __tablename__ = "verifications"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    identifier: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(TZ, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TZ, nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TZ, nullable=False, server_default=func.now())
 
 
 # --------------------------------------------------------------------------- platform connections

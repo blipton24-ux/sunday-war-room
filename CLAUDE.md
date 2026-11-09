@@ -44,9 +44,10 @@ follows ADR-003.
 ## Status
 
 Vault written and pre-build decisions made (ADR-028 to ADR-033), 2026-11-08. Next: Phase 1 build per
-`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–10 done (backend complete: compose db+redis,
+`docs/Build-Plan/P1-Build-Plan.md`. P1 build in progress: steps 1–11 done (backend complete: compose db+redis,
 schema, auth, Sleeper adapter, worker + jobs, nflverse ingest, projection model v1 + backtest,
 matchup/lineup/accuracy endpoints, committed OpenAPI spec + generated TS client in
-`web/src/lib/api`); see `api/README.md` and `web/README.md`. Next: step 11 (Next.js app).
+`web/src/lib/api`, Next.js app with Better Auth sign-in, onboarding and the P1 screens);
+see `api/README.md` and `web/README.md`. Next: step 12 (PWA).
 Backend change workflow: edit the API, then `python -m app.scripts.export_openapi` and
 `npm run generate:api` (in `web/`), and commit `api/openapi.json` and the generated client together.

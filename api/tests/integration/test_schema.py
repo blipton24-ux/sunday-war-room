@@ -39,7 +39,7 @@ async def test_league_unique_per_platform_season(db: AsyncSession) -> None:
 
 
 async def test_deleting_user_removes_memberships(db: AsyncSession) -> None:
-    user = User(email="a@example.com")
+    user = User(email="a@example.com", name="A")
     league = League(platform="sleeper", external_id="1", season=2026, name="L")
     db.add_all([user, league])
     await db.flush()
