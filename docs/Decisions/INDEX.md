@@ -51,5 +51,7 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-037 Headshots via the Next.js image cache](ADR-037-Headshots-Next-Image-Cache.md): resized, cached ESPN images with initials fallback (closes open question #13)
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
+- [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in
+- [ADR-041 Accessibility standard](ADR-041-Accessibility-Standard.md): WCAG 2.1 AA enforced by axe on every screen; palette adjustments
 
 Up: [Home](../README.md)

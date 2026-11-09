@@ -31,6 +31,7 @@ from app.adapters.base import (
     RosterSpot,
     TeamData,
 )
+from app.config import get_settings
 from app.nfl_teams import canonical_team
 
 BASE_URL = "https://api.sleeper.app/v1"
@@ -128,7 +129,7 @@ class SleeperAdapter:
 
     def __init__(self, client: httpx.AsyncClient | None = None, *, retries: int = 3) -> None:
         self._client = client or httpx.AsyncClient(
-            base_url=BASE_URL,
+            base_url=get_settings().sleeper_base_url,
             timeout=httpx.Timeout(20.0, connect=5.0),
             headers={"User-Agent": "SundayWarRoom/0.1"},
         )

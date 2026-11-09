@@ -47,6 +47,8 @@ async def enqueue_initial_ingest(ctx: Ctx) -> bool:
     a full nflverse load now instead of waiting for tomorrow's scheduled one. Without history,
     projections fall back to generic values. Returns True when a load was queued.
     """
+    if not get_settings().initial_ingest:
+        return False
     async with ctx["sessionmaker"]() as db:
         has_stats = await db.scalar(select(PlayerWeekStats.gsis_id).limit(1))
     if has_stats is not None:

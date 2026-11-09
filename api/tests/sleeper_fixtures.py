@@ -26,7 +26,7 @@ def mock_sleeper() -> respx.MockRouter:
     router.get(f"/league/{LEAGUE_ID}").respond(json=fx("league"))
     router.get(f"/league/{LEAGUE_ID}/rosters").respond(json=fx("rosters"))
     router.get(f"/league/{LEAGUE_ID}/users").respond(json=fx("league_users"))
-    for week in range(1, 10):
+    for week in range(1, 19):  # a full season, so past-season leagues can sync every week
         name = f"matchups_{week}" if week in (8, 9) else "matchups_8"
         router.get(f"/league/{LEAGUE_ID}/matchups/{week}").respond(json=fx(name))
     router.get("/players/nfl").respond(json=fx("players"))

@@ -96,6 +96,7 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAGIC_LINK_RATE_LIMIT_MAX: ${MAGIC_LINK_RATE_LIMIT_MAX:-5}
       EMAIL_FROM: ${EMAIL_FROM:-Sunday War Room <signin@example.com>}
     ports:
       - "${WEB_PORT:-3000}:3000"

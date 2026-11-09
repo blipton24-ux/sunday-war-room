@@ -199,3 +199,98 @@ async def test_player_projection_is_tenant_scoped(
     )
     assert resp.status_code == 404 and resp.json()["code"] == "league_not_found"
     assert (await db.scalars(select(SyncRun))).all()  # (world fixture really synced)
+
+
+# --------------------------------------------------------------------------- edge cases (step 14)
+async def test_players_whose_games_have_started_are_locked_in_lineup_advice(
+    db: AsyncSession, world: dict[str, Any], client: httpx.AsyncClient
+) -> None:
+    """Once a game kicks off you can't change that player in Sleeper, so the app never
+    suggests moving anyone in or out, and the win chance doesn't pretend you can."""
+    league, h = world["league"], auth_headers(world["user"].id)
+    await compute_projections(db, league, 9, now=BEFORE)
+    started = datetime.now(UTC) - timedelta(hours=1)  # kicked off an hour ago, not final
+    await db.execute(update(NflGame).values(kickoff_at=started, home_score=None, away_score=None))
+    await db.commit()
+
+    lineup = (await client.get(f"/api/v1/leagues/{league.id}/lineup?week=9", headers=h)).json()
+    statuses = {p["game_status"] for p in lineup["starters"] + lineup["bench"]}
+    assert statuses <= {"in_progress", "bye"} and "in_progress" in statuses
+    assert lineup["swaps"] == []  # everyone with a game is locked
+    assert lineup["win_probability_optimal"] == lineup["win_probability_current"]
+
+    matchup = (await client.get(f"/api/v1/leagues/{league.id}/matchup?week=9", headers=h)).json()
+    assert all(p["actual_points"] is None for p in matchup["me"]["starters"])  # no results yet
+
+
+async def test_a_league_still_on_its_first_sync_says_so(
+    db: AsyncSession, world: dict[str, Any], client: httpx.AsyncClient
+) -> None:
+    await db.execute(update(League).values(current_week=None))
+    await db.commit()
+    resp = await client.get(
+        f"/api/v1/leagues/{world['league'].id}/matchup", headers=auth_headers(world["user"].id)
+    )
+    assert resp.status_code == 409 and resp.json()["code"] == "not_synced"
+
+
+async def test_missing_players_and_bad_weeks_get_clear_errors(
+    db: AsyncSession, world: dict[str, Any], client: httpx.AsyncClient
+) -> None:
+    lid, h = world["league"].id, auth_headers(world["user"].id)
+    gone = await client.get(f"/api/v1/players/999999/projection?league_id={lid}", headers=h)
+    assert gone.status_code == 404 and gone.json()["code"] == "player_not_found"
+    for bad in (0, 19):
+        resp = await client.get(f"/api/v1/leagues/{lid}/matchup?week={bad}", headers=h)
+        assert resp.status_code == 422 and resp.json()["code"] == "invalid", bad
+
+
+async def test_a_week_without_stored_rosters_returns_empty_lists_not_an_error(
+    db: AsyncSession, world: dict[str, Any], client: httpx.AsyncClient
+) -> None:
+    """The web app turns this into "Week 18 isn't here yet"; it relies on 200 + empty."""
+    lid, h = world["league"].id, auth_headers(world["user"].id)
+    lineup = (await client.get(f"/api/v1/leagues/{lid}/lineup?week=18", headers=h)).json()
+    assert lineup["starters"] == [] and lineup["bench"] == [] and lineup["swaps"] == []
+    matchup = (await client.get(f"/api/v1/leagues/{lid}/matchup?week=18", headers=h)).json()
+    assert matchup["me"]["starters"] == [] and matchup["opponent"] is None
+    assert matchup["outlook"] is None
+
+
+async def test_accuracy_is_empty_not_an_error_before_anything_is_graded(
+    db: AsyncSession, world: dict[str, Any], client: httpx.AsyncClient
+) -> None:
+    body = (
+        await client.get(
+            f"/api/v1/leagues/{world['league'].id}/accuracy",
+            headers=auth_headers(world["user"].id),
+        )
+    ).json()
+    assert body["n"] == 0 and body["mae"] is None and body["weeks"] == []
+
+
+async def test_grades_use_the_leagues_own_scoring_on_the_real_stat_line(
+    db: AsyncSession, world: dict[str, Any]
+) -> None:
+    league = world["league"]
+    await compute_projections(db, league, 9, now=BEFORE)
+    player = await db.scalar(
+        select(Player).join(Projection, Projection.player_id == Player.id)
+        .where(Player.position == "WR", Player.gsis_id.is_not(None)).limit(1)
+    )  # fmt: skip
+    assert player is not None and player.gsis_id is not None
+    # 4 catches for 100 yards under the fixture league's half-PPR rules: 4 * 0.5 + 100 * 0.1
+    db.add(PlayerWeekStats(gsis_id=player.gsis_id, season=2026, week=9, season_type="REG",
+                           position="WR", team=player.nfl_team, opponent="XX",
+                           stats={"receptions": 4.0, "receiving_yards": 100.0}))  # fmt: skip
+    await db.execute(update(NflGame).values(home_score=21, away_score=17))
+    await db.commit()
+
+    assert await grade_finished(db, 2026) > 0
+    graded = await db.scalar(
+        select(ProjectionGrade.actual_points)
+        .join(Projection, Projection.id == ProjectionGrade.projection_id)
+        .where(Projection.player_id == player.id)
+    )
+    assert graded == pytest.approx(12.0)
+    assert await grade_finished(db, 2026) == 0  # nothing left to grade

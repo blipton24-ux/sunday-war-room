@@ -9,9 +9,10 @@ const BG: Record<string, string> = {
   REC_FLEX: "bg-pos-flex", WRRB_FLEX: "bg-pos-flex",
 }; // prettier-ignore
 
+// Text versions of the position colors: theme-aware so they stay readable on both backgrounds.
 const TEXT: Record<string, string> = {
-  QB: "text-pos-qb", RB: "text-pos-rb", WR: "text-pos-wr", TE: "text-pos-te",
-  K: "text-pos-k", DEF: "text-pos-def",
+  QB: "text-pos-qb-fg", RB: "text-pos-rb-fg", WR: "text-pos-wr-fg", TE: "text-pos-te-fg",
+  K: "text-pos-k-fg", DEF: "text-pos-def-fg",
 }; // prettier-ignore
 
 const SHORT: Record<string, string> = {

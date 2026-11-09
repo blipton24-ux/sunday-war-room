@@ -3,6 +3,12 @@
  * tested. env.ts and email.ts apply them.
  */
 
+/** A positive whole number from an environment variable, or the fallback. */
+export function parseLimit(value: string | undefined, fallback: number): number {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
 /** True for an address that only exists on this machine. */
 export function isLocalUrl(url: string): boolean {
   try {

@@ -15,7 +15,7 @@ type Side = Schemas["TeamSide"];
 type Line = Schemas["PlayerLine"];
 
 export const MY_COLOR = "#2F6BDB";
-export const OPP_COLOR = "#C4566F";
+export const OPP_COLOR = "#C14E69"; // darkened a little so white initials pass contrast
 
 function gameState(m: Matchup): "live" | "final" | null {
   const all = [...m.me.starters, ...(m.opponent?.starters ?? [])].filter((p) => p.game_status !== "bye");

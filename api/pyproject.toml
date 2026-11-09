@@ -70,3 +70,12 @@ exclude = ["alembic/"]
 # nflreadpy is untyped, so frames derived from it are Any; the schema contracts check them.
 module = ["app.sources.nflverse"]
 warn_return_any = false
+
+[tool.coverage.run]
+source = ["app"]
+# SQLAlchemy's async mode runs code in greenlets; without this the report misses most of it.
+concurrency = ["thread", "greenlet"]
+omit = ["app/scripts/*"]  # command-line tools; the backtest is exercised by running it
+
+[tool.coverage.report]
+exclude_also = ['if TYPE_CHECKING:', 'raise AssertionError']

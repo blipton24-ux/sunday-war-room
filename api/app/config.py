@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     # First season loaded from nflverse for the model's history and backtests.
     nflverse_first_season: int = 2022
 
+    # Where Sleeper's public API lives. Overridden only by end-to-end tests (a local stand-in
+    # serving recorded responses), so tests never depend on the live service.
+    sleeper_base_url: str = "https://api.sleeper.app/v1"
+
+    # Background work switches. Both default on; end-to-end tests turn them off so the data they
+    # seed is never replaced by a scheduled or first-run load from the internet.
+    initial_ingest: bool = True  # the worker loads NFL history on first start
+    cron_enabled: bool = True  # hourly syncs and the daily player/nflverse refresh
+
     # Manual refresh rate limit (per user, per league).
     refresh_min_interval_seconds: int = 60
 

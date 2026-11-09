@@ -22,7 +22,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-accent/20 bg-base pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
-        <Link href="/" aria-label="Home" className="shrink-0">
+        <Link href="/" aria-label="Home" className="grid size-11 shrink-0 place-items-center">
           <Logo size={40} className="rounded-xl" />
         </Link>
         <span className="hidden md:block">
@@ -102,24 +102,39 @@ function LeagueMenu() {
   );
 }
 
+/**
+ * Previous / this week / next week. On a phone each control is a 44 px touch target (UI spec),
+ * with the visible circles kept small and the hit boxes overlapping a little; on a laptop it
+ * is the compact pill.
+ */
+const STEP =
+  "group -mx-1.5 grid size-11 shrink-0 place-items-center text-ink-lo hover:text-ink disabled:opacity-30 sm:mx-0 sm:size-8";
+const STEP_DISC =
+  "grid size-7 place-items-center rounded-full group-enabled:group-hover:bg-overlay sm:size-8";
+
 function WeekStepper() {
   const { week, setWeek, league } = useLeague();
   if (week == null) return null;
   const current = league?.current_week;
   return (
-    <div className="flex items-center rounded-full bg-raised p-[3px]">
+    <div className="flex items-center rounded-full bg-raised sm:p-[3px]">
       <button
         aria-label="Previous week"
         disabled={week <= 1}
         onClick={() => setWeek(week - 1)}
-        className="grid size-8 place-items-center rounded-full text-ink-lo hover:bg-overlay hover:text-ink disabled:opacity-30"
+        className={STEP}
       >
-        <ChevronLeft className="size-4" />
+        <span className={STEP_DISC}>
+          <ChevronLeft className="size-4" />
+        </span>
       </button>
       <button
         onClick={() => current && setWeek(current)}
         title={current && week !== current ? `Back to week ${current}` : undefined}
-        className={cn("nums px-1 text-[0.8rem] font-bold", current && week !== current && "text-accent")}
+        className={cn(
+          "nums grid min-h-11 shrink-0 place-items-center px-1 text-[0.8rem] font-bold sm:min-h-0",
+          current && week !== current && "text-accent",
+        )}
       >
         Wk {week}
       </button>
@@ -127,9 +142,11 @@ function WeekStepper() {
         aria-label="Next week"
         disabled={week >= 18}
         onClick={() => setWeek(week + 1)}
-        className="grid size-8 place-items-center rounded-full text-ink-lo hover:bg-overlay hover:text-ink disabled:opacity-30"
+        className={STEP}
       >
-        <ChevronRight className="size-4" />
+        <span className={STEP_DISC}>
+          <ChevronRight className="size-4" />
+        </span>
       </button>
     </div>
   );

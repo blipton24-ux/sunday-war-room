@@ -15,6 +15,12 @@ __pycache__/
 # Node / Next.js
 node_modules/
 *.tsbuildinfo
+
+# Playwright
+web/e2e/.auth/
+web/e2e/.results/
+web/playwright-report/
+web/test-results/
 next-env.d.ts
 .next/
 out/
@@ -36,3 +42,5 @@ Thumbs.db
 # Private notes and personal assistant instructions (ADR-027) — never commit
 docs/Private/
 CLAUDE.local.md
+
+api/.coverage

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEV_SECRETS, assertNotDevSecret, canLogMagicLinks, isLocalUrl } from "./policy";
+import { DEV_SECRETS, assertNotDevSecret, canLogMagicLinks, isLocalUrl, parseLimit } from "./policy";
 
 describe("isLocalUrl", () => {
   it.each(["http://localhost:3000", "http://127.0.0.1:13000/x", "http://[::1]:3000"])("%s is local", (u) => {
@@ -14,6 +14,14 @@ describe("isLocalUrl", () => {
     "",
   ])("%s is not", (u) => {
     expect(isLocalUrl(u)).toBe(false);
+  });
+});
+
+describe("parseLimit", () => {
+  it("accepts a positive whole number and falls back for anything else", () => {
+    expect(parseLimit("1000", 5)).toBe(1000);
+    expect(parseLimit(undefined, 5)).toBe(5);
+    for (const bad of ["", "0", "-3", "2.5", "lots"]) expect(parseLimit(bad, 5)).toBe(5);
   });
 });
 

@@ -60,7 +60,7 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 
 | ID | Item | Evidence | Priority | Needs | Status |
 |---|---|---|---|---|---|
-| P-02 | **Windows Smart App Control blocks unsigned native files.** Rollup's native file was refused in step 10; since then Vitest 5 (Rolldown), Next.js 16 and its image library all load fine, and the Rollup workaround was removed. Still to check: Playwright's browsers (step 14). Fallback: run those in Docker. | `Application Control policy has blocked this file`; `VerifiedAndReputablePolicyState = 1` | Low | Nothing unless a tool has no fallback | Open |
+| P-02 | **Windows Smart App Control blocks unsigned native files.** Rollup's native file was refused in step 10; since then Vitest 5 (Rolldown), Next.js 16 and its image library all load fine, and the Rollup workaround was removed. Playwright works using the installed Edge (`PW_CHANNEL=msedge`), so no fallback is needed. | `Application Control policy has blocked this file`; `VerifiedAndReputablePolicyState = 1` | Low | Nothing unless a tool has no fallback | Open |
 | P-04 | **Per-user rate limits beyond refresh** (before the chat in P3). | Only manual refresh is limited today | Low (P3) | P3 spec | Open |
 | P-05 | **Better Auth's schema check warns** "user_id … expected string but got int4" for `sessions` and `accounts`. Harmless today (integer ids are a supported mode and sign-in works end to end), but re-check after Better Auth upgrades. | `npm run auth:schema` output | Low | None | Open |
 | P-06 | **No linter for the web app yet.** Next.js 16 removed `next lint`; add ESLint (flat config, Next + React hooks rules) before CI. | Only `tsc` and Vitest run today | Med (P1 step 15) | None | Open |
@@ -70,6 +70,9 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 | P-10 | **The worker has no health check.** Compose checks api and web, but a worker that hangs looks "Up". ARQ has a health-check mode; wire it up when choosing the hosting platform's restart rules. | `docker-compose.yml` | Low (step 16) | The platform choice | Open |
 | P-11 | **The API image is 893 MB** (pandas, polars, pyarrow, numpy). Fine for now; trim only if hosting cost or deploy time makes it matter. | `docker images` | Low | None | Open |
 | P-12 | **CI check that `uv.lock` matches `pyproject.toml`** (`uv lock --check`), so a dependency edit can't skip regenerating the lock. | [ADR-039](../Decisions/ADR-039-Python-Dependency-Lock-uv.md) | Med (step 15) | None | Open |
+| P-13 | **Trusted proxy header for rate limits.** Better Auth limits sign-in link requests per IP address; behind the hosting proxy it needs to read the forwarded-IP header, or all visitors share one limit (and one abuser can block everyone). Configure `advanced.ipAddress` for the chosen platform. | Limit confirmed at 5 per minute per IP in step 14 tests; see V-30 | **High** (step 16) | The platform choice | Open |
+| P-14 | **Run the end-to-end suite in WebKit too** (Safari's engine) in CI. | Chromium only today, see V-28 | Med (step 15) | None | Open |
+| P-15 | **Tests that don't need a rebuild.** Web changes need the web image rebuilt (about a minute) before E2E sees them. A dev-mode E2E target would speed up local work. | [ADR-040](../Decisions/ADR-040-End-to-End-Test-Approach.md) | Low | None | Open |
 
 ## Done
 
@@ -77,6 +80,7 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 |---|---|---|
 | U-01 | Player headshots: decided to serve them through the Next.js image cache with an initials fallback | [ADR-037](../Decisions/ADR-037-Headshots-Next-Image-Cache.md) |
 | P-01 | Python dependencies locked: `api/uv.lock`, installed with `--frozen` in the image | [ADR-039](../Decisions/ADR-039-Python-Dependency-Lock-uv.md) |
+| U-12 | Text contrast: every screen passes WCAG AA in both themes, guarded by an axe test; a few palette colors darkened or lightened slightly | [ADR-041](../Decisions/ADR-041-Accessibility-Standard.md) |
 | P-03 | Windows Polars build: `pyproject.toml` asks Windows for `polars[rtcompat]`, Linux for the standard build | `api/pyproject.toml` |
 
 Related: [Verification Gaps](Verification-Gaps.md) (built but not yet seen working) · [Backtest Report](Backtest-Report.md) · [P1 Build Plan](P1-Build-Plan.md) · [P2–P4 Outline](P2-P4-Outline.md) · [Projection Model](../Specs/Projection-Model.md) · [Open Questions](../Specs/Open-Questions.md) · [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)

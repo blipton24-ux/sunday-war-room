@@ -49,7 +49,7 @@ class WorkerSettings:
         sync_players_job,
         ingest_nflverse_job,
     ]
-    cron_jobs: ClassVar[list[Any]] = [
+    cron_jobs: ClassVar[list[Any]] = [] if not settings.cron_enabled else [
         cron(sync_all_leagues, minute=5, run_at_startup=False),  # hourly, at :05
         cron(sync_players_job, hour=9, minute=15),  # daily (UTC)
         # Daily: nflverse publishes stats overnight after games (Tuesday run catches MNF).

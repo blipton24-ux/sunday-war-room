@@ -34,6 +34,7 @@ function createAuth() {
   plugins: [
     magicLink({
       expiresIn: 60 * 10,
+      rateLimit: { window: 60, max: env.magicLinkRateLimit },
       sendMagicLink: async ({ email, url }) => sendMagicLinkEmail(email, url),
     }),
     nextCookies(), // must stay last: lets server actions set the session cookie

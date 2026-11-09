@@ -40,7 +40,7 @@ type ChipTone = "dim" | "live" | "final" | "accent" | "neutral" | "good" | "warn
 
 const CHIP: Record<ChipTone, string> = {
   dim: "bg-scrim text-ink-mid",
-  live: "bg-ember/15 text-ember",
+  live: "bg-ember/8 text-ember",
   final: "bg-high text-ink-lo",
   accent: "accent-soft text-accent",
   neutral: "bg-high text-ink-mid",

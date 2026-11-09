@@ -1,6 +1,6 @@
 import "server-only";
 
-import { assertNotDevSecret } from "./policy";
+import { assertNotDevSecret, parseLimit } from "./policy";
 
 /**
  * Server environment variables, read in one place. `.env.example` (repo root) documents them.
@@ -47,6 +47,10 @@ export const env = {
   /** Where the Next.js server reaches FastAPI (internal network in production). */
   get apiInternalUrl() {
     return required("API_INTERNAL_URL", "http://localhost:8000");
+  },
+  /** Sign-in link requests allowed per minute from one address (brute-force protection). */
+  get magicLinkRateLimit() {
+    return parseLimit(process.env.MAGIC_LINK_RATE_LIMIT_MAX, 5);
   },
   get googleClientId() {
     return optional("GOOGLE_CLIENT_ID");

@@ -37,7 +37,7 @@ Each step ends with something runnable and tested.
 11. **Next.js app:** Better Auth (Google + magic link, our Postgres; [ADR-035](../Decisions/ADR-035-Auth-Better-Auth.md)), `/api/v1` pass-through to FastAPI ([ADR-036](../Decisions/ADR-036-API-Access-Through-Web-Server.md)), headshots via `next/image` ([ADR-037](../Decisions/ADR-037-Headshots-Next-Image-Cache.md)), Tailwind + shadcn theme in the Sunday War Room style ([ADR-032](../Decisions/ADR-032-Visual-Sunday-War-Room-Style.md); reference: `mockups/p1-screens-v3.html`), bottom tabs + More menu, player headshots, onboarding, Home, Matchup, Lineup, Player detail, Accuracy, Settings ([UI Screens](../Specs/UI-Screens.md)).
 12. **PWA:** manifest, icons, service worker (installable).
 13. **Dockerfiles:** `web`, `api` (same image runs api or worker); full `docker compose up` works.
-14. **Tests:** fill gaps, starting with the open items in [Verification Gaps](Verification-Gaps.md); Playwright E2E for sign-in → connect Sleeper → matchup → lineup (test auth bypass in E2E only).
+14. **Tests:** fill gaps, starting with the open items in [Verification Gaps](Verification-Gaps.md); Playwright E2E for sign-in → connect Sleeper → matchup → lineup (real magic-link flow in E2E, no bypass; [ADR-040](../Decisions/ADR-040-End-to-End-Test-Approach.md)).
 15. **CI:** `ci.yml`: lint, type-check, unit, integration (Postgres + Redis services), build images, E2E.
 16. **Deploy:** owner picks the platform ([Open Questions](../Specs/Open-Questions.md) #1); managed Postgres + Redis; `deploy.yml` on merge to main (migrate, then roll out); domain + HTTPS; Google OAuth production credentials.
 17. **Docs:** update vault (any new ADRs, actual metrics), root README with live URL and screenshots.

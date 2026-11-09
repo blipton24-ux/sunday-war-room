@@ -157,7 +157,7 @@ export function PlayerRow({
                     {detail.data.recent_games.map((g) => (
                       <span key={g.week} className="rounded-xl bg-high px-2.5 py-1.5 text-center">
                         <span className="stat block text-sm">{f1(g.points)}</span>
-                        <span className="text-[0.62rem] text-ink-faint">
+                        <span className="text-[0.62rem] text-ink-lo">
                           Wk {g.week} {g.opponent ?? ""}
                         </span>
                       </span>

@@ -16,25 +16,16 @@ Things that are **built but not yet seen working** in a real browser or with rea
 
 | ID | What isn't verified | Why not | How to test | Where | Status |
 |---|---|---|---|---|---|
-| V-01 | **Every screen at phone size**: bottom tabs and More menu, header fit (league name, week stepper, refresh and theme buttons), player rows, head-to-head avatars hidden under 420 px, Top performers shelf scrolling, 44 px touch targets | The browser window couldn't be resized to phone width; only desktop width was seen | Playwright at 390×844, plus one look on a real phone | Playwright + phone | Open (backlog U-09) |
-| V-02 | **"Week N isn't here yet"** on Home, Lineup and Matchup for a future week, and its "Back to Week N" button | The browser tools failed before the check; only type-checked and built | Step the week forward past the current week | Playwright | Open |
+| V-01 | **Every screen on a real phone.** Phone-sized layout, touch targets and overflow are now tested at 390 and 360 px in an emulated iPhone (V-P12). Not covered: a real device's safe areas, real touch, Safari. | Emulation isn't a device | One look on a real phone, in both themes | By hand, real phone | Open (backlog U-09) |
 | V-03 | **"Projected final" while games are live** can read below the live score | Known behavior, not a test gap: players in progress keep their pre-game projection. The real fix needs live scores (P2) | During a live game, compare the header's projected final with the score; re-check after the P2 live work | Sunday, by hand | Open (backlog U-07) |
 
 ## Also not yet seen working
 
 | ID | What isn't verified | Why not | How to test | Where | Status |
 |---|---|---|---|---|---|
-| V-04 | **Expanded player row with a projection**: Bust → Proj → Boom bar, "why this number" chips and notes, "Updates until kickoff" / "Frozen at kickoff" | The only row expanded (a finished game) had no projection, so only "recent games" showed | Expand a starter before kickoff and after kickoff | Playwright | Open |
-| V-05 | **Lineup check with swaps**: swap rows (▲ in, ~~out~~, +gain), win chance before → after, "Start" tag on bench players | Every game in the test week was final, so the lineup was already optimal | Test a week before kickoff where a bench player outprojects a starter (fixture data) | Playwright | Open |
-| V-06 | **Home "Heads up" alerts** (bye, injured, questionable, boomed) with photos | No alert applied to the real lineup that day; the logic is unit tested | Fixture lineup with a bye and a questionable starter | Playwright | Open |
-| V-07 | **Onboarding screens** (username → leagues → syncing → pick team, pre-selected team, unknown username, no leagues) | Run through the API with `curl`, not through the screens | Click through with a test username | Playwright (Sleeper mocked) | Open |
-| V-08 | **Header actions**: league switcher, refresh → "Syncing…" → "League updated", rate-limit message, More menu, sign out | Not clicked in the browser | Click each; refresh twice within a minute for the 429 message | Playwright | Open |
-| V-09 | **Settings actions**: change my team, unfollow (confirm dialog), delete account (confirm dialog → signed out, data gone) | Avoided clicking confirm dialogs in the shared browser; the API side is tested | Run each in a throwaway account | Playwright | Open |
-| V-10 | **Light theme on every screen** | Only the Matchup screen was seen in light mode | Toggle on each screen; check contrast of chips, range bar, position colors | Playwright screenshots | Open |
-| V-11 | **Accuracy page with real grades** (stats, by-position and week tables) | No genuine grades exist yet; only the empty state was seen | After the first week graded from pre-kickoff projections | By hand, then Playwright with fixture grades | Open |
+| V-11 | **Accuracy page with real grades.** Fixture grades are tested (V-P12). Not yet seen: grades from genuinely pre-kickoff projections during a real week. | No genuine grades exist yet | After the first real week is graded | By hand | Open |
 | V-12 | **Real "Sign in with Google"** | No Google OAuth credentials yet | Create a Google OAuth client, sign in on localhost, then on the deployed site | By hand | Waiting on credentials |
 | V-13 | **Real magic-link email** through Resend (delivery, spam folder, link works once, 10-minute expiry) | No Resend key yet; locally the link prints in the terminal | Send to a real inbox; reuse the link to confirm it is refused | By hand | Waiting on API key |
-| V-14 | **Playwright's browsers under Windows Smart App Control** | Not installed yet | Install Playwright in step 14; fall back to Docker if blocked | Step 14 | Open (backlog P-02) |
 | V-15 | **Better Auth after upgrades**: its schema check warns that `user_id` is an integer, harmless today | Can only be checked when Better Auth is upgraded | After each upgrade: `npm run auth:schema` and one sign-in | Each upgrade | Open (backlog P-05) |
 
 ## Not yet seen working: the installed app (P1 step 12, 2026-11-09)
@@ -45,8 +36,7 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-17 | **Installing on iPhone**: Share → Add to Home Screen, the icon (apple-icon), the "Installed" card. Also the full-screen layout: the header isn't hidden under the status bar or notch (safe-area padding), and the bottom tabs clear the home indicator. | Needs an iPhone. Desktop layout was measured unchanged, but safe areas are 0 there. | Install on an iPhone; check the top and bottom edges in both themes | By hand, real iPhone | Open |
 | V-18 | **Signing in inside the installed iPhone app.** A magic link opens in Safari; the installed app may not share that sign-in. | Needs an iPhone. This is a suspected iOS behavior, not a confirmed bug. | Install, sign out, request a link from inside the app, tap it in Mail | By hand, real iPhone | Open (backlog P-07) |
 | V-19 | **A new version reaching installed users.** The worker takes over right away (`skipWaiting` + `clients.claim`), which is safe for content-hashed files, but no update has happened yet. | Only one version exists | After the second deploy, open the app on a device that has the first version | By hand, after step 16 | Open |
-| V-20 | **Real offline and bad-signal behavior.** Tested by stopping the server. Not tested: airplane mode, or a very slow connection where a request neither succeeds nor fails (the offline page only appears when a request fails). | Browser tools can't change the network | Airplane mode; then throttle to a very slow connection | By hand, or Playwright offline mode | Open |
-| V-21 | **How the offline page and the Settings install card look** in dark and light. Their text and behavior were checked; screenshots timed out three times on those pages. | Screenshot tool failure, not a page fault | Open both in each theme | Playwright screenshots | Open |
+| V-20 | **Bad-signal behavior.** Offline (no connection) is tested in a real browser (V-P12). Not tested: a very slow connection where a request neither succeeds nor fails, and airplane mode on a phone. | Playwright offline mode only fails requests | Throttle to a very slow connection; airplane mode | By hand | Open |
 | V-22 | **Installing from desktop Chrome or Edge**: the app opens in its own window with no browser bars. | Not completed | Click Install in Settings on a laptop | By hand | Open |
 
 ## Not yet seen working: the containers (P1 step 13, 2026-11-09)
@@ -58,6 +48,14 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-25 | **Restart and recovery**: stopping and restarting the stack keeps data (the `db-data` volume) and the worker resumes; a worker or api crash restarts under the hosting platform's rules. | Only a clean first start was tried | `docker compose down` then `up` (without `-v`); kill the worker mid-sync | By hand; hosting platform (step 16) | Open |
 | V-26 | **Production settings**: the images with real secrets, a public HTTPS address, a real Resend key and Google OAuth. Locally everything ran with development secrets on `localhost`. | No domain or credentials yet | Deploy (step 16) and sign in with both methods | Deploy | Open |
 | V-27 | **The container browser experience**: pages were fetched with `curl` and a browser earlier against the non-container build, but the container's `localhost:3000` site wasn't opened in a browser. | Efficiency; same code | Open it once in a browser after `docker compose up` | By hand | Open |
+
+## Added in step 14 (2026-11-09)
+
+| ID | What isn't verified | Why not | How to test | Where | Status |
+|---|---|---|---|---|---|
+| V-28 | **Safari / WebKit.** The end-to-end suite runs in Chromium only; every iPhone browser uses WebKit. | Not in the suite yet | Add a WebKit project in CI (backlog P-14) and look on an iPhone | CI + real iPhone | Open |
+| V-29 | **Keyboard-only and screen-reader use.** Axe checks about a third of accessibility problems automatically ([ADR-041](../Decisions/ADR-041-Accessibility-Standard.md)). | Needs a person | Tab through every screen; listen with VoiceOver or NVDA | By hand | Open |
+| V-30 | **Rate limits behind a real proxy.** Better Auth limits sign-in links per IP; behind the hosting proxy every visitor may look like one address unless it reads the forwarded-IP header (backlog P-13). | Only tested on localhost | Request several links from different networks on the deployed site | Deploy (step 16) | Open |
 
 ## Verified
 
@@ -74,5 +72,7 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | V-P9 | Sign-in, connecting Sleeper, syncing, picking a team and loading every screen work inside the containers; photos served through the image cache (3.7 KB, one-week cache header) | 2026-11-09 | `curl` against the stack |
 | V-P10 | A container set up like a public site but using development secrets refuses to run sign-in (HTTP 500 with a clear message); the health check still answers | 2026-11-09 | One-off container |
 | V-P11 | All 130 backend tests pass inside the image using exactly the locked package versions, against a real database and Redis | 2026-11-09 | `--target test` image on the stack's network |
+| V-P12 | Step 14 end-to-end suite, 62 tests in Edge against the full container stack with a seeded league: first-run onboarding (V-07), every screen with live, bye, questionable and boom states, swaps and alerts (V-02, V-04, V-05, V-06), fixture grades (V-11), phone size at 390 and 360 px with 44 px touch targets (V-01), both themes scanned by axe with no serious findings (V-10), header and Settings actions including unfollow and delete account (V-08, V-09), isolation between users, service worker, offline page and install card (V-20, V-21) | 2026-11-09 | `npm run e2e` in `web/` |
+| V-P13 | Playwright runs under Windows Smart App Control using the installed Edge (V-14) | 2026-11-09 | `PW_CHANNEL=msedge` |
 
 Related: [Improvement Backlog](Improvement-Backlog.md) · [P1 Build Plan](P1-Build-Plan.md) · [UI Screens](../Specs/UI-Screens.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)

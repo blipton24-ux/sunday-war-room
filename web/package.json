@@ -15,7 +15,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "auth:schema": "node scripts/auth-schema.ts",
-    "generate:icons": "node scripts/generate-icons.mjs"
+    "generate:icons": "node scripts/generate-icons.mjs",
+    "e2e:up": "node e2e/stack.mjs up",
+    "e2e:down": "node e2e/stack.mjs down",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
@@ -35,6 +39,8 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^22.20.5",
     "@types/pg": "^8.23.1",

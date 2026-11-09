@@ -1,0 +1,71 @@
+# End-to-end test stack: the real services (db, redis, migrate, api, worker, web) with two
+# changes, layered on docker-compose.yml:
+#   - Sleeper is replaced by a local stand-in serving recorded responses (web/e2e/mock_sleeper.py)
+#   - NFL data is seeded (api/tests/e2e_seed.py) and the worker's own loads are switched off,
+#     so the data the tests rely on is never replaced by something from the internet.
+#
+#   node web/e2e/stack.mjs up      start it (fresh database every time)
+#   node web/e2e/stack.mjs down    stop it and delete its data
+# See web/e2e/README.md.
+
+services:
+  sleeper-mock:
+    image: python:3.12-slim-bookworm
+    command: ["python", "/srv/mock_sleeper.py"]
+    environment:
+      FIXTURES_DIR: /fixtures
+      PORT: "4010"
+    volumes:
+      - ./api/tests/fixtures/sleeper:/fixtures:ro
+      - ./web/e2e/mock_sleeper.py:/srv/mock_sleeper.py:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:4010/v1/state/nfl', timeout=3).status == 200 else 1)"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # Runs once and exits: loads the recorded league and invents the NFL side of the world.
+  e2e-seed:
+    build:
+      context: ./api
+      target: test
+    image: sunday-war-room-api-test
+    command: ["python", "-m", "tests.e2e_seed"]
+    environment:
+      ENVIRONMENT: development
+      LOG_LEVEL: WARNING
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-swr}:${POSTGRES_PASSWORD:-swr}@db:5432/${POSTGRES_DB:-swr}
+      REDIS_URL: redis://redis:6379/0
+      SLEEPER_BASE_URL: http://sleeper-mock:4010/v1
+      INITIAL_INGEST: "false"
+      CRON_ENABLED: "false"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      sleeper-mock:
+        condition: service_healthy
+    restart: "no"
+
+  worker:
+    environment:
+      SLEEPER_BASE_URL: http://sleeper-mock:4010/v1
+      INITIAL_INGEST: "false"
+      CRON_ENABLED: "false"
+    depends_on:
+      sleeper-mock:
+        condition: service_healthy
+      e2e-seed:
+        condition: service_completed_successfully
+
+  web:
+    environment:
+      # Production allows 5 sign-in link requests a minute per address; the tests sign in a lot.
+      MAGIC_LINK_RATE_LIMIT_MAX: "1000"
+
+  api:
+    environment:
+      # Normally one manual refresh per minute; a few seconds lets the tests see both outcomes.
+      REFRESH_MIN_INTERVAL_SECONDS: "4"
+    depends_on:
+      e2e-seed:
+        condition: service_completed_successfully

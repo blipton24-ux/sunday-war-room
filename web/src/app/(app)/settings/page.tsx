@@ -116,6 +116,19 @@ function LeagueSettings({ league }: { league: Schemas["LeagueOut"] }) {
   const setTeam = useSetMyTeam();
   const unfollow = useUnfollowLeague();
   const toast = useToast();
+  const router = useRouter();
+
+  async function confirmUnfollow() {
+    // Awaited here, not passed to mutate(): this row disappears when the list refreshes, and a
+    // callback attached to a component that has gone is never called.
+    try {
+      await unfollow.mutateAsync(league.id);
+      toast("League removed");
+      router.refresh(); // the signed-in layout sends you to connect a league if none are left
+    } catch {
+      toast("Couldn't remove the league. Try again.");
+    }
+  }
   return (
     <Card>
       <div className="flex items-start justify-between gap-3">
@@ -130,7 +143,7 @@ function LeagueSettings({ league }: { league: Schemas["LeagueOut"] }) {
           description="It disappears from your war room. You can follow it again from Add leagues."
           confirmLabel="Unfollow"
           busy={unfollow.isPending}
-          onConfirm={() => unfollow.mutate(league.id, { onSuccess: () => toast("League removed") })}
+          onConfirm={confirmUnfollow}
           trigger={<button className="shrink-0 text-xs font-semibold text-ink-lo hover:text-bad">Unfollow</button>}
         />
       </div>

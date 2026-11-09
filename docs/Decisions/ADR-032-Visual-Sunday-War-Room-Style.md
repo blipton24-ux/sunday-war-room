@@ -34,4 +34,7 @@ It's a proven design the owner already likes. Removing gradients makes it cleane
 ## Trade-offs accepted
 Player headshots come from ESPN's public image CDN. The production app must cache or proxy them and fall back to initials ([Open Questions](../Specs/Open-Questions.md)).
 
-Related: [ADR-033 Name](ADR-033-Name-Sunday-War-Room.md) · [ADR-025 Navigation](ADR-025-Navigation-Bottom-Tabs.md) · [UI Screens](../Specs/UI-Screens.md)
+> [!NOTE]
+> **Updated 2026-11-09:** several palette colors were adjusted slightly to meet WCAG AA text contrast, see [ADR-041](ADR-041-Accessibility-Standard.md). The mockup file is unchanged.
+
+Related: [ADR-041 Accessibility](ADR-041-Accessibility-Standard.md) · [ADR-033 Name](ADR-033-Name-Sunday-War-Room.md) · [ADR-025 Navigation](ADR-025-Navigation-Bottom-Tabs.md) · [UI Screens](../Specs/UI-Screens.md)
