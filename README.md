@@ -5,15 +5,18 @@ leagues and helps you make weekly decisions: start/sit, matchup outlook,
 waivers, trades, a live game-day dashboard, and an AI assistant that answers
 questions using your league's real data and Sunday War Room's own projection model.
 
-> **Status:** Phase 1 (Sleeper: sign-in, matchup, lineup optimizer, own projection model,
-> accuracy tracking) is built, runs locally with one command and passes CI on every push
-> (160 backend, 71 web and 62 end-to-end tests). Waivers, trades, live game day and the AI
-> assistant are next; model upgrades and then deployment come last ([ADR-043](docs/Decisions/ADR-043-Phases-Renumbered.md)).
+> **Status:** Phases 1 and 2 are built, run locally with one command and pass CI on every push
+> (260 backend tests at 99% coverage, 73 web and 81 end-to-end tests). P1: Sleeper sign-in,
+> matchup, lineup optimizer, own projection model, accuracy tracking. P2: waivers ranked by
+> value added to your lineup, a trade analyzer for any two teams, and live game day. The AI
+> assistant is next; model upgrades and then deployment come last ([ADR-043](docs/Decisions/ADR-043-Phases-Renumbered.md)).
 > All decisions and specs live in the [docs vault](docs/README.md).
 
-| Lineup | Matchup |
+| Lineup | Matchup (live) |
 |---|---|
-| ![Lineup: win chance, suggested swaps, top performers](docs/screenshots/lineup-desktop.png) | ![Matchup: projected final, win chance, starters](docs/screenshots/matchup-desktop.png) |
+| ![Lineup: win chance, suggested swaps, top performers](docs/screenshots/lineup-desktop.png) | ![Matchup during games: points so far, game clocks, live win chance](docs/screenshots/matchup-desktop.png) |
+| **Waivers** | **Trades** |
+| ![Waivers: free agents ranked by points added to my lineup, bid guide](docs/screenshots/waivers-desktop.png) | ![Trades: ideas for me with an acceptable-loss slider](docs/screenshots/trades-desktop.png) |
 
 *Screenshots from demo data (a recorded Sleeper league and an invented NFL week), not a real person's league.*
 

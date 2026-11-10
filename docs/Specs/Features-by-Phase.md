@@ -19,7 +19,7 @@ Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working an
 - **PWA:** installable; dark-first theme with a light toggle; bottom tabs with a More menu.
 - **Accuracy page (lightweight):** how Sunday War Room's frozen projections compared to actual results in past weeks.
 
-## P2 — Waivers, trades, live game day
+## P2 — Waivers, trades, live game day (built 2026-11-10)
 - **Waivers** ([ADR-047](../Decisions/ADR-047-Waivers-Value-Added.md)): free agents ranked by value added to *your* best lineup, rest of season or this week; suggested drop; waiver status under the league's rules; FAAB bid range.
 - **Trade analyzer** ([ADR-048](../Decisions/ADR-048-Trades-Lineup-Impact.md)): any two teams, judged by lineup impact; "best for me, still acceptable" suggestions with an adjustable limit.
 - **Live game day** ([ADR-044](../Decisions/ADR-044-Live-Data-Sources.md), [ADR-045](../Decisions/ADR-045-Live-Delivery-Polling.md)): scores, player game status, live projected finals and win chance, re-fetched every 30–60 s while games are live.

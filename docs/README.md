@@ -8,7 +8,7 @@ aliases: [Home, 00 Home]
 
 The source of truth for every decision, spec and explanation behind Sunday War Room. No code lives here. Start with the Product Vision, then skim the Decisions.
 
-**Status (2026-11-09):** 48 decisions made; Phase 1 built and passing CI on GitHub (backend, worker, web app, PWA, Docker images, 160 + 71 + 62 tests); P2 planned ([P2 Build Plan](Build-Plan/P2-Build-Plan.md)); improved model is Phase 5, deployment Phase 6 ([ADR-043](Decisions/ADR-043-Phases-Renumbered.md)) ([ADR-026](Decisions/ADR-026-Execution-Order.md)).
+**Status (2026-11-10):** 48 decisions made; Phases 1 and 2 built and passing CI on GitHub (260 backend, 73 web, 81 end-to-end tests): P2 adds waivers, trades and live game day ([P2 Build Plan](Build-Plan/P2-Build-Plan.md)); P3 (AI assistant) is next; improved model is Phase 5, deployment Phase 6 ([ADR-043](Decisions/ADR-043-Phases-Renumbered.md)) ([ADR-026](Decisions/ADR-026-Execution-Order.md)).
 
 ## Start here
 - [Product Vision](Specs/Product-Vision.md): what Sunday War Room is, who it's for, its principles

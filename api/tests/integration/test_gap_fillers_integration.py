@@ -59,12 +59,14 @@ def test_worker_registers_every_job_and_its_schedule() -> None:
 
     assert {f.__name__ for f in WorkerSettings.functions} == {  # type: ignore[attr-defined]
         "connect_sleeper",
+        "live_update_job",
         "sync_league_job",
         "sync_players_job",
         "ingest_nflverse_job",
     }
     assert {c.name for c in WorkerSettings.cron_jobs} == {
         "cron:sync_all_leagues",
+        "cron:live_update_job",  # P2: every minute, quiet outside game windows
         "cron:sync_players_job",
         "cron:ingest_nflverse_job",
     }

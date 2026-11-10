@@ -22,10 +22,12 @@ const screens = [
   ["matchup", "/matchup"],
   ["lineup", "/lineup"],
   ["accuracy", "/accuracy"],
+  ["waivers", "/waivers"],
+  ["trades", "/trades"],
 ] as const;
 
 for (const [kind, device] of [
-  ["phone", devices["iPhone 14"]],
+  ["phone", { ...devices["iPhone 14"], deviceScaleFactor: 2 }],
   ["desktop", { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } }],
 ] as const) {
   const context = await browser.newContext({ ...device, baseURL, colorScheme: "dark" });

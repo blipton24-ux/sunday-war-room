@@ -17,16 +17,16 @@ Each step ends runnable, tested, committed and green in CI.
 5. **Trade analyzer** (done 2026-11-10): `POST /leagues/{id}/trades/evaluate` (any two teams); `GET /leagues/{id}/trades/suggestions?max_loss=`; Trades screen with team pickers, before/after lineups and the "acceptable" slider.
 6. **ESPN scoreboard source** (done 2026-11-10; `app/sources/espn_scoreboard.py`, recorded real weeks 9-10 plus a derived live file): one module with a schema contract; team codes mapped to ours.
 7. **Live game day** (done 2026-11-10; every-minute worker tick that does nothing outside game windows; Matchup polls every 45 s while live; kickoff-time estimate when the scoreboard is down): a worker job polls Sleeper and the scoreboard during game windows; live win chance from the remaining share of each game; player status on Matchup and Home; screens re-fetch every 30–60 s only while games are live; points-only fallback when the scoreboard fails.
-8. **Tests and docs:** end-to-end stand-ins (Sleeper and a scoreboard replaying a recorded Sunday), specs for waivers, trades and live; OpenAPI and generated client; vault, Verification Gaps, backlog.
+8. **Tests and docs** (done 2026-11-10): specs for waivers, trades and live; OpenAPI and generated client; vault, Verification Gaps, backlog. Changed from the plan: the end-to-end world stores the scoreboard rows the live tick would write, instead of a stand-in server replaying a Sunday (the worker's cron is off in that stack); the tick itself is tested against a fake scoreboard in `test_live.py`.
 
 ## Verification checklist
-- [ ] Waivers rank free agents for a FAAB league and a priority league; status and bid range follow each league's settings.
-- [ ] The toggle switches between rest of season and this week; a suggested drop is shown.
-- [ ] A trade between any two teams shows both teams' lineups before and after; a 2-for-1 is only a win if the extra player starts.
-- [ ] Suggestions respect the "acceptable" limit.
-- [ ] During a simulated live Sunday, scores, player status and win chance change between polls; nothing polls when no game is live.
-- [ ] If the scoreboard breaks, win chance falls back to points only and says so.
-- [ ] Rest-of-season backtest numbers recorded in the [Backtest Report](Backtest-Report.md).
+- [x] Waivers rank free agents for a FAAB league and a priority league; status and bid range follow each league's settings. (`tests/integration/test_waivers.py`; on a real league: V-33, V-34)
+- [x] The toggle switches between rest of season and this week; a suggested drop is shown. (`e2e/waivers.spec.ts`, `test_full_roster_suggests_a_drop`)
+- [x] A trade between any two teams shows both teams' lineups before and after; a 2-for-1 is only a win if the extra player starts. (`test_two_for_one_only_counts_the_second_player_if_he_starts`, `e2e/trades.spec.ts`)
+- [x] Suggestions respect the "acceptable" limit. (`test_suggestions_help_me_and_respect_the_limit`)
+- [x] During a simulated live Sunday, scores, player status and win chance blend points so far with time left, and the screen re-polls while live; the worker does nothing outside game windows. (`test_live.py`, `e2e/live.spec.ts`; a real Sunday is V-35)
+- [x] If the scoreboard breaks, scores still update and time left is estimated from kickoff, and the screen says so. (`test_scoreboard_down_still_updates_points`, `test_without_the_scoreboard_time_left_comes_from_kickoff`)
+- [x] Rest-of-season backtest numbers recorded in the [Backtest Report](Backtest-Report.md).
 - [ ] pytest, Vitest and Playwright pass locally and in GitHub Actions.
 
 Related: [P1 Build Plan](P1-Build-Plan.md) · [P2–P4 Outline](P2-P4-Outline.md) · [Features by Phase](../Specs/Features-by-Phase.md)
