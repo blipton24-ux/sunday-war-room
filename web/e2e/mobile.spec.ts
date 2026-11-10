@@ -44,6 +44,28 @@ test.describe("phone layout", () => {
     });
   }
 
+  // Backlog U-13: the league name used to spill out of its button and run under the week stepper.
+  for (const width of [390, 360]) {
+    test(`the header's league name stays clear of the week stepper at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+      const header = page.locator("header");
+      const league = header.getByRole("button", { name: /Fixture League/ });
+      await expect(league).toBeVisible();
+      const menu = (await league.boundingBox())!;
+      const stepper = (await header.getByRole("button", { name: "Previous week" }).boundingBox())!;
+      expect(menu.x + menu.width, "league button ends before the stepper starts").toBeLessThanOrEqual(stepper.x + 1);
+      // Its text lines stay inside the button, and the sync line is a single line.
+      for (const part of [league.locator("b"), league.locator("small")]) {
+        const box = (await part.boundingBox())!;
+        expect(box.x + box.width).toBeLessThanOrEqual(menu.x + menu.width + 1);
+      }
+      expect((await league.locator("small").boundingBox())!.height).toBeLessThan(20);
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await shot(page, `phone-header-${width}`);
+    });
+  }
+
   test("navigation is the bottom tab bar, not the desktop pill bar", async ({ page }) => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Main" });

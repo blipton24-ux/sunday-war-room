@@ -25,7 +25,7 @@ const screens = [
 ] as const;
 
 for (const [kind, device] of [
-  // Phone captures are left out until backlog U-13 (header overlap at 390px) is fixed.
+  ["phone", devices["iPhone 14"]],
   ["desktop", { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } }],
 ] as const) {
   const context = await browser.newContext({ ...device, baseURL, colorScheme: "dark" });

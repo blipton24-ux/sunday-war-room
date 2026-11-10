@@ -21,7 +21,7 @@ import { Logo, Wordmark } from "./logo";
 export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-accent/20 bg-base pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
+      <div className="mx-auto flex max-w-5xl items-center gap-1.5 px-3 py-2.5 sm:gap-3 sm:px-4">
         <Link href="/" aria-label="Home" className="grid size-11 shrink-0 place-items-center">
           <Logo size={40} className="rounded-xl" />
         </Link>
@@ -69,19 +69,21 @@ function LeagueMenu() {
 
   return (
     <Menu>
-      <MenuTrigger className="flex min-w-0 flex-col items-start rounded-xl px-2 py-1 text-left leading-tight hover:bg-raised">
-        <b className="flex max-w-[11rem] items-center gap-1 truncate text-[0.95rem] font-bold sm:max-w-xs">
+      <MenuTrigger className="flex min-h-11 min-w-0 flex-col items-start justify-center overflow-hidden rounded-xl px-2 py-1 text-left leading-tight hover:bg-raised">
+        <b className="flex w-full min-w-0 items-center gap-1 text-[0.95rem] font-bold sm:max-w-xs">
           <span className="truncate">{league?.name ?? "No league"}</span>
           <ChevronDown className="size-4 shrink-0 text-ink-lo" aria-hidden />
         </b>
-        <small className="flex items-center gap-1.5 text-[0.72rem] text-ink-lo">
+        <small className="flex w-full min-w-0 items-center gap-1.5 whitespace-nowrap text-[0.72rem] text-ink-lo">
           <i
             className={cn(
               "size-1.5 shrink-0 rounded-full",
               syncing ? "animate-live bg-accent" : stale ? "bg-warn" : "bg-good",
             )}
           />
-          {syncing ? "syncing…" : `synced ${timeAgo(league?.last_synced_at, now)}`}
+          <span className="truncate">
+            {syncing ? "syncing…" : `synced ${timeAgo(league?.last_synced_at, now)}`}
+          </span>
         </small>
       </MenuTrigger>
       <MenuContent>

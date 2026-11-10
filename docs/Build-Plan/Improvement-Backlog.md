@@ -55,7 +55,6 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 | U-10 | **Compare against the platform's own projections** on the Accuracy page (mockup v3 says "closer than Sleeper on 58% of players"). We don't store Sleeper's projections, so the line was left out rather than invented. | Mockup vs data | Low | Store Sleeper's weekly projections when we freeze ours | Open |
 | U-11 | **Show last-known data when offline** (owner decision, [ADR-038](../Decisions/ADR-038-Service-Worker-Scope.md) option B). Today an offline phone shows an offline page. Option B would keep a per-user copy of the last matchup and lineup on the phone, clearly marked "as of 12:05", and clear it on sign-out. Trade-offs: data on the device, stale numbers on game day, more to build and test. | PWA concept note lists it as a benefit; deferred for privacy and staleness | Med | Owner decision with a side-by-side (ADR-003) | Open |
 | U-12 | **Prompt people to install**, especially iPhone users, once push alerts exist (P2): on iPhone, web push only works for an installed app. P1 only has the card in Settings. | [PWA concept](../Concepts/PWA.md) | Low (P2) | Where and when to ask, without nagging | Open |
-| U-13 | **Phone header overlaps at 390 px wide.** The league name and "synced just now" wrap onto three lines and the league name runs under the week selector. Found while taking README screenshots (iPhone 14 profile). The mobile tests check touch-target size, not overlap. | `web/scripts/screenshots.ts` phone capture, 2026-11-09 | Med | None | Open |
 
 ## Platform and tooling
 
@@ -79,6 +78,7 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 
 | ID | Item | Where |
 |---|---|---|
+| U-13 | Phone header: the league name no longer spills under the week stepper (shrinkable text, tighter phone spacing, 44 px tap height); guarded by two header tests at 390 and 360 px | `web/src/components/shell/header.tsx`, `web/e2e/mobile.spec.ts` |
 | U-01 | Player headshots: decided to serve them through the Next.js image cache with an initials fallback | [ADR-037](../Decisions/ADR-037-Headshots-Next-Image-Cache.md) |
 | P-01 | Python dependencies locked: `api/uv.lock`, installed with `--frozen` in the image | [ADR-039](../Decisions/ADR-039-Python-Dependency-Lock-uv.md) |
 | U-12 | Text contrast: every screen passes WCAG AA in both themes, guarded by an axe test; a few palette colors darkened or lightened slightly | [ADR-041](../Decisions/ADR-041-Accessibility-Standard.md) |
