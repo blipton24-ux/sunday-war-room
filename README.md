@@ -8,7 +8,7 @@ questions using your league's real data and Sunday War Room's own projection mod
 > **Status:** Phase 1 (Sleeper: sign-in, matchup, lineup optimizer, own projection model,
 > accuracy tracking) is built, runs locally with one command and passes CI on every push
 > (160 backend, 71 web and 62 end-to-end tests). Waivers, trades, live game day and the AI
-> assistant are next; deployment comes last ([ADR-042](docs/Decisions/ADR-042-Deploy-As-Phase-5.md)).
+> assistant are next; model upgrades and then deployment come last ([ADR-043](docs/Decisions/ADR-043-Phases-Renumbered.md)).
 > All decisions and specs live in the [docs vault](docs/README.md).
 
 | Lineup | Matchup |

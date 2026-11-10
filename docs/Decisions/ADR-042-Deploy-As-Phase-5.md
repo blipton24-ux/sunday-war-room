@@ -6,6 +6,8 @@ status: accepted
 ---
 # ADR-042: Deployment moves to Phase 5, after the app is feature-complete
 
+> **Renumbered by [ADR-043](ADR-043-Phases-Renumbered.md):** deployment (with push alerts) is now Phase 6; Phase 5 is improved model projections.
+
 ## Context
 [ADR-009](ADR-009-Phasing.md) had every phase ship deployed, and P1's step 16 was the first deploy. Hosting is billed for running containers, not for visitors, so a live but unused app costs about the same as a busy one (rough ballparks: $5–12 a month for one small server, $20–62 for a managed platform; unverified, check each provider's pricing page before deploying). Nobody but the owner would use P1 on its own, so the cost would start long before there is a reason to pay it.
 

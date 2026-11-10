@@ -39,8 +39,8 @@ Each step ends with something runnable and tested.
 13. **Dockerfiles:** `web`, `api` (same image runs api or worker); full `docker compose up` works.
 14. **Tests:** fill gaps, starting with the open items in [Verification Gaps](Verification-Gaps.md); Playwright E2E for sign-in → connect Sleeper → matchup → lineup (real magic-link flow in E2E, no bypass; [ADR-040](../Decisions/ADR-040-End-to-End-Test-Approach.md)).
 15. **CI** (done, not yet run on GitHub; see [CI](CI.md)): `ci.yml`: lint, type-check, unit, integration (Postgres + Redis services), build images, E2E.
-16. **Deploy: moved to Phase 5** ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)). Original scope kept for then: owner picks the platform ([Open Questions](../Specs/Open-Questions.md) #1); managed Postgres + Redis; `deploy.yml` on merge to main (migrate, then roll out); domain + HTTPS; Google OAuth production credentials.
-17. **Docs:** update vault (any new ADRs, actual metrics), root README with screenshots (the live URL is added in P5).
+16. **Deploy: moved to Phase 6** ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md), [ADR-043](../Decisions/ADR-043-Phases-Renumbered.md)). Original scope kept for then: owner picks the platform ([Open Questions](../Specs/Open-Questions.md) #1); managed Postgres + Redis; `deploy.yml` on merge to main (migrate, then roll out); domain + HTTPS; Google OAuth production credentials.
+17. **Docs:** update vault (any new ADRs, actual metrics), root README with screenshots (the live URL is added in P6).
 
 ## Verification checklist
 - [x] `docker compose up` brings up all 5 services locally; `/health` is green on api. (verified 2026-11-09, plus the web health check)
@@ -51,8 +51,8 @@ Each step ends with something runnable and tested.
 - [x] Past weeks' projections don't change on refresh (frozen). (`test_projections_freeze_at_kickoff`) [ ] Every projection shows its factors: checked in the end-to-end screens test on seeded data.
 - [x] User B cannot see user A's league. (`test_tenant_isolation.py` and `e2e/isolation.spec.ts`, both in CI; no separate manual check done)
 - [x] pytest, Vitest and Playwright pass locally **and** in GitHub Actions. (run 42716212296, 2026-11-09)
-- [ ] (Phase 5) Merge to main auto-deploys; the same flow works on the live URL.
-- [ ] PWA installs on a phone (needs a real HTTPS address, so P5); dark/light toggle works.
+- [ ] (Phase 6) Merge to main auto-deploys; the same flow works on the live URL.
+- [ ] PWA installs on a phone (needs a real HTTPS address, so P6); dark/light toggle works.
 - [x] Backtest report committed (MAE by position, range coverage): [Backtest Report](Backtest-Report.md).
 
 Related: [P2–P4 Outline](P2-P4-Outline.md) · [Architecture](../Specs/Architecture.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)

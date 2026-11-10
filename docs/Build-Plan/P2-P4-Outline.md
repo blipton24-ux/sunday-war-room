@@ -3,17 +3,12 @@ title: "P2–P4 Outline"
 date: 2026-11-08
 tags: [build-plan]
 ---
-# Phases 2–4 — outline
+# Phases 2–6 — outline
 
 Each phase gets its own detailed plan, owner decisions and build after the previous phase is live ([ADR-026](../Decisions/ADR-026-Execution-Order.md)).
 
 ## P2 — Waivers, trades, live game day
-- Decide: live delivery mechanism (polling / SSE / WebSockets), live score source ([Open Questions](../Specs/Open-Questions.md) #7–8).
-- Rest-of-season value per player; free agents ranked by value added to your roster.
-- Trade analyzer for both sides, plus trade suggestions.
-- `poll_live_scores` job; live win probability; Matchup screen updates during games.
-- Web push: VAPID keys, `push_subscriptions`, `send_push_alerts` job, iPhone install prompt.
-- Model upgrades ([ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)): per-position expected-points models, depth-chart adjustments, defenses from betting totals, correlated simulation (QB ↔ own receivers). Each needs reuse approval (ADR-002) and must beat model 1.0.0 on held-out weeks, including the startable-player slice.
+Decided and planned: [P2 Build Plan](P2-Build-Plan.md). Push alerts moved to P6 and model upgrades to P5 ([ADR-043](../Decisions/ADR-043-Phases-Renumbered.md)).
 
 ## P3 — AI assistant
 - Decide: news sources, embedding provider, daily message limit ([Open Questions](../Specs/Open-Questions.md) #9–11).
@@ -26,8 +21,12 @@ Each phase gets its own detailed plan, owner decisions and build after the previ
 - Yahoo adapter: OAuth flow + token refresh; Yahoo scoring coverage.
 - Goal: no feature code changes, only new adapters (the [adapter pattern](../Concepts/Adapter-Pattern.md) payoff).
 
-## P5 — Deploy
-Moved here from P1 step 16 ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)), after P1–P4.
+## P5 — Improved model projections
+From [ADR-043](../Decisions/ADR-043-Phases-Renumbered.md): the [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md) upgrades (per-position expected-points models, depth-chart adjustments, defenses from betting totals, correlated simulation), smarter rest-of-season projections, IDP players, dynasty/keeper future value. Each needs reuse approval (ADR-002) and must beat model 1.0.0 on held-out weeks, including the startable-player slice.
+
+## P6 — Deploy + push alerts
+Moved here from P1 step 16 ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md), renumbered by ADR-043), after P1–P5.
+- Push alerts: VAPID keys, `push_subscriptions`, `send_push_alerts` job (starter ruled OUT, close matchup late, big swing), iPhone install prompt.
 - Re-decide the platform and domain against current prices ([Open Questions](../Specs/Open-Questions.md) #1–2); verify pgvector support on whatever hosts Postgres.
 - Staging deploy first, then production; `deploy.yml` on merge to main (migrate, then roll out); HTTPS; backups with a tested restore.
 - Production Google OAuth and Resend domain; trusted proxy header for rate limits (P-13); worker health check (P-10).

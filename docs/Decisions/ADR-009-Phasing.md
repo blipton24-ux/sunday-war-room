@@ -22,7 +22,7 @@ status: accepted
 | **P3** | AI assistant chat (agent + news RAG) |
 | **P4** | ESPN + Yahoo adapters |
 
-> **Amended by [ADR-042](ADR-042-Deploy-As-Phase-5.md):** phases ship working and passing CI; deployment is a final Phase 5.
+> **Amended by [ADR-042](ADR-042-Deploy-As-Phase-5.md):** phases ship working and passing CI; deployment is a final phase (Phase 6 since [ADR-043](ADR-043-Phases-Renumbered.md)).
 
 ## Why
 Shipping a deployed P1 early proves the whole pipeline (code → tests → container → live URL). Every later phase is just more features on a working base.

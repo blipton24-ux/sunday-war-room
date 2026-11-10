@@ -5,7 +5,7 @@ tags: [spec, product, planning]
 ---
 # Features by Phase
 
-Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working and passing CI; deployment is Phase 5 ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md)).
+Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working and passing CI; improved model projections are Phase 5 and deployment Phase 6 ([ADR-043](../Decisions/ADR-043-Phases-Renumbered.md)).
 
 ## P1 — Sleeper MVP
 - **Accounts:** sign in with Google or an email magic link; profile; sign out; delete account.
@@ -20,10 +20,10 @@ Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working an
 - **Accuracy page (lightweight):** how Sunday War Room's frozen projections compared to actual results in past weeks.
 
 ## P2 — Waivers, trades, live game day
-- **Waivers:** free agents ranked by projected value added to *your* roster (rest of season and this week).
-- **Trade analyzer:** evaluate any proposed trade for both sides; suggest fair trades.
-- **Live dashboard:** scores updating during games (~1 min), win probability moving live. Delivery mechanism (polling vs Server-Sent Events vs WebSockets) to be decided in the P2 spec.
-- **Push alerts:** starter ruled OUT, close matchup late, big swing.
+- **Waivers** ([ADR-047](../Decisions/ADR-047-Waivers-Value-Added.md)): free agents ranked by value added to *your* best lineup, rest of season or this week; suggested drop; waiver status under the league's rules; FAAB bid range.
+- **Trade analyzer** ([ADR-048](../Decisions/ADR-048-Trades-Lineup-Impact.md)): any two teams, judged by lineup impact; "best for me, still acceptable" suggestions with an adjustable limit.
+- **Live game day** ([ADR-044](../Decisions/ADR-044-Live-Data-Sources.md), [ADR-045](../Decisions/ADR-045-Live-Delivery-Polling.md)): scores, player game status, live projected finals and win chance, re-fetched every 30–60 s while games are live.
+- **Any league** ([ADR-046](../Decisions/ADR-046-Any-League-Settings.md)): every waiver type, roster format and scoring setup. Plan: [P2 Build Plan](../Build-Plan/P2-Build-Plan.md).
 
 ## P3 — AI assistant
 - **Chat tab:** Claude agent with read-only tools over Sunday War Room data plus news search (RAG) ([ADR-018](../Decisions/ADR-018-AI-Agent-With-RAG.md)).
@@ -35,8 +35,11 @@ Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working an
 - **Yahoo adapter:** OAuth "Sign in with Yahoo" and token refresh.
 - Scoring-rule coverage for each platform (every rule scored or explicitly reported as unsupported).
 
-## P5 — Deploy
-Hosting platform, managed or self-run Postgres and Redis, `deploy.yml` (migrate, then roll out), domain and HTTPS, Google OAuth and Resend production setup, backups, live URL and screenshots in the README. Plan: [P2–P4 Outline § P5](../Build-Plan/P2-P4-Outline.md#p5--deploy).
+## P5 — Improved model projections
+The [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md) upgrades (per-position models, depth charts, correlated simulation), smarter rest-of-season projections, IDP players, dynasty/keeper future-season value. Each upgrade must beat the current model on held-out weeks.
+
+## P6 — Deploy + push alerts
+Push alerts (starter ruled OUT, close matchup late, big swing; needs a real HTTPS address). Hosting platform, managed or self-run Postgres and Redis, `deploy.yml` (migrate, then roll out), domain and HTTPS, Google OAuth and Resend production setup, backups, live URL and screenshots in the README. Plan: [P2–P4 Outline § P5](../Build-Plan/P2-P4-Outline.md#p5--deploy).
 
 ## Later / optional
 Accuracy scoreboard vs external projections · paid tier (Stripe) ([ADR-011](../Decisions/ADR-011-Monetization.md)) · AWS + Terraform migration ([ADR-022](../Decisions/ADR-022-Hosting-Container-Platform.md)) · playoff odds simulation.
