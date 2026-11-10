@@ -27,6 +27,6 @@ Each step ends runnable, tested, committed and green in CI.
 - [x] During a simulated live Sunday, scores, player status and win chance blend points so far with time left, and the screen re-polls while live; the worker does nothing outside game windows. (`test_live.py`, `e2e/live.spec.ts`; a real Sunday is V-35)
 - [x] If the scoreboard breaks, scores still update and time left is estimated from kickoff, and the screen says so. (`test_scoreboard_down_still_updates_points`, `test_without_the_scoreboard_time_left_comes_from_kickoff`)
 - [x] Rest-of-season backtest numbers recorded in the [Backtest Report](Backtest-Report.md).
-- [ ] pytest, Vitest and Playwright pass locally and in GitHub Actions.
+- [x] pytest, Vitest and Playwright pass locally and in GitHub Actions. (260 / 73 / 81; CI green on "P2 step 8", 2026-11-10)
 
 Related: [P1 Build Plan](P1-Build-Plan.md) · [P2–P4 Outline](P2-P4-Outline.md) · [Features by Phase](../Specs/Features-by-Phase.md)
