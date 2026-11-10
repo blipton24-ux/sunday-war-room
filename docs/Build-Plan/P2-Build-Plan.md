@@ -15,7 +15,7 @@ Each step ends runnable, tested, committed and green in CI.
 3. **Value engine** (done 2026-11-09; `app/model/value.py`, exact for any slot mix, cross-checked against the lineup optimizer; 12-team league: waivers 0.24 s, trade ideas 2.6 s): best lineup over a set of players, summed over the remaining weeks: value added (waivers) and lineup impact (trades). Pure functions, tested on superflex, 2QB, IR, taxi and K/DEF-off rosters.
 4. **Waivers** (done 2026-11-10): status per waiver type, ranking with the this-week / rest-of-season toggle, suggested drop, FAAB bid range; `GET /leagues/{id}/waivers?horizon=`; Waivers screen.
 5. **Trade analyzer** (done 2026-11-10): `POST /leagues/{id}/trades/evaluate` (any two teams); `GET /leagues/{id}/trades/suggestions?max_loss=`; Trades screen with team pickers, before/after lineups and the "acceptable" slider.
-6. **ESPN scoreboard source:** one module with a schema contract; team codes mapped to ours.
+6. **ESPN scoreboard source** (done 2026-11-10; `app/sources/espn_scoreboard.py`, recorded real weeks 9-10 plus a derived live file): one module with a schema contract; team codes mapped to ours.
 7. **Live game day:** a worker job polls Sleeper and the scoreboard during game windows; live win chance from the remaining share of each game; player status on Matchup and Home; screens re-fetch every 30–60 s only while games are live; points-only fallback when the scoreboard fails.
 8. **Tests and docs:** end-to-end stand-ins (Sleeper and a scoreboard replaying a recorded Sunday), specs for waivers, trades and live; OpenAPI and generated client; vault, Verification Gaps, backlog.
 

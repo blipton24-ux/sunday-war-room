@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # Where Sleeper's public API lives. Overridden only by end-to-end tests (a local stand-in
     # serving recorded responses), so tests never depend on the live service.
     sleeper_base_url: str = "https://api.sleeper.app/v1"
+    # ESPN's public NFL scoreboard: game clocks for live win chance (ADR-044). Same override.
+    espn_scoreboard_url: str = "https://site.api.espn.com/apis/site/v2/sports/football/nfl"
 
     # Background work switches. Both default on; end-to-end tests turn them off so the data they
     # seed is never replaced by a scheduled or first-run load from the internet.
