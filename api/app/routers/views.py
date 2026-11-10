@@ -1,4 +1,4 @@
-"""Screen endpoints: matchup, lineup, player projection, accuracy, waivers (docs/Specs/API.md)."""
+"""Screen endpoints: matchup, lineup, player, accuracy, waivers, trades (docs/Specs/API.md)."""
 
 from typing import Annotated, Literal
 
@@ -7,8 +7,18 @@ from fastapi import APIRouter, Depends, Query
 from app.auth.deps import DB, CurrentUser, Membership, get_membership, require_league
 from app.db.models import League
 from app.errors import error_responses
-from app.schemas import AccuracyOut, LineupOut, MatchupOut, PlayerProjectionOut, WaiversOut
-from app.services import views, waivers
+from app.schemas import (
+    AccuracyOut,
+    LineupOut,
+    MatchupOut,
+    PlayerProjectionOut,
+    TradeEvaluateIn,
+    TradeEvaluationOut,
+    TradeRostersOut,
+    TradeSuggestionsOut,
+    WaiversOut,
+)
+from app.services import trades, views, waivers
 
 router = APIRouter(prefix="/api/v1", tags=["views"], responses=error_responses())
 LeagueDep = Annotated[League, Depends(require_league)]
@@ -64,3 +74,35 @@ async def get_waivers(
     """Free agents ranked by points they'd add to my best lineup, with a suggested drop,
     waiver status and (FAAB leagues) a bid guide (ADR-047)."""
     return await waivers.waivers_view(db, league, membership, horizon)
+
+
+@router.get("/leagues/{league_id}/trades/rosters", response_model=TradeRostersOut)
+async def get_trade_rosters(league: LeagueDep, membership: Membership, db: DB) -> TradeRostersOut:
+    """Every team's roster with rest-of-season points per week, to build a trade from."""
+    return await trades.trade_rosters_view(db, league, membership)
+
+
+@router.post("/leagues/{league_id}/trades/evaluate", response_model=TradeEvaluationOut)
+async def evaluate_trade(
+    body: TradeEvaluateIn, league: LeagueDep, membership: Membership, db: DB
+) -> TradeEvaluationOut:
+    """Lineup impact of a trade between any two teams in the league (ADR-048)."""
+    return await trades.evaluate_trade_view(db, league, body)
+
+
+@router.get("/leagues/{league_id}/trades/suggestions", response_model=TradeSuggestionsOut)
+async def get_trade_suggestions(
+    league: LeagueDep,
+    membership: Membership,
+    db: DB,
+    max_loss: Annotated[
+        float,
+        Query(
+            ge=0,
+            le=trades.MAX_LOSS_CAP,
+            description="Most the other team may lose, in points per week",
+        ),
+    ] = 1.0,
+) -> TradeSuggestionsOut:
+    """Trades that help my lineup most while the other team loses at most `max_loss`."""
+    return await trades.trade_suggestions_view(db, league, membership, max_loss)

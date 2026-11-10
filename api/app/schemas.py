@@ -246,3 +246,80 @@ class WaiversOut(Schema):
     clear_days: int
     players: list[WaiverPlayer]
     ready: bool  # False until the worker has projected this league's free agents
+
+
+# --------------------------------------------------------------------------- P2: trades
+class RosterPlayer(Schema):
+    player: PlayerRef
+    slot: str  # where he sits now: a starting slot, BN, IR or TAXI
+    points_per_week: float  # rest-of-season projection, averaged over the horizon
+
+
+class TradeTeam(Schema):
+    team_id: int
+    name: str
+    owner_name: str | None
+    avatar_url: str | None
+    is_mine: bool
+    players: list[RosterPlayer]
+
+
+class TradeRostersOut(Schema):
+    league_id: int
+    week: int
+    horizon_weeks: list[int]
+    league_kind: Literal["redraft", "keeper", "dynasty"]  # dynasty/keeper: this-season value only
+    trades_allowed: bool
+    trade_deadline: int | None
+    deadline_passed: bool
+    teams: list[TradeTeam]
+    ready: bool
+
+
+class TradeEvaluateIn(BaseModel):
+    team_a_id: int
+    team_b_id: int
+    a_gives: list[int]  # player ids from team A
+    b_gives: list[int]  # player ids from team B
+
+
+class LineupSlot(Schema):
+    slot: str
+    player: PlayerRef | None
+    points_per_week: float
+
+
+class TradeSideOut(Schema):
+    team_id: int
+    name: str
+    gives: list[PlayerRef]
+    gets: list[PlayerRef]
+    before_per_week: float  # best-lineup points per week over the rest of the season
+    after_per_week: float
+    change_per_week: float
+    dropped: list[PlayerRef]  # who this team would have to drop to fit its roster
+    lineup_before: list[LineupSlot]
+    lineup_after: list[LineupSlot]
+
+
+class TradeEvaluationOut(Schema):
+    league_id: int
+    horizon_weeks: list[int]
+    a: TradeSideOut
+    b: TradeSideOut
+
+
+class TradeIdeaOut(Schema):
+    other_team_id: int
+    other_team_name: str
+    gives: list[PlayerRef]  # mine
+    gets: list[PlayerRef]  # theirs
+    my_change_per_week: float
+    their_change_per_week: float
+
+
+class TradeSuggestionsOut(Schema):
+    league_id: int
+    max_loss_per_week: float
+    ideas: list[TradeIdeaOut]
+    ready: bool

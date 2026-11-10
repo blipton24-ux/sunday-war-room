@@ -22,7 +22,48 @@ export const keys = {
     ["player", playerId, leagueId, week] as const,
   job: (jobId: string) => ["job", jobId] as const,
   waivers: (leagueId: number, horizon: WaiverHorizon) => ["waivers", leagueId, horizon] as const,
+  tradeRosters: (leagueId: number) => ["trade-rosters", leagueId] as const,
+  tradeIdeas: (leagueId: number, maxLoss: number) => ["trade-ideas", leagueId, maxLoss] as const,
 };
+
+export function useTradeRosters(leagueId: number | null) {
+  return useQuery({
+    queryKey: keys.tradeRosters(leagueId ?? 0),
+    enabled: leagueId != null,
+    queryFn: () =>
+      unwrap(
+        browserApi.GET("/api/v1/leagues/{league_id}/trades/rosters", {
+          params: { path: { league_id: leagueId! } },
+        }),
+      ),
+  });
+}
+
+export function useTradeIdeas(leagueId: number | null, maxLoss: number) {
+  return useQuery({
+    queryKey: keys.tradeIdeas(leagueId ?? 0, maxLoss),
+    enabled: leagueId != null,
+    placeholderData: (previous) => previous, // keep the list on screen while the slider moves
+    queryFn: () =>
+      unwrap(
+        browserApi.GET("/api/v1/leagues/{league_id}/trades/suggestions", {
+          params: { path: { league_id: leagueId! }, query: { max_loss: maxLoss } },
+        }),
+      ),
+  });
+}
+
+export function useEvaluateTrade(leagueId: number | null) {
+  return useMutation({
+    mutationFn: (body: Schemas["TradeEvaluateIn"]) =>
+      unwrap(
+        browserApi.POST("/api/v1/leagues/{league_id}/trades/evaluate", {
+          params: { path: { league_id: leagueId! } },
+          body,
+        }),
+      ),
+  });
+}
 
 export type WaiverHorizon = "ros" | "week";
 

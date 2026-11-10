@@ -11,6 +11,7 @@ const SCREENS: [path: string, heading: RegExp][] = [
   ["/matchup", /^Matchup$/],
   ["/accuracy", /^Accuracy$/],
   ["/waivers", /^Waivers$/],
+  ["/trades", /^Trades$/],
   ["/settings", /^Settings$/],
 ];
 const MIN_TOUCH = 44;

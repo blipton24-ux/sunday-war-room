@@ -33,6 +33,8 @@ Style: Sunday War Room, flat, with player photos ([ADR-032](../Decisions/ADR-032
 
 **Waivers (P2):** a Rest of season / This week toggle; a card with the league's waiver rules (FAAB budget left, or claim position and claim window); then free agents that improve my best lineup, best first: points added per week, the player's own points per week, "Free agent · add now" or "On waivers until about Wed 9:00", a FAAB bid range, and who to drop. Empty states: free agents not projected yet, or nobody improves the lineup.
 
+**Trades (P2):** the league's trade rules in the title (this-season value only for dynasty/keeper, trade deadline). "Ideas for you" with a slider for how much the other team may lose (0–3 pts/week, default 1), each idea showing what I give and get and both teams' change per week, with "Open in the analyzer". The analyzer: pick any two teams and the players each gives; the result shows each team's change per week, best lineup before → after, who has to be dropped, and the lineup after.
+
 **Settings:** connected platforms, leagues, theme, sign out, delete account.
 
 ## Design system

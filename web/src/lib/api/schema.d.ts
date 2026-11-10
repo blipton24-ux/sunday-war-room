@@ -256,6 +256,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leagues/{league_id}/trades/rosters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trade Rosters
+         * @description Every team's roster with rest-of-season points per week, to build a trade from.
+         */
+        get: operations["get_trade_rosters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leagues/{league_id}/trades/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate Trade
+         * @description Lineup impact of a trade between any two teams in the league (ADR-048).
+         */
+        post: operations["evaluate_trade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leagues/{league_id}/trades/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trade Suggestions
+         * @description Trades that help my lineup most while the other team loses at most `max_loss`.
+         */
+        get: operations["get_trade_suggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -444,6 +504,14 @@ export interface components {
             /** Win Probability Optimal */
             win_probability_optimal: number | null;
         };
+        /** LineupSlot */
+        LineupSlot: {
+            /** Slot */
+            slot: string;
+            player: components["schemas"]["PlayerRef"] | null;
+            /** Points Per Week */
+            points_per_week: number;
+        };
         /** MatchupOut */
         MatchupOut: {
             /** League Id */
@@ -566,6 +634,14 @@ export interface components {
             /** Model Version */
             model_version: string;
         };
+        /** RosterPlayer */
+        RosterPlayer: {
+            player: components["schemas"]["PlayerRef"];
+            /** Slot */
+            slot: string;
+            /** Points Per Week */
+            points_per_week: number;
+        };
         /** SetMyTeamIn */
         SetMyTeamIn: {
             /** My Team Id */
@@ -622,6 +698,114 @@ export interface components {
             projected_total: number;
             /** Starters */
             starters: components["schemas"]["PlayerLine"][];
+        };
+        /** TradeEvaluateIn */
+        TradeEvaluateIn: {
+            /** Team A Id */
+            team_a_id: number;
+            /** Team B Id */
+            team_b_id: number;
+            /** A Gives */
+            a_gives: number[];
+            /** B Gives */
+            b_gives: number[];
+        };
+        /** TradeEvaluationOut */
+        TradeEvaluationOut: {
+            /** League Id */
+            league_id: number;
+            /** Horizon Weeks */
+            horizon_weeks: number[];
+            a: components["schemas"]["TradeSideOut"];
+            b: components["schemas"]["TradeSideOut"];
+        };
+        /** TradeIdeaOut */
+        TradeIdeaOut: {
+            /** Other Team Id */
+            other_team_id: number;
+            /** Other Team Name */
+            other_team_name: string;
+            /** Gives */
+            gives: components["schemas"]["PlayerRef"][];
+            /** Gets */
+            gets: components["schemas"]["PlayerRef"][];
+            /** My Change Per Week */
+            my_change_per_week: number;
+            /** Their Change Per Week */
+            their_change_per_week: number;
+        };
+        /** TradeRostersOut */
+        TradeRostersOut: {
+            /** League Id */
+            league_id: number;
+            /** Week */
+            week: number;
+            /** Horizon Weeks */
+            horizon_weeks: number[];
+            /**
+             * League Kind
+             * @enum {string}
+             */
+            league_kind: "redraft" | "keeper" | "dynasty";
+            /** Trades Allowed */
+            trades_allowed: boolean;
+            /** Trade Deadline */
+            trade_deadline: number | null;
+            /** Deadline Passed */
+            deadline_passed: boolean;
+            /** Teams */
+            teams: components["schemas"]["TradeTeam"][];
+            /** Ready */
+            ready: boolean;
+        };
+        /** TradeSideOut */
+        TradeSideOut: {
+            /** Team Id */
+            team_id: number;
+            /** Name */
+            name: string;
+            /** Gives */
+            gives: components["schemas"]["PlayerRef"][];
+            /** Gets */
+            gets: components["schemas"]["PlayerRef"][];
+            /** Before Per Week */
+            before_per_week: number;
+            /** After Per Week */
+            after_per_week: number;
+            /** Change Per Week */
+            change_per_week: number;
+            /** Dropped */
+            dropped: components["schemas"]["PlayerRef"][];
+            /** Lineup Before */
+            lineup_before: components["schemas"]["LineupSlot"][];
+            /** Lineup After */
+            lineup_after: components["schemas"]["LineupSlot"][];
+        };
+        /** TradeSuggestionsOut */
+        TradeSuggestionsOut: {
+            /** League Id */
+            league_id: number;
+            /** Max Loss Per Week */
+            max_loss_per_week: number;
+            /** Ideas */
+            ideas: components["schemas"]["TradeIdeaOut"][];
+            /** Ready */
+            ready: boolean;
+        };
+        /** TradeTeam */
+        TradeTeam: {
+            /** Team Id */
+            team_id: number;
+            /** Name */
+            name: string;
+            /** Owner Name */
+            owner_name: string | null;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Is Mine */
+            is_mine: boolean;
+            /** Players */
+            players: components["schemas"]["RosterPlayer"][];
         };
         /** WaiverPlayer */
         WaiverPlayer: {
@@ -1674,6 +1858,214 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WaiversOut"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not found (also returned for another user's league) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not ready yet (e.g. first sync unfinished, or no team chosen) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_trade_rosters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                league_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeRostersOut"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not found (also returned for another user's league) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not ready yet (e.g. first sync unfinished, or no team chosen) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    evaluate_trade: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                league_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TradeEvaluateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeEvaluationOut"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not found (also returned for another user's league) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not ready yet (e.g. first sync unfinished, or no team chosen) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_trade_suggestions: {
+        parameters: {
+            query?: {
+                /** @description Most the other team may lose, in points per week */
+                max_loss?: number;
+            };
+            header?: never;
+            path: {
+                league_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeSuggestionsOut"];
                 };
             };
             /** @description Missing, invalid or expired token */

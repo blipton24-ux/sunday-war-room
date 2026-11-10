@@ -1298,6 +1298,279 @@
         }
       }
     },
+    "/api/v1/leagues/{league_id}/trades/rosters": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Get Trade Rosters",
+        "description": "Every team's roster with rest-of-season points per week, to build a trade from.",
+        "operationId": "get_trade_rosters",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeRostersOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}/trades/evaluate": {
+      "post": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Evaluate Trade",
+        "description": "Lineup impact of a trade between any two teams in the league (ADR-048).",
+        "operationId": "evaluate_trade",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeEvaluateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeEvaluationOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leagues/{league_id}/trades/suggestions": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Get Trade Suggestions",
+        "description": "Trades that help my lineup most while the other team loses at most `max_loss`.",
+        "operationId": "get_trade_suggestions",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          },
+          {
+            "name": "max_loss",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 3.0,
+              "minimum": 0,
+              "description": "Most the other team may lose, in points per week",
+              "default": 1.0,
+              "title": "Max Loss"
+            },
+            "description": "Most the other team may lose, in points per week"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeSuggestionsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -1857,6 +2130,35 @@
         ],
         "title": "LineupOut"
       },
+      "LineupSlot": {
+        "properties": {
+          "slot": {
+            "type": "string",
+            "title": "Slot"
+          },
+          "player": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points_per_week": {
+            "type": "number",
+            "title": "Points Per Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot",
+          "player",
+          "points_per_week"
+        ],
+        "title": "LineupSlot"
+      },
       "MatchupOut": {
         "properties": {
           "league_id": {
@@ -2330,6 +2632,28 @@
         ],
         "title": "ProjectionOut"
       },
+      "RosterPlayer": {
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/PlayerRef"
+          },
+          "slot": {
+            "type": "string",
+            "title": "Slot"
+          },
+          "points_per_week": {
+            "type": "number",
+            "title": "Points Per Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "player",
+          "slot",
+          "points_per_week"
+        ],
+        "title": "RosterPlayer"
+      },
       "SetMyTeamIn": {
         "properties": {
           "my_team_id": {
@@ -2532,6 +2856,343 @@
           "starters"
         ],
         "title": "TeamSide"
+      },
+      "TradeEvaluateIn": {
+        "properties": {
+          "team_a_id": {
+            "type": "integer",
+            "title": "Team A Id"
+          },
+          "team_b_id": {
+            "type": "integer",
+            "title": "Team B Id"
+          },
+          "a_gives": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "A Gives"
+          },
+          "b_gives": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "B Gives"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_a_id",
+          "team_b_id",
+          "a_gives",
+          "b_gives"
+        ],
+        "title": "TradeEvaluateIn"
+      },
+      "TradeEvaluationOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "horizon_weeks": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Horizon Weeks"
+          },
+          "a": {
+            "$ref": "#/components/schemas/TradeSideOut"
+          },
+          "b": {
+            "$ref": "#/components/schemas/TradeSideOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "horizon_weeks",
+          "a",
+          "b"
+        ],
+        "title": "TradeEvaluationOut"
+      },
+      "TradeIdeaOut": {
+        "properties": {
+          "other_team_id": {
+            "type": "integer",
+            "title": "Other Team Id"
+          },
+          "other_team_name": {
+            "type": "string",
+            "title": "Other Team Name"
+          },
+          "gives": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerRef"
+            },
+            "type": "array",
+            "title": "Gives"
+          },
+          "gets": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerRef"
+            },
+            "type": "array",
+            "title": "Gets"
+          },
+          "my_change_per_week": {
+            "type": "number",
+            "title": "My Change Per Week"
+          },
+          "their_change_per_week": {
+            "type": "number",
+            "title": "Their Change Per Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "other_team_id",
+          "other_team_name",
+          "gives",
+          "gets",
+          "my_change_per_week",
+          "their_change_per_week"
+        ],
+        "title": "TradeIdeaOut"
+      },
+      "TradeRostersOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "horizon_weeks": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Horizon Weeks"
+          },
+          "league_kind": {
+            "type": "string",
+            "enum": [
+              "redraft",
+              "keeper",
+              "dynasty"
+            ],
+            "title": "League Kind"
+          },
+          "trades_allowed": {
+            "type": "boolean",
+            "title": "Trades Allowed"
+          },
+          "trade_deadline": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trade Deadline"
+          },
+          "deadline_passed": {
+            "type": "boolean",
+            "title": "Deadline Passed"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TradeTeam"
+            },
+            "type": "array",
+            "title": "Teams"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "week",
+          "horizon_weeks",
+          "league_kind",
+          "trades_allowed",
+          "trade_deadline",
+          "deadline_passed",
+          "teams",
+          "ready"
+        ],
+        "title": "TradeRostersOut"
+      },
+      "TradeSideOut": {
+        "properties": {
+          "team_id": {
+            "type": "integer",
+            "title": "Team Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "gives": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerRef"
+            },
+            "type": "array",
+            "title": "Gives"
+          },
+          "gets": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerRef"
+            },
+            "type": "array",
+            "title": "Gets"
+          },
+          "before_per_week": {
+            "type": "number",
+            "title": "Before Per Week"
+          },
+          "after_per_week": {
+            "type": "number",
+            "title": "After Per Week"
+          },
+          "change_per_week": {
+            "type": "number",
+            "title": "Change Per Week"
+          },
+          "dropped": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerRef"
+            },
+            "type": "array",
+            "title": "Dropped"
+          },
+          "lineup_before": {
+            "items": {
+              "$ref": "#/components/schemas/LineupSlot"
+            },
+            "type": "array",
+            "title": "Lineup Before"
+          },
+          "lineup_after": {
+            "items": {
+              "$ref": "#/components/schemas/LineupSlot"
+            },
+            "type": "array",
+            "title": "Lineup After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_id",
+          "name",
+          "gives",
+          "gets",
+          "before_per_week",
+          "after_per_week",
+          "change_per_week",
+          "dropped",
+          "lineup_before",
+          "lineup_after"
+        ],
+        "title": "TradeSideOut"
+      },
+      "TradeSuggestionsOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "max_loss_per_week": {
+            "type": "number",
+            "title": "Max Loss Per Week"
+          },
+          "ideas": {
+            "items": {
+              "$ref": "#/components/schemas/TradeIdeaOut"
+            },
+            "type": "array",
+            "title": "Ideas"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "max_loss_per_week",
+          "ideas",
+          "ready"
+        ],
+        "title": "TradeSuggestionsOut"
+      },
+      "TradeTeam": {
+        "properties": {
+          "team_id": {
+            "type": "integer",
+            "title": "Team Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "is_mine": {
+            "type": "boolean",
+            "title": "Is Mine"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/RosterPlayer"
+            },
+            "type": "array",
+            "title": "Players"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_id",
+          "name",
+          "owner_name",
+          "avatar_url",
+          "is_mine",
+          "players"
+        ],
+        "title": "TradeTeam"
       },
       "WaiverPlayer": {
         "properties": {
