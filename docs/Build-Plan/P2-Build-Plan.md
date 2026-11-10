@@ -16,7 +16,7 @@ Each step ends runnable, tested, committed and green in CI.
 4. **Waivers** (done 2026-11-10): status per waiver type, ranking with the this-week / rest-of-season toggle, suggested drop, FAAB bid range; `GET /leagues/{id}/waivers?horizon=`; Waivers screen.
 5. **Trade analyzer** (done 2026-11-10): `POST /leagues/{id}/trades/evaluate` (any two teams); `GET /leagues/{id}/trades/suggestions?max_loss=`; Trades screen with team pickers, before/after lineups and the "acceptable" slider.
 6. **ESPN scoreboard source** (done 2026-11-10; `app/sources/espn_scoreboard.py`, recorded real weeks 9-10 plus a derived live file): one module with a schema contract; team codes mapped to ours.
-7. **Live game day:** a worker job polls Sleeper and the scoreboard during game windows; live win chance from the remaining share of each game; player status on Matchup and Home; screens re-fetch every 30–60 s only while games are live; points-only fallback when the scoreboard fails.
+7. **Live game day** (done 2026-11-10; every-minute worker tick that does nothing outside game windows; Matchup polls every 45 s while live; kickoff-time estimate when the scoreboard is down): a worker job polls Sleeper and the scoreboard during game windows; live win chance from the remaining share of each game; player status on Matchup and Home; screens re-fetch every 30–60 s only while games are live; points-only fallback when the scoreboard fails.
 8. **Tests and docs:** end-to-end stand-ins (Sleeper and a scoreboard replaying a recorded Sunday), specs for waivers, trades and live; OpenAPI and generated client; vault, Verification Gaps, backlog.
 
 ## Verification checklist

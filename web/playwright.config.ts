@@ -37,7 +37,7 @@ export default defineConfig({
     // 2. Every screen, as that person, on a laptop.
     {
       name: "desktop",
-      testMatch: /(screens|accessibility|waivers|trades)\.spec\.ts/,
+      testMatch: /(screens|accessibility|waivers|trades|live)\.spec\.ts/,
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], channel, storageState },
     },

@@ -164,8 +164,16 @@ export function MatchupBoard({ matchup: m }: { matchup: Matchup }) {
 function Cell({ p, lead, right }: { p: Line | undefined; lead: boolean; right?: boolean }) {
   if (!p) return <div className="rounded-[1.1rem] bg-raised/50" />;
   const final = p.actual_points != null;
-  const value = p.game_status === "bye" ? "--" : f1(bestPoints(p));
-  const sub = p.game_status === "bye" ? "bye" : final ? `proj ${f1(p.projection?.points)}` : "proj";
+  const live = p.game_status === "in_progress" && p.live_points != null;
+  const value = p.game_status === "bye" ? "--" : live ? f1(p.live_points) : f1(bestPoints(p));
+  const sub =
+    p.game_status === "bye"
+      ? "bye"
+      : live
+        ? `→ ${f1(bestPoints(p))}`
+        : final
+          ? `proj ${f1(p.projection?.points)}`
+          : "proj";
   return (
     <div
       className={cn(
@@ -178,8 +186,10 @@ function Cell({ p, lead, right }: { p: Line | undefined; lead: boolean; right?: 
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[0.82rem] font-semibold">{p.name}</div>
-        <div className="nums mt-0.5 text-[0.66rem] text-ink-faint">
+        <div className="nums mt-0.5 truncate text-[0.66rem] text-ink-faint">
           {p.nfl_team} {p.opponent ?? "BYE"}
+          {p.game_status === "in_progress" && p.game_detail && <> · {p.game_detail}</>}
+          {p.has_ball && <span aria-label="has the ball"> ●</span>}
         </div>
       </div>
       <div className={right ? "text-left" : "text-right"}>

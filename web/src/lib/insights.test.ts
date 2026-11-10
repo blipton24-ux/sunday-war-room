@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Schemas } from "@/lib/api/client";
 
 import { f1, initials, lastName, timeAgo } from "./format";
-import { headlinePoints, headsUp, matchupStatus, topPerformers, vibe } from "./insights";
+import { bestPoints, headlinePoints, headsUp, matchupStatus, topPerformers, vibe } from "./insights";
 import { tint } from "./teams";
 
 type Line = Schemas["PlayerLine"];
@@ -28,6 +28,7 @@ function line(over: Partial<Line> & Pick<Line, "player_id" | "name">): Line {
       model_version: "1.0.0",
     },
     actual_points: null,
+    has_ball: false,
     ...over,
   };
 }
@@ -111,4 +112,20 @@ describe("topPerformers", () => {
     ];
     expect(topPerformers(players).map((p) => p.player_id)).toEqual([2, 1]);
   }); // prettier-ignore
+});
+
+describe("live game day (P2)", () => {
+  it("shows points so far and where the player is heading", () => {
+    const p = line({
+      player_id: 1, name: "Live Guy", game_status: "in_progress", live_points: 8, remaining_fraction: 0.5,
+    });
+    expect(headlinePoints(p)).toEqual({ main: "8.0", sub: "heading to 14.0" }); // 8 + 12 x 0.5
+    expect(bestPoints(p)).toBe(14);
+  });
+
+  it("falls back to the projection before any live points arrive", () => {
+    const p = line({ player_id: 2, name: "Early", game_status: "in_progress" });
+    expect(headlinePoints(p).main).toBe("12.0");
+    expect(bestPoints(p)).toBe(12);
+  });
 });

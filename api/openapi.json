@@ -2214,6 +2214,38 @@
             },
             "type": "array",
             "title": "Unsupported Rules"
+          },
+          "live": {
+            "type": "boolean",
+            "title": "Live",
+            "default": false
+          },
+          "clock_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scoreboard",
+                  "kickoff_estimate"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clock Source"
+          },
+          "scores_updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scores Updated At"
           }
         },
         "type": "object",
@@ -2467,6 +2499,44 @@
               }
             ],
             "title": "Actual Points"
+          },
+          "live_points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Live Points"
+          },
+          "game_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Game Detail"
+          },
+          "has_ball": {
+            "type": "boolean",
+            "title": "Has Ball",
+            "default": false
+          },
+          "remaining_fraction": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Fraction"
           }
         },
         "type": "object",

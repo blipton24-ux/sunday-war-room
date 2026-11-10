@@ -6,7 +6,7 @@ worker, final stats from nflverse. Never calls a platform or recomputes a projec
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import (
     League,
     LeagueMembership,
+    LiveGame,
     Matchup,
     Player,
     PlayerWeekStats,
@@ -47,7 +48,10 @@ from app.schemas import (
     TeamSide,
     WinOutlook,
 )
+from app.services.live import live_games_for_week
 from app.services.projections import GameInfo, has_kicked_off, week_games
+
+ESTIMATED_GAME_LENGTH_S = 3 * 3600  # when the scoreboard is down: a game lasts about 3 hours
 
 
 @dataclass
@@ -61,6 +65,8 @@ class WeekData:
     actuals: dict[int, float]  # player_id -> final points (games that are final)
     final_teams: set[str]
     now: datetime
+    live: dict[str, LiveGame] = field(default_factory=dict)  # team -> ESPN game state
+    live_points: dict[int, float] = field(default_factory=dict)  # platform points so far
 
 
 def headshot(p: Player) -> str | None:
@@ -105,8 +111,9 @@ async def load_week(db: AsyncSession, league: League, week: int, player_ids: set
     for pid, p in players.items():  # final game, no stat row: scored 0
         if p.nfl_team in final_teams and pid not in actuals:
             actuals[pid] = 0.0
+    live = await live_games_for_week(db, league.season, week)
     return WeekData(league, week, key, players, projections, games, actuals, final_teams,
-                    datetime.now(UTC))  # fmt: skip
+                    datetime.now(UTC), live)  # fmt: skip
 
 
 async def _final_teams(db: AsyncSession, season: int, week: int) -> set[str]:
@@ -122,18 +129,33 @@ async def _final_teams(db: AsyncSession, season: int, week: int) -> set[str]:
 
 def player_line(w: WeekData, player_id: int, slot: str) -> PlayerLine:
     p = w.players[player_id]
-    game = w.games.get(p.nfl_team or "")
+    team = p.nfl_team or ""
+    game = w.games.get(team)
+    live = w.live.get(team)
     if game is None:
         status, opp = "bye", None
-    elif p.nfl_team in w.final_teams:
+    elif p.nfl_team in w.final_teams or (live is not None and live.state == "final"):
         status, opp = "final", None
-    elif has_kicked_off(game, w.now):
+    elif (live is not None and live.state in ("in_progress", "halftime")) or (
+        live is None and has_kicked_off(game, w.now)
+    ):
         status, opp = "in_progress", None
     else:
         status, opp = "upcoming", None
     if game is not None:
         opp = ("vs " if game.home else "@") + game.opponent
     proj = w.projections.get(player_id)
+    live_pts = w.live_points.get(player_id)
+    actual = w.actuals.get(player_id) if status == "final" else None
+    if status == "final" and actual is None:
+        actual = live_pts  # nflverse publishes the next day; the platform's number until then
+    remaining: float | None = None
+    if status == "in_progress":
+        if live is not None:
+            remaining = live.remaining_fraction
+        elif game is not None and game.kickoff_at is not None:
+            elapsed = (w.now - game.kickoff_at).total_seconds()
+            remaining = max(0.0, 1.0 - elapsed / ESTIMATED_GAME_LENGTH_S)
     return PlayerLine(
         player_id=p.id,
         name=p.name,
@@ -146,7 +168,11 @@ def player_line(w: WeekData, player_id: int, slot: str) -> PlayerLine:
         kickoff_at=game.kickoff_at if game else None,
         game_status=status,
         projection=ProjectionOut.model_validate(proj) if proj else None,
-        actual_points=w.actuals.get(player_id) if status == "final" else None,
+        actual_points=actual,
+        live_points=live_pts if status in ("in_progress", "final") else None,
+        game_detail=live.detail if live is not None and status != "upcoming" else None,
+        has_ball=bool(live and status == "in_progress" and live.possession == p.nfl_team),
+        remaining_fraction=remaining,
     )
 
 
@@ -154,26 +180,31 @@ def sim_player(line: PlayerLine, floor: float) -> SimPlayer:
     if line.actual_points is not None:
         a = line.actual_points
         return SimPlayer(a, a, a, a)
+    so_far = line.live_points or 0.0
     if line.projection is None:
-        return SimPlayer(0, 0, 0, 0)
+        return SimPlayer(so_far, so_far, so_far, so_far)
     pr = line.projection
-    return SimPlayer(pr.p10, pr.p50, pr.p90, min(floor, pr.p10))
+    r = 1.0 if line.remaining_fraction is None else line.remaining_fraction
+    # Live: what he has, plus his projected range scaled by the share of the game left.
+    return SimPlayer(so_far + pr.p10 * r, so_far + pr.p50 * r, so_far + pr.p90 * r,
+                     so_far + min(floor, pr.p10) * r)  # fmt: skip
 
 
 def _floors() -> dict[str, float]:
     return {pos: fit.floor for pos, fit in load_calibration(MODEL_VERSION).positions.items()}
 
 
+def projected_points(ln: PlayerLine) -> float:
+    """Final points if the game is over; else points so far + projection for what's left."""
+    if ln.actual_points is not None:
+        return ln.actual_points
+    proj = ln.projection.points if ln.projection else 0.0
+    r = 1.0 if ln.remaining_fraction is None else ln.remaining_fraction
+    return (ln.live_points or 0.0) + proj * r
+
+
 def projected_total(lines: list[PlayerLine]) -> float:
-    return round(
-        sum(
-            ln.actual_points
-            if ln.actual_points is not None
-            else (ln.projection.points if ln.projection else 0.0)
-            for ln in lines
-        ),
-        2,
-    )
+    return round(sum(projected_points(ln) for ln in lines), 2)
 
 
 async def _roster(db: AsyncSession, team_id: int, week: int) -> list[RosterEntry]:
@@ -235,6 +266,19 @@ def outlook(mine: list[PlayerLine], theirs: list[PlayerLine]) -> WinOutlook:
     )
 
 
+def _live_flags(w: WeekData, starters: list[PlayerLine], row: Matchup | None) -> dict[str, Any]:
+    live = any(ln.game_status == "in_progress" for ln in starters)
+    teams = {ln.nfl_team for ln in starters if ln.game_status == "in_progress"}
+    source = None
+    if live:
+        source = "scoreboard" if all(t in w.live for t in teams) else "kickoff_estimate"
+    return {
+        "live": live,
+        "clock_source": source,
+        "scores_updated_at": row.updated_at if row is not None else None,
+    }
+
+
 # --------------------------------------------------------------------------- screens
 async def matchup_view(
     db: AsyncSession, league: League, m: LeagueMembership, week: int | None
@@ -250,16 +294,20 @@ async def matchup_view(
     )
     opp_id = None
     my_score = opp_score = None
+    live_points: dict[int, float] = {}
     if row is not None:
         mine_home = row.home_team_id == my_id
         opp_id = row.away_team_id if mine_home else row.home_team_id
         my_score = row.home_score if mine_home else row.away_score
         opp_score = row.away_score if mine_home else row.home_score
+        for pts in (row.home_player_points or {}, row.away_player_points or {}):
+            live_points.update({int(pid): float(v) for pid, v in pts.items()})
 
     my_entries = await _roster(db, my_id, week)
     opp_entries = await _roster(db, opp_id, week) if opp_id else []
     ids = {e.player_id for e in my_entries + opp_entries}
     w = await load_week(db, league, week, ids)
+    w.live_points = live_points
 
     my_team = await db.get(Team, my_id)
     assert my_team is not None
@@ -278,6 +326,7 @@ async def matchup_view(
         opponent=opponent,
         outlook=outlook(me.starters, opponent.starters) if opponent else None,
         unsupported_rules=sorted(check_rules(league.scoring_rules).unsupported),
+        **_live_flags(w, me.starters + (opponent.starters if opponent else []), row),
     )
 
 

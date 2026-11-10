@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.base import (
     LeagueAdapter,
     LeagueData,
+    LeagueRef,
     MatchupData,
     PlayerData,
     RosterSpot,
@@ -161,7 +162,16 @@ async def _upsert_matchups(
     week: int,
     rows: Sequence[MatchupData],
     team_ids: dict[str, int],
+    player_ids: dict[str, int] | None = None,
 ) -> None:
+    """Upsert one week's pairings, scores and (P2) fantasy points so far per player."""
+    ids = player_ids or {}
+
+    def points(r: MatchupData | None) -> dict[str, float]:
+        if r is None:
+            return {}
+        return {str(ids[pid]): pts for pid, pts in r.player_points.items() if pid in ids}
+
     by_key: dict[str | None, list[MatchupData]] = defaultdict(list)
     for r in rows:
         by_key[r.matchup_key].append(r)
@@ -182,18 +192,21 @@ async def _upsert_matchups(
             away_team_id=team_ids[away.team_external_id] if away else None,
             home_score=home.points,
             away_score=away.points if away else None,
+            home_player_points=points(home),
+            away_player_points=points(away),
+            updated_at=datetime.now(UTC),
         )
         ex = stmt.excluded
         await db.execute(
             stmt.on_conflict_do_update(
                 index_elements=[Matchup.league_id, Matchup.week, Matchup.home_team_id],
                 set_={
-                    "away_team_id": ex.away_team_id,
-                    "home_score": ex.home_score,
-                    "away_score": ex.away_score,
+                    k: getattr(ex, k)
+                    for k in ("away_team_id", "home_score", "away_score", "home_player_points",
+                              "away_player_points", "updated_at")
                 },
             )
-        )
+        )  # fmt: skip
 
 
 async def sync_league(
@@ -267,7 +280,7 @@ async def sync_league(
                         db, team_ids[r.team_external_id], w, r.roster, player_ids
                     )
                 )
-        await _upsert_matchups(db, league.id, w, rows, team_ids)
+        await _upsert_matchups(db, league.id, w, rows, team_ids, player_ids)
 
     # Waiver status needs recent drops; claim windows are a few days, so this and last week.
     tx_weeks = sorted({w for w in (current_week - 1, current_week) if w >= 1})
@@ -320,3 +333,26 @@ async def players_are_stale(db: AsyncSession, max_age_hours: float = 24) -> bool
     if newest is None:
         return True
     return (datetime.now(UTC) - newest).total_seconds() > max_age_hours * 3600
+
+
+async def refresh_live_matchups(
+    db: AsyncSession, adapter: LeagueAdapter, league: League, week: int
+) -> int:
+    """Live game day (P2): re-read only this week's scores and per-player points."""
+    data = LeagueData(
+        ref=LeagueRef(league.platform, league.external_id, league.season, league.name),  # type: ignore[arg-type]
+        avatar_url=league.avatar_url,
+        scoring_rules=league.scoring_rules,
+        roster_slots=league.roster_slots,
+        status="in_season",
+    )
+    rows = await adapter.fetch_matchups(data, week)
+    team_rows = await db.execute(
+        select(Team.external_id, Team.id).where(Team.league_id == league.id)
+    )
+    team_ids = {ext: tid for ext, tid in team_rows}
+    rows = [r for r in rows if r.team_external_id in team_ids]
+    player_ids = await _player_ids(db, {pid for r in rows for pid in r.player_points})
+    await _upsert_matchups(db, league.id, week, rows, team_ids, player_ids)
+    await db.commit()
+    return len(rows)

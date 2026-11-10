@@ -14,7 +14,19 @@ export default function MatchupPage() {
     <Gate query={matchup} noRoster={(m) => m.me.starters.length === 0}>
       {(m) => (
         <>
-          <TitleRow title="Matchup" note={`Week ${m.week} · scores as of ${timeAgo(m.as_of)}`} />
+          <TitleRow
+            title="Matchup"
+            note={
+              m.live
+                ? `Week ${m.week} · live, updated ${timeAgo(m.scores_updated_at ?? m.as_of)}`
+                : `Week ${m.week} · scores as of ${timeAgo(m.as_of)}`
+            }
+          />
+          {m.clock_source === "kickoff_estimate" && (
+            <p className="px-1 text-xs text-ink-lo">
+              Game clocks are unavailable right now, so time left is estimated from kickoff. Scores are still live.
+            </p>
+          )}
           <MatchupBoard matchup={m} />
           <Section title="Starters">
             <HeadToHead matchup={m} />

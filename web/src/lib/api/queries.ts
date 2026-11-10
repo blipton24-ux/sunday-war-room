@@ -112,10 +112,15 @@ export function useTeams(leagueId: number | null) {
   });
 }
 
+/** While a game in the matchup is live, re-fetch every 45 s (ADR-045); otherwise never. */
+export const LIVE_REFETCH_MS = 45_000;
+
 export function useMatchup(leagueId: number | null, week: number | null) {
   return useQuery({
     queryKey: keys.matchup(leagueId ?? 0, week ?? 0),
     enabled: leagueId != null && week != null,
+    refetchInterval: (q) => (q.state.data?.live ? LIVE_REFETCH_MS : false),
+    refetchIntervalInBackground: false, // a hidden tab doesn't poll
     queryFn: () =>
       unwrap(
         browserApi.GET("/api/v1/leagues/{league_id}/matchup", {

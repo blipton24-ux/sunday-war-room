@@ -125,7 +125,13 @@ class PlayerLine(Schema):
     kickoff_at: datetime | None
     game_status: Literal["upcoming", "in_progress", "final", "bye"]
     projection: ProjectionOut | None
-    actual_points: float | None  # final games only (nflverse)
+    # Final games: nflverse stats when published, else the platform's points (P2 live).
+    actual_points: float | None
+    # P2 live game day (ADR-044): points so far from the platform, ESPN's game state.
+    live_points: float | None = None
+    game_detail: str | None = None  # e.g. "4:12 - 3rd", "Halftime"
+    has_ball: bool = False
+    remaining_fraction: float | None = None  # share of his game still to play
 
 
 class TeamSide(Schema):
@@ -156,6 +162,11 @@ class MatchupOut(Schema):
     opponent: TeamSide | None  # None = no opponent this week
     outlook: WinOutlook | None
     unsupported_rules: list[str]
+    # P2 live game day: any starter's game in progress; screens poll while this is true.
+    live: bool = False
+    # Where "time left" comes from: ESPN's game clock, or (if it's down) kickoff time.
+    clock_source: Literal["scoreboard", "kickoff_estimate"] | None = None
+    scores_updated_at: datetime | None = None
 
 
 class SwapOut(Schema):

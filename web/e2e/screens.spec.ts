@@ -123,7 +123,7 @@ test.describe("Matchup", () => {
     for (const slot of ["QB", "RB", "WR", "TE", "FLEX", "DST"]) {
       await expect(page.getByText(slot, { exact: true }).first()).toBeVisible();
     }
-    await expect(page.getByText(/scores as of/)).toBeVisible();
+    await expect(page.getByText(/live, updated/)).toBeVisible(); // a game is on (P2 live)
   });
 
   test("tells you about league rules it can't score yet", async ({ page }) => {

@@ -84,7 +84,11 @@ export function PlayerRow({
             <b className={positionText(player.position)}>{positionLabel(player.position)}</b>
             <span className="truncate text-ink-faint">
               {player.nfl_team} {player.opponent ?? "BYE"}
+              {player.game_detail && player.game_status === "in_progress" && <> · {player.game_detail}</>}
             </span>
+            {player.has_ball && (
+              <span className="size-1.5 shrink-0 rounded-full bg-accent" title="His team has the ball" aria-label="has the ball" />
+            )}
             {injury && <Tag tone="warn">{injury.slice(0, 1).toUpperCase()}</Tag>}
             {player.game_status === "bye" && <Tag tone="neutral">BYE</Tag>}
             {recommended && <Tag tone="good">Start</Tag>}

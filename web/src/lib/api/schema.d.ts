@@ -527,6 +527,15 @@ export interface components {
             outlook: components["schemas"]["WinOutlook"] | null;
             /** Unsupported Rules */
             unsupported_rules: string[];
+            /**
+             * Live
+             * @default false
+             */
+            live: boolean;
+            /** Clock Source */
+            clock_source?: ("scoreboard" | "kickoff_estimate") | null;
+            /** Scores Updated At */
+            scores_updated_at?: string | null;
         };
         /** MeOut */
         MeOut: {
@@ -588,6 +597,17 @@ export interface components {
             projection: components["schemas"]["ProjectionOut"] | null;
             /** Actual Points */
             actual_points: number | null;
+            /** Live Points */
+            live_points?: number | null;
+            /** Game Detail */
+            game_detail?: string | null;
+            /**
+             * Has Ball
+             * @default false
+             */
+            has_ball: boolean;
+            /** Remaining Fraction */
+            remaining_fraction?: number | null;
         };
         /** PlayerProjectionOut */
         PlayerProjectionOut: {

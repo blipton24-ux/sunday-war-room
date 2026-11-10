@@ -32,7 +32,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.sleeper import SleeperAdapter
-from app.db.models import League, NflGame, Player, PlayerWeekStats, RosterEntry, Team
+from app.db.models import League, LiveGame, NflGame, Player, PlayerWeekStats, RosterEntry, Team
 from app.db.session import get_engine, get_sessionmaker
 from app.nfl_teams import NFL_TEAMS, defense_key
 from app.services.grading import grade_finished
@@ -110,6 +110,28 @@ def games_for(status: dict[str, Status], week: int, now: datetime) -> list[NflGa
                         home_score=24 if done else None, away_score=17 if done else None)
             )  # fmt: skip
     return games
+
+
+def scoreboard_rows(
+    games: list[NflGame], status: dict[str, Status], now: datetime
+) -> list[LiveGame]:
+    """What the live tick would have stored from ESPN: the in-progress games mid 3rd quarter
+    (home team has the ball), the finished ones final (P2, ADR-044)."""
+    rows = []
+    for g in games:
+        state = status[g.home]
+        if state not in ("live", "final"):
+            continue
+        live = state == "live"
+        rows.append(LiveGame(espn_id=f"e2e-{g.home}", season=SEASON, week=WEEK, home=g.home,
+                             away=g.away, kickoff_at=g.kickoff_at,
+                             state="in_progress" if live else "final",
+                             period=3 if live else 4, clock_seconds=252.0 if live else 0.0,
+                             detail="4:12 - 3rd" if live else "Final", home_score=17, away_score=10,
+                             possession=g.home if live else None,
+                             remaining_fraction=(900 + 252) / 3600 if live else 0.0,
+                             updated_at=now))  # fmt: skip
+    return rows
 
 
 def future_week_games(week: int, now: datetime) -> list[NflGame]:
@@ -191,7 +213,9 @@ async def seed() -> dict[str, Any]:
         )
 
         future = range(WEEK + 1, LAST_WEEK + 1)
-        db.add_all([*games_for(status, WEEK, now),
+        this_week = games_for(status, WEEK, now)
+        db.add_all(scoreboard_rows(this_week, status, now))
+        db.add_all([*this_week,
                     *[g for w in range(1, WEEK) for g in past_week_games(w, now)],
                     *[g for w in future for g in future_week_games(w, now)]])  # fmt: skip
 

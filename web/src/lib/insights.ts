@@ -17,13 +17,22 @@ export function headlinePoints(p: Line): { main: string; sub: string } {
   if (p.actual_points != null) {
     return { main: f1(p.actual_points), sub: p.projection ? `proj ${f1(p.projection.points)}` : "final" };
   }
+  if (p.game_status === "in_progress" && p.live_points != null) {
+    // Live (P2): points so far, and where he's heading with the time left.
+    const left = (p.projection?.points ?? 0) * (p.remaining_fraction ?? 1);
+    return { main: f1(p.live_points), sub: `heading to ${f1(p.live_points + left)}` };
+  }
   if (!p.projection) return { main: "--", sub: "no projection" };
   return { main: f1(p.projection.points), sub: `${f1(p.projection.p10)}–${f1(p.projection.p90)}` };
 }
 
 /** The number used for sorting and totals: actual if final, else the projection. */
 export function bestPoints(p: Line): number {
-  return p.actual_points ?? p.projection?.points ?? 0;
+  if (p.actual_points != null) return p.actual_points;
+  if (p.game_status === "in_progress" && p.live_points != null) {
+    return p.live_points + (p.projection?.points ?? 0) * (p.remaining_fraction ?? 1);
+  }
+  return p.projection?.points ?? 0;
 }
 
 export type Vibe = "boom" | "bust" | null;

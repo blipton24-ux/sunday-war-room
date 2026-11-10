@@ -15,12 +15,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.base import LeagueAdapter, NflState
 from app.db.models import League, LeagueMembership, PlatformAccount, SyncRun
 from app.jobs.tracking import create_run, run_tracked
+from app.logging import get_logger
+from app.services.live import live_update
 from app.services.projections import (
     compute_projections,
     compute_rest_of_season,
     projection_pool,
 )
 from app.services.sync import players_are_stale, sync_league, upsert_platform_players
+from app.sources.espn_scoreboard import fetch_week
 
 Ctx = dict[str, Any]
 
@@ -137,3 +140,12 @@ async def sync_all_leagues(ctx: Ctx) -> int:
             await ctx["redis"].enqueue_job("sync_league_job", run.id, lid, _job_id=run.job_id)
             count += 1
     return count
+
+
+async def live_update_job(ctx: Ctx) -> dict[str, Any]:
+    """Every minute (P2, ADR-045): fresh scores and game clocks, but only while games are on."""
+    async with ctx["sessionmaker"]() as db:
+        result = await live_update(db, _sleeper(ctx), lambda s, w: fetch_week(s, w))
+    if "skipped" not in result:
+        get_logger("live").info("live_update", **result)
+    return result

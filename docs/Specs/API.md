@@ -20,7 +20,7 @@ REST + OpenAPI ([ADR-014](../Decisions/ADR-014-API-REST-OpenAPI.md)). Every endp
 | DELETE | `/api/v1/leagues/{id}` | Unfollow |
 | POST | `/api/v1/leagues/{id}/refresh` | Enqueue sync → returns `{job_id}` (202 Accepted) |
 | GET | `/api/v1/jobs/{job_id}` | Job status (queued/running/done/failed) + small `result`; visible to the requester and members of the job's league |
-| GET | `/api/v1/leagues/{id}/matchup?week=` | Head-to-head: both lineups, projections, ranges, win probability, scores. 409 `team_not_chosen` until my team is set |
+| GET | `/api/v1/leagues/{id}/matchup?week=` | Head-to-head: both lineups, projections, ranges, win probability, scores. P2 live: each player's points so far, game clock, has-the-ball, share of the game left; `live`, `clock_source` (scoreboard / kickoff estimate), `scores_updated_at`. 409 `team_not_chosen` until my team is set |
 | GET | `/api/v1/leagues/{id}/lineup?week=` | My lineup: current vs optimal, swap suggestions |
 | GET | `/api/v1/players/{id}/projection?league_id=&week=` | One projection with factors and range, plus the last 4 games scored with the league's rules. Membership of `league_id` is checked (404) |
 | GET | `/api/v1/leagues/{id}/accuracy` | Graded past weeks (genuine predictions only) |

@@ -204,6 +204,15 @@ class Matchup(Base):
     away_team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
     home_score: Mapped[float | None] = mapped_column(Float)
     away_score: Mapped[float | None] = mapped_column(Float)
+    # P2 live game day: fantasy points so far per player (our player id as text -> points),
+    # scored by the platform with the league's rules (ADR-044).
+    home_player_points: Mapped[dict[str, float]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
+    away_player_points: Mapped[dict[str, float]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(TZ)
 
 
 class LeagueTransaction(Base):
@@ -263,6 +272,30 @@ class NflGame(Base):
     away_score: Mapped[int | None] = mapped_column(Integer)
 
     __table_args__ = (Index("ix_nfl_games_season_week", "season", "week"),)
+
+
+class LiveGame(Base):
+    """Game state from ESPN's public scoreboard during game windows (P2, ADR-044)."""
+
+    __tablename__ = "live_games"
+    __table_args__ = (UniqueConstraint("season", "week", "home"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    espn_id: Mapped[str] = mapped_column(String(32))
+    season: Mapped[int] = mapped_column(Integer)
+    week: Mapped[int] = mapped_column(Integer)
+    home: Mapped[str] = mapped_column(String(8))
+    away: Mapped[str] = mapped_column(String(8))
+    kickoff_at: Mapped[datetime] = mapped_column(TZ)
+    state: Mapped[str] = mapped_column(String(16))  # upcoming/in_progress/halftime/final/postponed
+    period: Mapped[int] = mapped_column(Integer, default=0)
+    clock_seconds: Mapped[float] = mapped_column(Float, default=0.0)
+    detail: Mapped[str] = mapped_column(String(64))
+    home_score: Mapped[int | None] = mapped_column(Integer)
+    away_score: Mapped[int | None] = mapped_column(Integer)
+    possession: Mapped[str | None] = mapped_column(String(8))
+    remaining_fraction: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[datetime] = mapped_column(TZ)
 
 
 class PlayerWeekStats(Base):
