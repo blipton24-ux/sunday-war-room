@@ -14,6 +14,9 @@ screen state the UI has appears for the fixture user's team ("Team 1"):
     DEF                   game upcoming
     one bench WR          game upcoming, far better than WR2 -> a swap to make
 
+and for the P2 screens: the league's free agents have stat lines too (Jaydon Blue is a breakout
+RB, the top waiver add), and weeks 10-17 are scheduled, so rest-of-season values exist.
+
 Times are relative to "now", so the seeded world stays valid whenever the tests run. Past weeks
 carry graded, pre-kickoff projections, so the Accuracy screen has real numbers.
 """
@@ -33,11 +36,17 @@ from app.db.models import League, NflGame, Player, PlayerWeekStats, RosterEntry,
 from app.db.session import get_engine, get_sessionmaker
 from app.nfl_teams import NFL_TEAMS, defense_key
 from app.services.grading import grade_finished
-from app.services.projections import compute_projections
+from app.services.projections import (
+    compute_projections,
+    compute_rest_of_season,
+    projection_pool,
+)
 from app.services.sync import sync_league, upsert_platform_players
 from tests.sleeper_fixtures import LEAGUE_ID, ME
 
 SEASON, WEEK = 2026, 9
+LAST_WEEK = 17
+BREAKOUT = "12457"  # Jaydon Blue, a free agent in the fixture league
 
 BASE_LINE: dict[str, dict[str, float]] = {
     "QB": {"completions": 21, "attempts": 33, "passing_yards": 245, "passing_tds": 1.6,
@@ -101,6 +110,19 @@ def games_for(status: dict[str, Status], week: int, now: datetime) -> list[NflGa
                         home_score=24 if done else None, away_score=17 if done else None)
             )  # fmt: skip
     return games
+
+
+def future_week_games(week: int, now: datetime) -> list[NflGame]:
+    """Weeks after the current one, everyone playing, rotating opponents."""
+    teams = sorted(NFL_TEAMS)
+    shift = week % (len(teams) - 1) + 1
+    order = teams[:1] + teams[1:][shift:] + teams[1:][:shift]
+    kickoff = now + timedelta(days=(week - WEEK) * 7)
+    return [
+        NflGame(game_id=f"e2e_{SEASON}_{week:02d}_{order[i + 1]}_{order[i]}", season=SEASON,
+                week=week, game_type="REG", home=order[i], away=order[i + 1], kickoff_at=kickoff)
+        for i in range(0, len(order), 2)
+    ]  # fmt: skip
 
 
 def past_week_games(week: int, now: datetime) -> list[NflGame]:
@@ -168,8 +190,10 @@ async def seed() -> dict[str, Any]:
             update(Player).where(Player.id == te.id).values(injury_status="Questionable")
         )
 
+        future = range(WEEK + 1, LAST_WEEK + 1)
         db.add_all([*games_for(status, WEEK, now),
-                    *[g for w in range(1, WEEK) for g in past_week_games(w, now)]])  # fmt: skip
+                    *[g for w in range(1, WEEK) for g in past_week_games(w, now)],
+                    *[g for w in future for g in future_week_games(w, now)]])  # fmt: skip
 
         rostered = {
             pid
@@ -179,12 +203,15 @@ async def seed() -> dict[str, Any]:
         }
         rows: list[PlayerWeekStats] = []
         for p in players:
-            if p.id not in rostered or p.position not in BASE_LINE or not p.gsis_id:
+            if p.position not in BASE_LINE or not p.gsis_id or not p.nfl_team:
                 continue
+            free_agent = p.id not in rostered
             for week in range(1, WEEK + 1):
                 if week == WEEK and status.get(p.nfl_team or "") != "final":
                     continue  # no result yet for games that haven't finished
                 mult = 3.0 if p.id == swap_in.id and week < WEEK else 1.0
+                if free_agent:
+                    mult = 2.2 if p.sleeper_id == BREAKOUT else 0.6
                 if week == WEEK and p.id == qb.id:
                     mult = 3.0  # the Boom: far above his projected range
                 rows.append(PlayerWeekStats(
@@ -201,6 +228,10 @@ async def seed() -> dict[str, Any]:
         await compute_projections(db, league, WEEK - 1, now=now)
         await compute_projections(db, league, WEEK, now=now)
         graded = await grade_finished(db, SEASON)
+        # P2: free agents and rest of season, as the sync job computes them.
+        pool = await projection_pool(db, league, WEEK)
+        await compute_projections(db, league, WEEK, now=now, player_ids=pool)
+        await compute_rest_of_season(db, league, WEEK, pool, now=now)
 
         summary = {
             "teams": {s: sorted(t for t in status if status[t] == s) for s in

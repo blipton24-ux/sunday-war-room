@@ -21,7 +21,23 @@ export const keys = {
   player: (playerId: number, leagueId: number, week: number) =>
     ["player", playerId, leagueId, week] as const,
   job: (jobId: string) => ["job", jobId] as const,
+  waivers: (leagueId: number, horizon: WaiverHorizon) => ["waivers", leagueId, horizon] as const,
 };
+
+export type WaiverHorizon = "ros" | "week";
+
+export function useWaivers(leagueId: number | null, horizon: WaiverHorizon) {
+  return useQuery({
+    queryKey: keys.waivers(leagueId ?? 0, horizon),
+    enabled: leagueId != null,
+    queryFn: () =>
+      unwrap(
+        browserApi.GET("/api/v1/leagues/{league_id}/waivers", {
+          params: { path: { league_id: leagueId! }, query: { horizon } },
+        }),
+      ),
+  });
+}
 
 export function useMe() {
   return useQuery({

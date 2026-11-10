@@ -24,6 +24,7 @@ REST + OpenAPI ([ADR-014](../Decisions/ADR-014-API-REST-OpenAPI.md)). Every endp
 | GET | `/api/v1/leagues/{id}/lineup?week=` | My lineup: current vs optimal, swap suggestions |
 | GET | `/api/v1/players/{id}/projection?league_id=&week=` | One projection with factors and range, plus the last 4 games scored with the league's rules. Membership of `league_id` is checked (404) |
 | GET | `/api/v1/leagues/{id}/accuracy` | Graded past weeks (genuine predictions only) |
+| GET | `/api/v1/leagues/{id}/waivers?horizon=ros\|week` | P2: free agents ranked by points added to my best lineup, suggested drop, waiver status, FAAB bid guide ([ADR-047](../Decisions/ADR-047-Waivers-Value-Added.md)). 409 `team_not_chosen` until my team is set |
 
 ## Conventions
 - JSON, snake_case on the wire; the generated TS client exposes the same names.

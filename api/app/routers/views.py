@@ -1,14 +1,14 @@
-"""Screen endpoints: matchup, lineup, player projection, accuracy (docs/Specs/API.md)."""
+"""Screen endpoints: matchup, lineup, player projection, accuracy, waivers (docs/Specs/API.md)."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 
 from app.auth.deps import DB, CurrentUser, Membership, get_membership, require_league
 from app.db.models import League
 from app.errors import error_responses
-from app.schemas import AccuracyOut, LineupOut, MatchupOut, PlayerProjectionOut
-from app.services import views
+from app.schemas import AccuracyOut, LineupOut, MatchupOut, PlayerProjectionOut, WaiversOut
+from app.services import views, waivers
 
 router = APIRouter(prefix="/api/v1", tags=["views"], responses=error_responses())
 LeagueDep = Annotated[League, Depends(require_league)]
@@ -50,3 +50,17 @@ async def get_player_projection(
     league = await db.get(League, membership.league_id)
     assert league is not None
     return await views.player_projection_view(db, league, player_id, week)
+
+
+@router.get("/leagues/{league_id}/waivers", response_model=WaiversOut)
+async def get_waivers(
+    league: LeagueDep,
+    membership: Membership,
+    db: DB,
+    horizon: Annotated[
+        Literal["ros", "week"], Query(description="Rest of season (default) or this week")
+    ] = "ros",
+) -> WaiversOut:
+    """Free agents ranked by points they'd add to my best lineup, with a suggested drop,
+    waiver status and (FAAB leagues) a bid guide (ADR-047)."""
+    return await waivers.waivers_view(db, league, membership, horizon)

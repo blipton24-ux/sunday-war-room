@@ -209,3 +209,40 @@ class AccuracyOut(Schema):
     coverage_80: float | None
     by_position: dict[str, dict[str, float]]
     weeks: list[AccuracyWeek]
+
+
+# --------------------------------------------------------------------------- P2: waivers
+class PlayerRef(Schema):
+    player_id: int
+    name: str
+    position: str | None
+    nfl_team: str | None
+    headshot_url: str | None
+    injury_status: str | None
+
+
+class WaiverPlayer(Schema):
+    player: PlayerRef
+    gain: float  # weighted points my best lineup gains over the horizon, after the drop
+    gain_per_week: float
+    points_per_week: float  # the player's own projection, averaged over the horizon
+    status: Literal["free_agent", "waivers"]
+    on_waivers_until: datetime | None  # approximate; platforms run waivers at set times
+    drop: PlayerRef | None  # who to drop to make room (None: an open roster spot)
+    bid_low: int | None  # FAAB leagues only: a guide, not a prediction
+    bid_high: int | None
+
+
+class WaiversOut(Schema):
+    league_id: int
+    week: int
+    horizon: Literal["ros", "week"]
+    horizon_weeks: list[int]
+    playoff_weeks: list[int]
+    waiver_kind: Literal["rolling", "reverse_standings", "faab", "none"]
+    faab_budget: int | None
+    faab_remaining: int | None
+    my_waiver_position: int | None  # 1 = first claim
+    clear_days: int
+    players: list[WaiverPlayer]
+    ready: bool  # False until the worker has projected this league's free agents

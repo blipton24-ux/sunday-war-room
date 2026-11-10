@@ -31,6 +31,8 @@ Style: Sunday War Room, flat, with player photos ([ADR-032](../Decisions/ADR-032
 
 **Accuracy:** past weeks, frozen projections vs actual results, explained in plain words.
 
+**Waivers (P2):** a Rest of season / This week toggle; a card with the league's waiver rules (FAAB budget left, or claim position and claim window); then free agents that improve my best lineup, best first: points added per week, the player's own points per week, "Free agent · add now" or "On waivers until about Wed 9:00", a FAAB bid range, and who to drop. Empty states: free agents not projected yet, or nobody improves the lineup.
+
 **Settings:** connected platforms, leagues, theme, sign out, delete account.
 
 ## Design system

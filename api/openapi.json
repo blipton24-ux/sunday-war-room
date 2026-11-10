@@ -1199,6 +1199,105 @@
         }
       }
     },
+    "/api/v1/leagues/{league_id}/waivers": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "summary": "Get Waivers",
+        "description": "Free agents ranked by points they'd add to my best lineup, with a suggested drop,\nwaiver status and (FAAB leagues) a bid guide (ADR-047).",
+        "operationId": "get_waivers",
+        "parameters": [
+          {
+            "name": "league_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "League Id"
+            }
+          },
+          {
+            "name": "horizon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ros",
+                "week"
+              ],
+              "type": "string",
+              "description": "Rest of season (default) or this week",
+              "default": "ros",
+              "title": "Horizon"
+            },
+            "description": "Rest of season (default) or this week"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaiversOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -2121,6 +2220,72 @@
         ],
         "title": "PlayerProjectionOut"
       },
+      "PlayerRef": {
+        "properties": {
+          "player_id": {
+            "type": "integer",
+            "title": "Player Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "nfl_team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nfl Team"
+          },
+          "headshot_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headshot Url"
+          },
+          "injury_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Injury Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "player_id",
+          "name",
+          "position",
+          "nfl_team",
+          "headshot_url",
+          "injury_status"
+        ],
+        "title": "PlayerRef"
+      },
       "ProjectionOut": {
         "properties": {
           "points": {
@@ -2367,6 +2532,198 @@
           "starters"
         ],
         "title": "TeamSide"
+      },
+      "WaiverPlayer": {
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/PlayerRef"
+          },
+          "gain": {
+            "type": "number",
+            "title": "Gain"
+          },
+          "gain_per_week": {
+            "type": "number",
+            "title": "Gain Per Week"
+          },
+          "points_per_week": {
+            "type": "number",
+            "title": "Points Per Week"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "free_agent",
+              "waivers"
+            ],
+            "title": "Status"
+          },
+          "on_waivers_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Waivers Until"
+          },
+          "drop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlayerRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bid_low": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bid Low"
+          },
+          "bid_high": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bid High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "player",
+          "gain",
+          "gain_per_week",
+          "points_per_week",
+          "status",
+          "on_waivers_until",
+          "drop",
+          "bid_low",
+          "bid_high"
+        ],
+        "title": "WaiverPlayer"
+      },
+      "WaiversOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "week": {
+            "type": "integer",
+            "title": "Week"
+          },
+          "horizon": {
+            "type": "string",
+            "enum": [
+              "ros",
+              "week"
+            ],
+            "title": "Horizon"
+          },
+          "horizon_weeks": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Horizon Weeks"
+          },
+          "playoff_weeks": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Playoff Weeks"
+          },
+          "waiver_kind": {
+            "type": "string",
+            "enum": [
+              "rolling",
+              "reverse_standings",
+              "faab",
+              "none"
+            ],
+            "title": "Waiver Kind"
+          },
+          "faab_budget": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faab Budget"
+          },
+          "faab_remaining": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faab Remaining"
+          },
+          "my_waiver_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Waiver Position"
+          },
+          "clear_days": {
+            "type": "integer",
+            "title": "Clear Days"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/WaiverPlayer"
+            },
+            "type": "array",
+            "title": "Players"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "week",
+          "horizon",
+          "horizon_weeks",
+          "playoff_weeks",
+          "waiver_kind",
+          "faab_budget",
+          "faab_remaining",
+          "my_waiver_position",
+          "clear_days",
+          "players",
+          "ready"
+        ],
+        "title": "WaiversOut"
       },
       "WinOutlook": {
         "properties": {

@@ -235,6 +235,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leagues/{league_id}/waivers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Waivers
+         * @description Free agents ranked by points they'd add to my best lineup, with a suggested drop,
+         *     waiver status and (FAAB leagues) a bid guide (ADR-047).
+         */
+        get: operations["get_waivers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -510,6 +531,21 @@ export interface components {
             /** Unsupported Rules */
             unsupported_rules: string[];
         };
+        /** PlayerRef */
+        PlayerRef: {
+            /** Player Id */
+            player_id: number;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string | null;
+            /** Nfl Team */
+            nfl_team: string | null;
+            /** Headshot Url */
+            headshot_url: string | null;
+            /** Injury Status */
+            injury_status: string | null;
+        };
         /** ProjectionOut */
         ProjectionOut: {
             /** Points */
@@ -586,6 +622,61 @@ export interface components {
             projected_total: number;
             /** Starters */
             starters: components["schemas"]["PlayerLine"][];
+        };
+        /** WaiverPlayer */
+        WaiverPlayer: {
+            player: components["schemas"]["PlayerRef"];
+            /** Gain */
+            gain: number;
+            /** Gain Per Week */
+            gain_per_week: number;
+            /** Points Per Week */
+            points_per_week: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "free_agent" | "waivers";
+            /** On Waivers Until */
+            on_waivers_until: string | null;
+            drop: components["schemas"]["PlayerRef"] | null;
+            /** Bid Low */
+            bid_low: number | null;
+            /** Bid High */
+            bid_high: number | null;
+        };
+        /** WaiversOut */
+        WaiversOut: {
+            /** League Id */
+            league_id: number;
+            /** Week */
+            week: number;
+            /**
+             * Horizon
+             * @enum {string}
+             */
+            horizon: "ros" | "week";
+            /** Horizon Weeks */
+            horizon_weeks: number[];
+            /** Playoff Weeks */
+            playoff_weeks: number[];
+            /**
+             * Waiver Kind
+             * @enum {string}
+             */
+            waiver_kind: "rolling" | "reverse_standings" | "faab" | "none";
+            /** Faab Budget */
+            faab_budget: number | null;
+            /** Faab Remaining */
+            faab_remaining: number | null;
+            /** My Waiver Position */
+            my_waiver_position: number | null;
+            /** Clear Days */
+            clear_days: number;
+            /** Players */
+            players: components["schemas"]["WaiverPlayer"][];
+            /** Ready */
+            ready: boolean;
         };
         /** WinOutlook */
         WinOutlook: {
@@ -1513,6 +1604,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlayerProjectionOut"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not found (also returned for another user's league) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not ready yet (e.g. first sync unfinished, or no team chosen) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    get_waivers: {
+        parameters: {
+            query?: {
+                /** @description Rest of season (default) or this week */
+                horizon?: "ros" | "week";
+            };
+            header?: never;
+            path: {
+                league_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaiversOut"];
                 };
             };
             /** @description Missing, invalid or expired token */

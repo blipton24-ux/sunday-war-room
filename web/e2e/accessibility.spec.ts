@@ -18,6 +18,7 @@ const SCREENS: [path: string, ready: RegExp][] = [
   ["/lineup", /^Lineup$/],
   ["/matchup", /^Matchup$/],
   ["/accuracy", /^Accuracy$/],
+  ["/waivers", /^Waivers$/],
   ["/settings", /^Settings$/],
 ];
 
