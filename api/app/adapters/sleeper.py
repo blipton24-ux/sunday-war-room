@@ -8,7 +8,8 @@ AdapterSchemaError (fail loudly); optional fields default to None (fail softly).
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from datetime import UTC, datetime
+from typing import Any, cast
 
 import httpx
 from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
@@ -21,6 +22,7 @@ from app.adapters.base import (
     AdapterError,
     AdapterSchemaError,
     LeagueData,
+    LeagueKind,
     LeagueRef,
     MatchupData,
     NflState,
@@ -29,7 +31,12 @@ from app.adapters.base import (
     PlatformUser,
     PlayerData,
     RosterSpot,
+    SeasonRules,
     TeamData,
+    TransactionData,
+    TransactionKind,
+    WaiverKind,
+    WaiverRules,
 )
 from app.config import get_settings
 from app.nfl_teams import canonical_team
@@ -52,6 +59,22 @@ class _User(_Raw):
     display_name: str | None = None
 
 
+class _LeagueSettings(_Raw):
+    # All optional: Sleeper omits settings a league never changed.
+    type: int | None = None
+    start_week: int | None = None
+    playoff_week_start: int | None = None
+    trade_deadline: int | None = None
+    disable_trades: int | None = None
+    waiver_type: int | None = None
+    waiver_budget: int | None = None
+    waiver_bid_min: int | None = None
+    waiver_clear_days: int | None = None
+    waiver_day_of_week: int | None = None
+    daily_waivers: int | None = None
+    daily_waivers_hour: int | None = None
+
+
 class _League(_Raw):
     league_id: str
     name: str
@@ -61,6 +84,7 @@ class _League(_Raw):
     total_rosters: int | None = None
     scoring_settings: dict[str, float]
     roster_positions: list[str]
+    settings: _LeagueSettings = _LeagueSettings()
 
 
 class _LeagueUser(_Raw):
@@ -74,6 +98,8 @@ class _RosterSettings(_Raw):
     wins: int = 0
     losses: int = 0
     ties: int = 0
+    waiver_position: int | None = None
+    waiver_budget_used: int | None = None
 
 
 class _Roster(_Raw):
@@ -92,6 +118,22 @@ class _Matchup(_Raw):
     points: float | None = None
     starters: list[str] | None = None
     players: list[str] | None = None
+    players_points: dict[str, float] | None = None
+
+
+class _TxSettings(_Raw):
+    waiver_bid: int | None = None
+
+
+class _Transaction(_Raw):
+    transaction_id: str
+    type: str
+    status: str
+    leg: int
+    created: int  # milliseconds since the epoch
+    adds: dict[str, int] | None = None
+    drops: dict[str, int] | None = None
+    settings: _TxSettings | None = None
 
 
 class _Player(_Raw):
@@ -189,6 +231,8 @@ class SleeperAdapter:
             scoring_rules=dict(lg.scoring_settings),
             roster_slots=list(lg.roster_positions),
             status=lg.status,
+            waivers=waiver_rules(lg.settings),
+            season_rules=season_rules(lg.settings),
         )
 
     # -- teams -----------------------------------------------------------------
@@ -217,6 +261,8 @@ class SleeperAdapter:
                     wins=r.settings.wins,
                     losses=r.settings.losses,
                     ties=r.settings.ties,
+                    waiver_position=r.settings.waiver_position,
+                    waiver_budget_used=r.settings.waiver_budget_used,
                     roster=build_roster(
                         league.roster_slots, r.starters, r.players, r.reserve, r.taxi
                     ),
@@ -234,8 +280,28 @@ class SleeperAdapter:
                 team_external_id=str(m.roster_id),
                 points=m.points,
                 roster=build_roster(league.roster_slots, m.starters, m.players, None, None),
+                player_points=dict(m.players_points or {}),
             )
             for m in rows
+        ]
+
+    async def fetch_transactions(self, league: LeagueData, week: int) -> list[TransactionData]:
+        """Adds, drops, claims and trades processed in one week ("leg") of the league."""
+        path = f"/league/{league.ref.external_id}/transactions/{week}"
+        data = await self._get(path) or []
+        rows: list[_Transaction] = _parse(list[_Transaction], data, "transactions")
+        return [
+            TransactionData(
+                external_id=t.transaction_id,
+                kind=cast(TransactionKind, t.type) if t.type in _TX_KINDS else "commissioner",
+                status=t.status,
+                week=t.leg,
+                created_at=datetime.fromtimestamp(t.created / 1000, UTC),
+                adds={pid: str(rid) for pid, rid in (t.adds or {}).items()},
+                drops={pid: str(rid) for pid, rid in (t.drops or {}).items()},
+                waiver_bid=t.settings.waiver_bid if t.settings else None,
+            )
+            for t in rows
         ]
 
     # -- NFL-wide --------------------------------------------------------------
@@ -276,6 +342,43 @@ class SleeperAdapter:
     async def fetch_state(self) -> NflState:
         s: _State = _parse(_State, await self._get("/state/nfl"), "state")
         return NflState(season=int(s.season), week=s.week, season_type=s.season_type)
+
+
+_TX_KINDS = {"waiver", "free_agent", "trade", "commissioner"}
+# Sleeper's settings.waiver_type and settings.type codes.
+_WAIVER_KINDS: dict[int, WaiverKind] = {0: "rolling", 1: "reverse_standings", 2: "faab"}
+_LEAGUE_KINDS: dict[int, LeagueKind] = {0: "redraft", 1: "keeper", 2: "dynasty"}
+
+
+def waiver_rules(st: _LeagueSettings) -> WaiverRules:
+    """Sleeper's waiver settings in our terms. Unknown codes are kept in `raw`, never guessed."""
+    kind = _WAIVER_KINDS.get(st.waiver_type if st.waiver_type is not None else 0, "rolling")
+    raw = {
+        k: v
+        for k, v in st.model_dump().items()
+        if (k.startswith("waiver") or k.startswith("daily")) and v is not None
+    }
+    return WaiverRules(
+        kind=kind,
+        budget=st.waiver_budget if kind == "faab" else None,
+        min_bid=st.waiver_bid_min or 0,
+        clear_days=st.waiver_clear_days or 0,
+        weekly_day=st.waiver_day_of_week,
+        daily=bool(st.daily_waivers),
+        daily_hour=st.daily_waivers_hour if st.daily_waivers else None,
+        raw=raw,
+    )
+
+
+def season_rules(st: _LeagueSettings) -> SeasonRules:
+    return SeasonRules(
+        kind=_LEAGUE_KINDS.get(st.type if st.type is not None else 0, "redraft"),
+        start_week=st.start_week or 1,
+        playoff_week_start=st.playoff_week_start or None,
+        # Sleeper uses 0 (or a week past the season) for "no deadline".
+        trade_deadline=st.trade_deadline if st.trade_deadline and st.trade_deadline <= 18 else None,
+        trades_allowed=not st.disable_trades,
+    )
 
 
 def fantasy_position(position: str | None, eligible: list[str] | None) -> str | None:

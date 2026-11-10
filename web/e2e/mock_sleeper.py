@@ -38,7 +38,8 @@ def route(path: str) -> object | None:
         return None  # Sleeper answers 200 + null for unknown usernames
     if m := re.fullmatch(r"/v1/user/(\d+)/leagues/nfl/(\d+)", path):
         return load("user_leagues") if m.group(1) == ME else []
-    if m := re.fullmatch(r"/v1/league/(\d+)(?:/(rosters|users|matchups/(\d+)))?", path):
+    league_path = r"/v1/league/(\d+)(?:/(rosters|users|matchups/(\d+)|transactions/(\d+)))?"
+    if m := re.fullmatch(league_path, path):
         if m.group(1) != LEAGUE_ID:
             return None
         part = m.group(2)
@@ -48,6 +49,8 @@ def route(path: str) -> object | None:
             return load("rosters")
         if part == "users":
             return load("league_users")
+        if m.group(4) is not None:
+            return load(f"transactions_{m.group(4)}") if m.group(4) in ("8", "9") else []
         return load("matchups_9" if m.group(3) == "9" else "matchups_8")
     if path == "/v1/players/nfl":
         return load("players")

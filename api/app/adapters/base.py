@@ -4,6 +4,7 @@ Everything outside `app/adapters/` sees only these types, never a platform's raw
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Literal, Protocol
 
 Platform = Literal["sleeper", "espn", "yahoo"]
@@ -41,6 +42,37 @@ class LeagueRef:
     total_teams: int | None = None
 
 
+WaiverKind = Literal["rolling", "reverse_standings", "faab", "none"]
+LeagueKind = Literal["redraft", "keeper", "dynasty"]
+
+
+@dataclass(frozen=True)
+class WaiverRules:
+    """How a league hands out players (ADR-046). Platforms map their settings onto this."""
+
+    kind: WaiverKind
+    budget: int | None = None  # FAAB budget per team; None unless kind == "faab"
+    min_bid: int = 0
+    # Days a dropped player stays on waivers before becoming a free agent.
+    clear_days: int = 0
+    # Day of the week waivers run (0 = Monday ... 6 = Sunday), None if not weekly.
+    weekly_day: int | None = None
+    # Daily waivers: unclaimed players clear every day at `daily_hour` (league's local hour).
+    daily: bool = False
+    daily_hour: int | None = None
+    # The platform's raw values, kept so an unclear mapping can be checked later.
+    raw: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SeasonRules:
+    kind: LeagueKind = "redraft"
+    start_week: int = 1
+    playoff_week_start: int | None = None  # first fantasy playoff week; None = no playoffs
+    trade_deadline: int | None = None  # last week trades are allowed; None = no deadline
+    trades_allowed: bool = True
+
+
 @dataclass(frozen=True)
 class LeagueData:
     ref: LeagueRef
@@ -50,6 +82,8 @@ class LeagueData:
     # One entry per lineup position in order, e.g. ["QB","RB","RB",...,"BN","BN"].
     roster_slots: list[str]
     status: str  # pre_draft / drafting / in_season / complete
+    waivers: WaiverRules = field(default_factory=lambda: WaiverRules("none"))
+    season_rules: SeasonRules = field(default_factory=SeasonRules)
 
 
 @dataclass(frozen=True)
@@ -70,6 +104,8 @@ class TeamData:
     losses: int
     ties: int
     roster: list[RosterSpot] = field(default_factory=list)
+    waiver_position: int | None = None  # claim order; 1 = first
+    waiver_budget_used: int | None = None  # FAAB spent so far
 
 
 @dataclass(frozen=True)
@@ -80,6 +116,24 @@ class MatchupData:
     points: float | None
     # Starters actually set for that week (historical weeks), in slot order.
     roster: list[RosterSpot] = field(default_factory=list)
+    # Fantasy points so far per player, scored by the platform with the league's rules.
+    player_points: dict[str, float] = field(default_factory=dict)
+
+
+TransactionKind = Literal["waiver", "free_agent", "trade", "commissioner"]
+
+
+@dataclass(frozen=True)
+class TransactionData:
+    external_id: str
+    kind: TransactionKind
+    status: str  # complete / failed / pending
+    week: int
+    created_at: datetime
+    # player external id -> team external id
+    adds: dict[str, str] = field(default_factory=dict)
+    drops: dict[str, str] = field(default_factory=dict)
+    waiver_bid: int | None = None
 
 
 @dataclass(frozen=True)
@@ -111,5 +165,6 @@ class LeagueAdapter(Protocol):
     async def fetch_league(self, external_id: str) -> LeagueData: ...
     async def fetch_teams(self, league: LeagueData) -> list[TeamData]: ...
     async def fetch_matchups(self, league: LeagueData, week: int) -> list[MatchupData]: ...
+    async def fetch_transactions(self, league: LeagueData, week: int) -> list[TransactionData]: ...
     async def fetch_players(self) -> list[PlayerData]: ...
     async def fetch_state(self) -> NflState: ...

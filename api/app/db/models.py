@@ -152,6 +152,13 @@ class League(Base):
     roster_slots: Mapped[list[str]] = mapped_column(JSONB, default=list)
     current_week: Mapped[int | None] = mapped_column(Integer)
     last_synced_at: Mapped[datetime | None] = mapped_column(TZ)
+    # app.adapters.base.WaiverRules / SeasonRules as JSON (ADR-046); {} until the first P2 sync.
+    waiver_rules: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
+    season_rules: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
 
 
 class Team(Base):
@@ -168,6 +175,8 @@ class Team(Base):
     wins: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     losses: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     ties: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    waiver_position: Mapped[int | None] = mapped_column(Integer)
+    waiver_budget_used: Mapped[int | None] = mapped_column(Integer)
 
 
 class RosterEntry(Base):
@@ -195,6 +204,28 @@ class Matchup(Base):
     away_team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
     home_score: Mapped[float | None] = mapped_column(Float)
     away_score: Mapped[float | None] = mapped_column(Float)
+
+
+class LeagueTransaction(Base):
+    """Adds, drops, waiver claims and trades, as the platform reports them (P2: waiver status)."""
+
+    __tablename__ = "league_transactions"
+    __table_args__ = (
+        UniqueConstraint("league_id", "external_id"),
+        Index("ix_league_transactions_league_created", "league_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id", ondelete="CASCADE"))
+    external_id: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(16))  # waiver / free_agent / trade / commissioner
+    status: Mapped[str] = mapped_column(String(16))  # complete / failed / pending
+    week: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(TZ)
+    # platform player id -> platform team id
+    adds: Mapped[dict[str, str]] = mapped_column(JSONB, default=dict)
+    drops: Mapped[dict[str, str]] = mapped_column(JSONB, default=dict)
+    waiver_bid: Mapped[int | None] = mapped_column(Integer)
 
 
 # --------------------------------------------------------------------------- NFL data (shared)

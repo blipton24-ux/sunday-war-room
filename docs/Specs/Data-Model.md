@@ -22,8 +22,9 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 ## Leagues (shared: one row per real platform league)
 | Table | Key fields | Notes |
 |---|---|---|
-| `leagues` | id, platform, external_id, season, name, scoring_rules (JSONB), roster_slots (JSONB), current_week, last_synced_at | Unique (platform, external_id, season) |
-| `teams` | id, league_id, external_id, name, owner_name, avatar_url | |
+| `leagues` | id, platform, external_id, season, name, scoring_rules (JSONB), roster_slots (JSONB), current_week, last_synced_at, **waiver_rules** (JSONB), **season_rules** (JSONB) | Unique (platform, external_id, season). The rules are the league's waiver type, budget, claim window, playoffs and trade deadline ([ADR-046](../Decisions/ADR-046-Any-League-Settings.md)) |
+| `teams` | id, league_id, external_id, name, owner_name, avatar_url, waiver_position, waiver_budget_used | |
+| `league_transactions` | id, league_id, external_id, kind, status, week, created_at, adds (JSONB), drops (JSONB), waiver_bid | P2: who was dropped when, so waivers can say who is still on waivers. This and last week, refreshed on every sync |
 | `roster_entries` | id, team_id, week, player_id, slot (QB/RB/FLEX/BN/IR…), is_starter | Weekly snapshot |
 | `matchups` | id, league_id, week, home_team_id, away_team_id, home_score, away_score | Scores as of last sync |
 
@@ -46,6 +47,6 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 | `sync_runs` | id, kind, league_id?, status, started_at, finished_at, error | Shown as "updated N min ago"; debugging |
 
 ## Later phases
-P2 `push_subscriptions`, `alerts` · P3 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P4 encrypted ESPN cookies / Yahoo OAuth tokens on `platform_accounts`.
+P6 `push_subscriptions`, `alerts` · P3 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P4 encrypted ESPN cookies / Yahoo OAuth tokens on `platform_accounts`.
 
 Related: [Multi-Tenancy](../Concepts/Multi-Tenancy.md) · [Architecture](Architecture.md) · [Projection Model](Projection-Model.md)

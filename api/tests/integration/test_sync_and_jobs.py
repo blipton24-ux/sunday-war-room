@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.db.models import (
     League,
     LeagueMembership,
+    LeagueTransaction,
     Matchup,
     PlatformAccount,
     Player,
@@ -61,6 +62,38 @@ async def test_sync_league_writes_everything_and_is_idempotent(
 
 
 # --------------------------------------------------------------------------- jobs
+async def test_sync_stores_league_rules_waiver_order_and_transactions(
+    db: AsyncSession, ctx: dict[str, Any]
+) -> None:
+    """P2 (ADR-046): what waivers and trades need, stored on every sync, idempotently."""
+    adapter = ctx["adapters"]["sleeper"]
+    await upsert_platform_players(db, "sleeper", await adapter.fetch_players())
+    for _ in range(2):
+        league = await sync_league(db, adapter, LEAGUE_ID, current_week=9, history_weeks=[8])
+
+    assert league.waiver_rules["kind"] == "faab" and league.waiver_rules["budget"] == 100
+    assert league.season_rules["kind"] == "dynasty"
+    assert league.season_rules["playoff_week_start"] == 15
+
+    teams = (await db.scalars(select(Team).where(Team.league_id == league.id))).all()
+    assert sorted(t.waiver_position for t in teams if t.waiver_position) == list(range(1, 13))
+
+    txs = (
+        await db.scalars(
+            select(LeagueTransaction)
+            .where(LeagueTransaction.league_id == league.id)
+            .order_by(LeagueTransaction.created_at)
+        )
+    ).all()
+    assert [(t.week, t.kind, t.status) for t in txs] == [
+        (8, "waiver", "complete"),
+        (8, "waiver", "failed"),
+        (9, "trade", "complete"),
+        (9, "free_agent", "complete"),
+    ]
+    assert txs[-1].drops == {"12457": "8"}
+
+
 async def test_connect_job_links_account_and_lists_leagues(
     db: AsyncSession, ctx: dict[str, Any]
 ) -> None:

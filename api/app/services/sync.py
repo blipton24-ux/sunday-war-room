@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
+from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
 
@@ -14,8 +15,15 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters.base import LeagueAdapter, LeagueData, MatchupData, PlayerData, RosterSpot
-from app.db.models import League, Matchup, Player, RosterEntry, Team
+from app.adapters.base import (
+    LeagueAdapter,
+    LeagueData,
+    MatchupData,
+    PlayerData,
+    RosterSpot,
+    TransactionData,
+)
+from app.db.models import League, LeagueTransaction, Matchup, Player, RosterEntry, Team
 from app.logging import get_logger
 from app.model.scoring import scoring_key
 
@@ -96,6 +104,8 @@ async def upsert_league(db: AsyncSession, data: LeagueData, current_week: int | 
         scoring_key=scoring_key(data.scoring_rules),
         roster_slots=data.roster_slots,
         current_week=current_week,
+        waiver_rules=asdict(data.waivers),
+        season_rules=asdict(data.season_rules),
     )
     ex = stmt.excluded
     upsert = stmt.on_conflict_do_update(
@@ -107,6 +117,8 @@ async def upsert_league(db: AsyncSession, data: LeagueData, current_week: int | 
             "scoring_key": ex.scoring_key,
             "roster_slots": ex.roster_slots,
             "current_week": ex.current_week,
+            "waiver_rules": ex.waiver_rules,
+            "season_rules": ex.season_rules,
         },
     ).returning(League.id)
     league_id = (await db.execute(upsert)).scalar_one()
@@ -212,6 +224,8 @@ async def sync_league(
             wins=t.wins,
             losses=t.losses,
             ties=t.ties,
+            waiver_position=t.waiver_position,
+            waiver_budget_used=t.waiver_budget_used,
         )
         ex = stmt.excluded
         await db.execute(
@@ -221,7 +235,8 @@ async def sync_league(
                     k: getattr(ex, k)
                     for k in ("owner_external_id", "name", "owner_name", "avatar_url")
                 }
-                | {"wins": ex.wins, "losses": ex.losses, "ties": ex.ties},
+                | {k: getattr(ex, k) for k in ("wins", "losses", "ties")}
+                | {k: getattr(ex, k) for k in ("waiver_position", "waiver_budget_used")},
             )
         )
     team_rows = await db.execute(
@@ -254,6 +269,11 @@ async def sync_league(
                 )
         await _upsert_matchups(db, league.id, w, rows, team_ids)
 
+    # Waiver status needs recent drops; claim windows are a few days, so this and last week.
+    tx_weeks = sorted({w for w in (current_week - 1, current_week) if w >= 1})
+    transactions = [t for w in tx_weeks for t in await adapter.fetch_transactions(data, w)]
+    await upsert_transactions(db, league.id, transactions)
+
     league.last_synced_at = datetime.now(UTC)
     await db.commit()
     log.info(
@@ -265,6 +285,33 @@ async def sync_league(
         unmapped_players=sorted(unmapped)[:20],
     )
     return league
+
+
+async def upsert_transactions(
+    db: AsyncSession, league_id: int, transactions: Sequence[TransactionData]
+) -> None:
+    rows = [
+        {
+            "league_id": league_id,
+            "external_id": t.external_id,
+            "kind": t.kind,
+            "status": t.status,
+            "week": t.week,
+            "created_at": t.created_at,
+            "adds": t.adds,
+            "drops": t.drops,
+            "waiver_bid": t.waiver_bid,
+        }
+        for t in transactions
+    ]
+    for chunk in _chunks(rows):
+        stmt = insert(LeagueTransaction).values(list(chunk))
+        await db.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[LeagueTransaction.league_id, LeagueTransaction.external_id],
+                set_={"status": stmt.excluded.status, "waiver_bid": stmt.excluded.waiver_bid},
+            )
+        )
 
 
 async def players_are_stale(db: AsyncSession, max_age_hours: float = 24) -> bool:

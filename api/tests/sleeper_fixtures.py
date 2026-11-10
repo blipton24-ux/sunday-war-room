@@ -1,4 +1,8 @@
-"""Recorded (anonymized) Sleeper responses from a real 12-team, half-PPR 2026 league."""
+"""Recorded (anonymized) Sleeper responses from a real 12-team, half-PPR 2026 league.
+
+The transactions files are hand-written in the shape documented at docs.sleeper.com (no real
+league's transactions were recorded); see Verification Gaps V-33.
+"""
 
 import json
 from pathlib import Path
@@ -29,6 +33,9 @@ def mock_sleeper() -> respx.MockRouter:
     for week in range(1, 19):  # a full season, so past-season leagues can sync every week
         name = f"matchups_{week}" if week in (8, 9) else "matchups_8"
         router.get(f"/league/{LEAGUE_ID}/matchups/{week}").respond(json=fx(name))
+    for week in range(1, 19):  # shape from docs.sleeper.com; weeks without moves are empty
+        tx = fx(f"transactions_{week}") if week in (8, 9) else []
+        router.get(f"/league/{LEAGUE_ID}/transactions/{week}").respond(json=tx)
     router.get("/players/nfl").respond(json=fx("players"))
     router.get("/state/nfl").respond(json=fx("state"))
     return router

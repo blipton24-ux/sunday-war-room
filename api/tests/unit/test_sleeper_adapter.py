@@ -15,7 +15,13 @@ from app.adapters.base import (
     LeagueAdapter,
     NotFoundOnPlatform,
 )
-from app.adapters.sleeper import SleeperAdapter, build_roster
+from app.adapters.sleeper import (
+    SleeperAdapter,
+    _LeagueSettings,
+    build_roster,
+    season_rules,
+    waiver_rules,
+)
 from tests.sleeper_fixtures import LEAGUE_ID, ME, fx, mock_sleeper
 
 
@@ -91,6 +97,97 @@ async def test_matchups_pair_teams(sleeper: tuple[SleeperAdapter, respx.MockRout
     keys = [r.matchup_key for r in rows if r.matchup_key]
     assert all(keys.count(k) == 2 for k in keys), "each matchup has exactly two teams"
     assert all(r.points is not None and r.points > 0 for r in rows)
+
+
+async def test_league_rules_faab_dynasty(sleeper: tuple[SleeperAdapter, respx.MockRouter]) -> None:
+    """ADR-046: the fixture league is a FAAB, dynasty league with daily waivers."""
+    adapter, _ = sleeper
+    league = await adapter.fetch_league(LEAGUE_ID)
+    w = league.waivers
+    assert (w.kind, w.budget, w.min_bid, w.clear_days, w.daily) == ("faab", 100, 1, 0, True)
+    assert w.daily_hour == 9
+    assert w.raw["waiver_type"] == 2  # raw values kept for later checks
+    r = league.season_rules
+    assert (r.kind, r.start_week, r.playoff_week_start) == ("dynasty", 1, 15)
+    assert (r.trade_deadline, r.trades_allowed) == (10, True)
+
+
+@pytest.mark.parametrize(
+    ("settings", "kind", "budget"),
+    [
+        ({"waiver_type": 0, "waiver_budget": 100}, "rolling", None),  # budget ignored
+        ({"waiver_type": 1}, "reverse_standings", None),
+        ({"waiver_type": 2, "waiver_budget": 200}, "faab", 200),
+        ({}, "rolling", None),  # Sleeper's default when the setting is absent
+        ({"waiver_type": 7}, "rolling", None),  # unknown code: safe default, raw kept
+    ],
+)
+def test_waiver_kinds(settings: dict[str, int], kind: str, budget: int | None) -> None:
+    w = waiver_rules(_LeagueSettings(**settings))
+    assert (w.kind, w.budget) == (kind, budget)
+    assert w.raw.get("waiver_type") == settings.get("waiver_type")
+
+
+def test_priority_league_with_a_claim_window() -> None:
+    """The owner's usual format: priority waivers for a couple of days, then free agency."""
+    w = waiver_rules(_LeagueSettings(waiver_type=0, waiver_clear_days=2, waiver_day_of_week=2))
+    assert (w.kind, w.clear_days, w.weekly_day, w.daily, w.daily_hour) == (
+        "rolling",
+        2,
+        2,
+        False,
+        None,
+    )
+
+
+def test_season_rules_defaults_and_no_deadline() -> None:
+    r = season_rules(_LeagueSettings())
+    assert (r.kind, r.start_week, r.playoff_week_start, r.trade_deadline) == (
+        "redraft",
+        1,
+        None,
+        None,
+    )
+    assert season_rules(_LeagueSettings(trade_deadline=99, type=1)).trade_deadline is None
+    assert season_rules(_LeagueSettings(type=1, disable_trades=1)).trades_allowed is False
+
+
+async def test_teams_carry_waiver_position_and_faab_spent(
+    sleeper: tuple[SleeperAdapter, respx.MockRouter],
+) -> None:
+    adapter, _ = sleeper
+    teams = await adapter.fetch_teams(await adapter.fetch_league(LEAGUE_ID))
+    positions = sorted(t.waiver_position for t in teams if t.waiver_position is not None)
+    assert positions == list(range(1, 13))
+    mine = next(t for t in teams if t.owner_external_id == ME)
+    assert mine.waiver_budget_used is not None and mine.waiver_budget_used >= 0
+
+
+async def test_matchups_carry_points_per_player(
+    sleeper: tuple[SleeperAdapter, respx.MockRouter],
+) -> None:
+    adapter, _ = sleeper
+    rows = await adapter.fetch_matchups(await adapter.fetch_league(LEAGUE_ID), 8)
+    for r in rows:
+        starters = [s.player_external_id for s in r.roster if s.is_starter]
+        assert r.points is not None
+        starter_total = sum(r.player_points.get(pid, 0.0) for pid in starters)
+        assert starter_total == pytest.approx(r.points, abs=0.05)
+
+
+async def test_transactions(sleeper: tuple[SleeperAdapter, respx.MockRouter]) -> None:
+    adapter, _ = sleeper
+    league = await adapter.fetch_league(LEAGUE_ID)
+    week8 = await adapter.fetch_transactions(league, 8)
+    claim = next(t for t in week8 if t.status == "complete")
+    assert (claim.kind, claim.week, claim.waiver_bid) == ("waiver", 8, 7)
+    assert claim.adds == {"11630": "3"} and claim.drops == {"4981": "3"}
+    assert claim.created_at.tzinfo is not None
+    assert [t.status for t in week8] == ["complete", "failed"]
+
+    week9 = await adapter.fetch_transactions(league, 9)
+    assert {t.kind for t in week9} == {"free_agent", "trade"}
+    assert await adapter.fetch_transactions(league, 3) == []
 
 
 async def test_players_crosswalk(sleeper: tuple[SleeperAdapter, respx.MockRouter]) -> None:

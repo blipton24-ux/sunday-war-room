@@ -61,6 +61,12 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | ID | What isn't verified | Why not | How to test | Where | Status |
 |---|---|---|---|---|---|
 
+## Added in P2 (2026-11-09)
+
+| ID | What isn't verified | Why not | How to test | Where | Status |
+|---|---|---|---|---|---|
+| V-33 | **Sleeper's codes and transactions against a real league.** The transactions fixture is hand-written in the shape documented at docs.sleeper.com, and three code meanings are assumed: `waiver_type` 0/1/2 = rolling / reverse standings / FAAB; `waiver_day_of_week` 0 = Monday; `trade_deadline` is a week number. The raw values are stored so a wrong mapping can be corrected without re-syncing history. | No real league's transactions recorded | Sync a real league with known settings (priority with a claim window, and a FAAB league) and compare with what Sleeper's app shows | By hand, real league | Open |
+
 ## Verified
 
 | ID | What | When | How |
