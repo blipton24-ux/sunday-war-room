@@ -311,6 +311,40 @@ class Projection(Base):
     frozen: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
+class RestOfSeasonProjection(Base):
+    """A player's projected points over the rest of the fantasy season (P2, ADR-047/048).
+
+    Shared by every league with the same scoring and season shape (`scoring_key`,
+    `horizon_key`). Recomputed on each sync; not frozen or graded (the backtest measures it).
+    """
+
+    __tablename__ = "ros_projections"
+    __table_args__ = (
+        UniqueConstraint(
+            "player_id",
+            "season",
+            "from_week",
+            "scoring_key",
+            "horizon_key",
+            "model_version",
+            name="uq_ros_projections_key",  # the generated name is over Postgres' 63 chars
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), index=True)
+    season: Mapped[int] = mapped_column(Integer)
+    from_week: Mapped[int] = mapped_column(Integer)
+    scoring_key: Mapped[str] = mapped_column(String(64))
+    # Last fantasy week and playoff start, e.g. "17:15": leagues with the same season shape.
+    horizon_key: Mapped[str] = mapped_column(String(16))
+    points: Mapped[float] = mapped_column(Float)  # weighted total
+    games: Mapped[int] = mapped_column(Integer)
+    weekly: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    model_version: Mapped[str] = mapped_column(String(32))
+    computed_at: Mapped[datetime] = mapped_column(TZ, server_default=func.now())
+
+
 class ProjectionGrade(Base):
     __tablename__ = "projection_grades"
 

@@ -109,6 +109,7 @@ async def test_league_rules_faab_dynasty(sleeper: tuple[SleeperAdapter, respx.Mo
     assert w.raw["waiver_type"] == 2  # raw values kept for later checks
     r = league.season_rules
     assert (r.kind, r.start_week, r.playoff_week_start) == ("dynasty", 1, 15)
+    assert (r.playoff_teams, r.playoff_round) == (8, "one_week")
     assert (r.trade_deadline, r.trades_allowed) == (10, True)
 
 

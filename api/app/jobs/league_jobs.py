@@ -15,7 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.base import LeagueAdapter, NflState
 from app.db.models import League, LeagueMembership, PlatformAccount, SyncRun
 from app.jobs.tracking import create_run, run_tracked
-from app.services.projections import compute_projections
+from app.services.projections import (
+    compute_projections,
+    compute_rest_of_season,
+    projection_pool,
+)
 from app.services.sync import players_are_stale, sync_league, upsert_platform_players
 
 Ctx = dict[str, Any]
@@ -96,8 +100,10 @@ async def sync_league_job(ctx: Ctx, run_id: int, league_id: int) -> dict[str, An
         synced = await sync_league(
             db, adapter, league.external_id, current_week=week, history_weeks=history
         )
-        projected = await compute_projections(db, synced, week)
-        return {"league_id": synced.id, "week": week, **projected}
+        pool = await projection_pool(db, synced, week)
+        projected = await compute_projections(db, synced, week, player_ids=pool)
+        ros = await compute_rest_of_season(db, synced, week, pool)
+        return {"league_id": synced.id, "week": week, **projected, "rest_of_season": ros}
 
     result = await run_tracked(ctx["sessionmaker"], run_id, body, job_try=ctx.get("job_try", 1))
     assert result is not None

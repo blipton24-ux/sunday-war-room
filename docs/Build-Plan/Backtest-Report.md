@@ -1,7 +1,7 @@
 ---
 title: "Backtest Report (projection model v1)"
-date: 2026-11-08
-tags: [model, backtest, p1]
+date: 2026-11-09
+tags: [model, backtest, p1, p2]
 ---
 # Backtest Report: projection model 1.0.0
 
@@ -30,7 +30,20 @@ Overall MAE **4.03** (naive season average: 4.12), rank correlation 0.444 (naive
 | 15-20 | 6.50 |
 | 20+ | 7.66 |
 
+## Rest of season (2025, held out)
+
+From weeks 4, 8, 12: projected points per remaining week through week 17 vs actual (missed games count as 0), for players with 3+ games so far. Naive: season-to-date average for each remaining game. Overall MAE **2.66** per week (naive 2.77), rank correlation 0.545 (naive 0.519).
+
+| Position | Players | MAE / week | Naive MAE | Rank corr | Naive rank corr |
+|---|---|---|---|---|---|
+| DEF | 96 | 1.82 | 2.11 | 0.307 | 0.294 |
+| K | 102 | 2.44 | 2.76 | 0.380 | 0.247 |
+| QB | 115 | 5.54 | 5.78 | 0.510 | 0.487 |
+| RB | 295 | 2.86 | 2.78 | 0.689 | 0.713 |
+| TE | 235 | 1.96 | 1.95 | 0.697 | 0.718 |
+| WR | 478 | 2.41 | 2.57 | 0.688 | 0.652 |
+
 ## Definitions
 MAE: average absolute miss in points (headline). Naive: season-to-date average, or last season's if no games yet. Bias: average (projection - actual). Rank corr: Spearman correlation within each position-week (what start/sit depends on). Coverage: share of actual scores inside the 10th-90th percentile range (target ~ 80%). Definitions from [ADR-031](../Decisions/ADR-031-Approved-Reuses.md).
 
-Related: [Projection Model](../Specs/Projection-Model.md) · [P1 Build Plan](P1-Build-Plan.md)
+Related: [Projection Model](../Specs/Projection-Model.md) · [P1 Build Plan](P1-Build-Plan.md) · [P2 Build Plan](P2-Build-Plan.md)

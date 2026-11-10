@@ -30,6 +30,7 @@ from app.adapters.base import (
     Platform,
     PlatformUser,
     PlayerData,
+    PlayoffRound,
     RosterSpot,
     SeasonRules,
     TeamData,
@@ -64,6 +65,8 @@ class _LeagueSettings(_Raw):
     type: int | None = None
     start_week: int | None = None
     playoff_week_start: int | None = None
+    playoff_teams: int | None = None
+    playoff_round_type: int | None = None
     trade_deadline: int | None = None
     disable_trades: int | None = None
     waiver_type: int | None = None
@@ -348,6 +351,11 @@ _TX_KINDS = {"waiver", "free_agent", "trade", "commissioner"}
 # Sleeper's settings.waiver_type and settings.type codes.
 _WAIVER_KINDS: dict[int, WaiverKind] = {0: "rolling", 1: "reverse_standings", 2: "faab"}
 _LEAGUE_KINDS: dict[int, LeagueKind] = {0: "redraft", 1: "keeper", 2: "dynasty"}
+_PLAYOFF_ROUNDS: dict[int, PlayoffRound] = {
+    0: "one_week",
+    1: "two_week_final",
+    2: "two_week_rounds",
+}
 
 
 def waiver_rules(st: _LeagueSettings) -> WaiverRules:
@@ -375,6 +383,8 @@ def season_rules(st: _LeagueSettings) -> SeasonRules:
         kind=_LEAGUE_KINDS.get(st.type if st.type is not None else 0, "redraft"),
         start_week=st.start_week or 1,
         playoff_week_start=st.playoff_week_start or None,
+        playoff_teams=st.playoff_teams or None,
+        playoff_round=_PLAYOFF_ROUNDS.get(st.playoff_round_type or 0, "one_week"),
         # Sleeper uses 0 (or a week past the season) for "no deadline".
         trade_deadline=st.trade_deadline if st.trade_deadline and st.trade_deadline <= 18 else None,
         trades_allowed=not st.disable_trades,

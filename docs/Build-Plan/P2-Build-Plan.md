@@ -11,7 +11,7 @@ Decisions: [ADR-043](../Decisions/ADR-043-Phases-Renumbered.md) (phases) · [ADR
 Each step ends runnable, tested, committed and green in CI.
 
 1. **Adapter additions** (done 2026-11-09): league waiver, trade and roster settings; transactions (to tell which dropped players are still on waivers); live matchup points. Recorded Sleeper fixtures for a FAAB and a priority league.
-2. **Rest-of-season projections:** this week's projection method carried across the remaining weeks with byes and opponents, per league scoring. Simple on purpose (smarter in P5). Backtest its error.
+2. **Rest-of-season projections** (done 2026-11-09; through the fantasy playoffs, playoff weeks x1.5, no fading; 2.66 pts/week vs 2.77 naive on held-out 2025): this week's projection method carried across the remaining weeks with byes and opponents, per league scoring. Simple on purpose (smarter in P5). Backtest its error.
 3. **Value engine:** best lineup over a set of players, summed over the remaining weeks: value added (waivers) and lineup impact (trades). Pure functions, tested on superflex, 2QB, IR, taxi and K/DEF-off rosters.
 4. **Waivers:** status per waiver type, ranking with the this-week / rest-of-season toggle, suggested drop, FAAB bid range; `GET /leagues/{id}/waivers?horizon=`; Waivers screen.
 5. **Trade analyzer:** `POST /leagues/{id}/trades/evaluate` (any two teams); `GET /leagues/{id}/trades/suggestions?max_loss=`; Trades screen with team pickers, before/after lineups and the "acceptable" slider.

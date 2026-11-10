@@ -44,6 +44,7 @@ class LeagueRef:
 
 WaiverKind = Literal["rolling", "reverse_standings", "faab", "none"]
 LeagueKind = Literal["redraft", "keeper", "dynasty"]
+PlayoffRound = Literal["one_week", "two_week_final", "two_week_rounds"]
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,10 @@ class SeasonRules:
     kind: LeagueKind = "redraft"
     start_week: int = 1
     playoff_week_start: int | None = None  # first fantasy playoff week; None = no playoffs
+    playoff_teams: int | None = None
+    # one_week: one week per round · two_week_final: the final spans two weeks ·
+    # two_week_rounds: every round spans two weeks
+    playoff_round: PlayoffRound = "one_week"
     trade_deadline: int | None = None  # last week trades are allowed; None = no deadline
     trades_allowed: bool = True
 
