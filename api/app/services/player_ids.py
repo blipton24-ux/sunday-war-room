@@ -1,4 +1,4 @@
-﻿"""Matching a platform's player ids to our players (ADR-053).
+"""Matching a platform's player ids to our players (ADR-053).
 
 Every platform spells a player differently. Sleeper's player list is the master list, so a
 Sleeper id is stored on every player; ESPN ids arrive from Sleeper's own `espn_id` and nflverse's

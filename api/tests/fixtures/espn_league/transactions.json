@@ -1,0 +1,97 @@
+{
+  "transactions": [
+    {
+      "id": "tx-fa",
+      "type": "FREEAGENT",
+      "status": "EXECUTED",
+      "scoringPeriodId": 9,
+      "proposedDate": 1730000000000,
+      "teamId": 2,
+      "items": [
+        {
+          "playerId": 111,
+          "type": "ADD",
+          "fromTeamId": 0,
+          "toTeamId": 2
+        },
+        {
+          "playerId": 222,
+          "type": "DROP",
+          "fromTeamId": 2,
+          "toTeamId": 0
+        }
+      ]
+    },
+    {
+      "id": "tx-waiver",
+      "type": "WAIVER",
+      "status": "EXECUTED",
+      "scoringPeriodId": 9,
+      "proposedDate": 1730000001000,
+      "bidAmount": 12,
+      "teamId": 1,
+      "items": [
+        {
+          "playerId": 333,
+          "type": "ADD",
+          "fromTeamId": 0,
+          "toTeamId": 1
+        }
+      ]
+    },
+    {
+      "id": "tx-failed",
+      "type": "WAIVER",
+      "status": "FAILED_PLAYERALREADYDROPPED",
+      "scoringPeriodId": 9,
+      "proposedDate": 1730000002000,
+      "bidAmount": 5,
+      "teamId": 3,
+      "items": [
+        {
+          "playerId": 444,
+          "type": "ADD",
+          "fromTeamId": 0,
+          "toTeamId": 3
+        }
+      ]
+    },
+    {
+      "id": "tx-trade",
+      "type": "TRADE_ACCEPT",
+      "status": "EXECUTED",
+      "scoringPeriodId": 9,
+      "proposedDate": 1730000003000,
+      "items": [
+        {
+          "playerId": 555,
+          "type": "ADD",
+          "fromTeamId": 1,
+          "toTeamId": 4
+        },
+        {
+          "playerId": 666,
+          "type": "ADD",
+          "fromTeamId": 4,
+          "toTeamId": 1
+        }
+      ]
+    },
+    {
+      "id": "tx-lineup",
+      "type": "ROSTER",
+      "status": "EXECUTED",
+      "scoringPeriodId": 9,
+      "proposedDate": 1730000004000,
+      "teamId": 1,
+      "items": [
+        {
+          "playerId": 777,
+          "type": "LINEUP",
+          "fromTeamId": 1,
+          "toTeamId": 1
+        }
+      ]
+    }
+  ]
+}

@@ -18,6 +18,7 @@ from app.adapters.base import (
     NflSource,
     Platform,
 )
+from app.adapters.espn import EspnAccess, EspnAdapter
 
 Ctx = dict[str, Any]
 
@@ -40,6 +41,13 @@ def adapter_for(ctx: Ctx, platform: Platform, credentials: Any | None = None) ->
     if shared is None:
         raise UnsupportedPlatform(f"no adapter registered for platform {platform!r}")
     adapter = shared
+    return adapter
+
+
+def espn_for(ctx: Ctx, access: EspnAccess) -> EspnAdapter:
+    """An ESPN adapter for one user's access (their cookies, or none for a public league)."""
+    adapter = adapter_for(ctx, "espn", access)
+    assert isinstance(adapter, EspnAdapter)
     return adapter
 
 

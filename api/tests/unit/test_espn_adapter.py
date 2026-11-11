@@ -63,7 +63,7 @@ def test_the_adapter_satisfies_the_league_interface(http: EspnHttp) -> None:
 # --------------------------------------------------------------------------- access (ADR-051)
 async def test_a_public_league_answers_without_cookies(router: Any, http: EspnHttp) -> None:
     public, name, teams = await adapter(http).probe(fx.PUBLIC_LEAGUE)
-    assert (public, name) == (True, "Fixture League")
+    assert (public, name) == (True, "ESPN Fixture League")
     assert teams[0] == ("1", "Team 1")
     assert teams[3] == ("4", "Gridiron Gang")  # no `name`: location + nickname
 
@@ -72,7 +72,7 @@ async def test_a_private_league_needs_cookies(router: Any, http: EspnHttp) -> No
     with pytest.raises(AuthRequired):
         await adapter(http).probe(fx.PRIVATE_LEAGUE)
     _, name, _ = await adapter(http, CREDS).probe(fx.PRIVATE_LEAGUE)
-    assert name == "Fixture League"
+    assert name == "ESPN Private League"
 
 
 async def test_cookies_that_stopped_working_are_reported_as_such(
@@ -109,7 +109,11 @@ def test_credentials_never_print_their_secrets() -> None:
 async def test_league_settings_map_to_ours(router: Any, http: EspnHttp) -> None:
     data = await league(adapter(http))
     assert (data.ref.platform, data.ref.external_id, data.ref.season) == ("espn", "424242", 2026)
-    assert (data.ref.name, data.ref.total_teams, data.status) == ("Fixture League", 4, "in_season")
+    assert (data.ref.name, data.ref.total_teams, data.status) == (
+        "ESPN Fixture League",
+        4,
+        "in_season",
+    )
     # lineup slots in our order; the linebacker slot is left out (IDP isn't projected yet)
     assert data.roster_slots == [
         "QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF", "BN", "BN", "BN", "BN", "BN", "BN",
@@ -243,8 +247,8 @@ async def test_the_fan_profile_lists_this_seasons_football_leagues_with_my_team(
 ) -> None:
     found = await adapter(http, CREDS).find_leagues()
     assert [(ref.external_id, ref.name, team) for ref, team in found] == [
-        ("424242", "Fixture League", "3"),
-        ("777777", "Private Fixture League", "7"),
+        ("424242", "ESPN Fixture League", "3"),
+        ("777777", "ESPN Private League", "2"),
     ]  # no basketball, no last season, no empty preference
     assert router.calls.last.request.url.path.endswith(fx.GOOD_SWID)
 
@@ -252,7 +256,7 @@ async def test_the_fan_profile_lists_this_seasons_football_leagues_with_my_team(
 async def test_finding_leagues_needs_real_cookies(router: Any, http: EspnHttp) -> None:
     with pytest.raises(AuthRequired):
         await adapter(http).find_leagues()
-    with pytest.raises(NotFoundOnPlatform):  # ESPN answers 404 for a signed-out profile
+    with pytest.raises(CredentialsInvalid):  # ESPN answers 404 for a profile that isn't signed in
         await adapter(http, REVOKED).find_leagues()
 
 
@@ -277,7 +281,7 @@ async def test_a_rate_limit_is_retried_after_the_wait_it_asks_for(
         h = EspnHttp(retries=2)
         _, name, _ = await EspnAdapter(h, 2026).probe(fx.PUBLIC_LEAGUE)
         await h.aclose()
-    assert name == "Fixture League" and sleeps == [7.0]
+    assert name == "ESPN Fixture League" and sleeps == [7.0]
 
 
 async def test_it_gives_up_after_its_retries_with_an_error_that_hides_the_cookies() -> None:

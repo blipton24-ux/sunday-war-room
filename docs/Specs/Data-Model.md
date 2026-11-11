@@ -16,8 +16,8 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 ## Platform connections (per user)
 | Table | Key fields | Notes |
 |---|---|---|
-| `platform_accounts` | id, user_id → users, platform (`sleeper`/`espn`/`yahoo`), external_user_id, display_name, credentials_encrypted (P3) | Sleeper needs only a username/id |
-| `league_memberships` | id, user_id, league_id → leagues, my_team_id → teams | Which leagues a user follows, and which team is theirs. **The tenant boundary.** |
+| `platform_accounts` | id, user_id → users, platform (`sleeper`/`espn`/`yahoo`), external_user_id, display_name, credentials_encrypted, status (`ok` / `pending` / `needs_reconnect`), credentials_checked_at | Sleeper needs only a username/id. ESPN cookies are stored Fernet-encrypted ([ADR-052](../Decisions/ADR-052-Credential-Encryption.md)); never returned, logged or queued |
+| `league_memberships` | id, user_id, league_id → leagues, my_team_id → teams, platform_account_id → platform_accounts | Which leagues a user follows, and which team is theirs. **The tenant boundary.** `platform_account_id`: whose login reads a private league for this user (their own, never a league-mate's) |
 
 ## Leagues (shared: one row per real platform league)
 | Table | Key fields | Notes |

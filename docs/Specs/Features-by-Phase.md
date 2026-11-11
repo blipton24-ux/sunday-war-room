@@ -48,9 +48,9 @@ A full design pass over every screen so the app presents everything P1–P5 adde
 Yahoo adapter: OAuth "Sign in with Yahoo", token refresh (stored encrypted), Yahoo scoring coverage. Built right before deployment because Yahoo's sign-in needs an https return address and a real Yahoo league to verify against ([ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)).
 
 ## P8 — Deploy + push alerts
-Push alerts (starter ruled OUT, close matchup late, big swing; needs a real HTTPS address). Hosting platform, managed or self-run Postgres and Redis, `deploy.yml` (migrate, then roll out), domain and HTTPS, Google OAuth and Resend production setup, backups, live URL and screenshots in the README. Plan: [Later Phases Outline § P8](../Build-Plan/P2-P4-Outline.md#p8--deploy--push-alerts).
+Push alerts (starter ruled OUT, close matchup late, big swing; needs a real HTTPS address). Hosting platform, managed or self-run Postgres and Redis, `deploy.yml` (migrate, then roll out), domain and HTTPS, Google OAuth and Resend production setup, backups, live URL and screenshots in the README. Plan: [Later Phases Outline § P8](../Build-Plan/P2-P8-Outline.md#p8--deploy--push-alerts).
 
 ## Later / optional
 Accuracy scoreboard vs external projections · paid tier (Stripe) ([ADR-011](../Decisions/ADR-011-Monetization.md)) · AWS + Terraform migration ([ADR-022](../Decisions/ADR-022-Hosting-Container-Platform.md)) · playoff odds simulation.
 
-Related: [Product Vision](Product-Vision.md) · [P1 Build Plan](../Build-Plan/P1-Build-Plan.md) · [Later Phases Outline](../Build-Plan/P2-P4-Outline.md)
+Related: [Product Vision](Product-Vision.md) · [P1 Build Plan](../Build-Plan/P1-Build-Plan.md) · [Later Phases Outline](../Build-Plan/P2-P8-Outline.md)

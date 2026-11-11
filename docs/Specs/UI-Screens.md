@@ -17,7 +17,7 @@ Style: Sunday War Room, flat, with player photos ([ADR-032](../Decisions/ADR-032
 ## Screens (P1)
 **Sign in:** logo, "Sign in with Google" and "Email me a link."
 
-**Onboarding:** Sleeper username → list of leagues → pick your team in each → syncing progress → Home.
+**Onboarding:** choose a platform → **Sleeper** (username) or **ESPN** (a pasted league link; a private league adds a guided copy-and-paste of two cookies, with a "finish on a computer" screen and an emailed link on phones, [ADR-051](../Decisions/ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md)) → list of leagues → pick your team in each (ESPN's own team preselected) → syncing progress → Home. While a user's ESPN cookies are refused, a banner on every screen and a "Reconnect ESPN" state replace league data.
 
 **Home:** title is the **current week** ("Week 10") with a status line ("2 games left"). Then:
 - the matchup score header (both teams, live scores, Live pill, projected final, status chip like "😎 Cruising")

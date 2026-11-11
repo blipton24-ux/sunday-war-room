@@ -1,0 +1,67 @@
+{
+  "preferences": [
+    {
+      "metaData": {
+        "entry": {
+          "gameId": 1,
+          "seasonId": 2026,
+          "entryId": 3,
+          "groups": [
+            {
+              "groupId": 424242,
+              "groupName": "ESPN Fixture League"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metaData": {
+        "entry": {
+          "gameId": 1,
+          "seasonId": 2026,
+          "entryId": 2,
+          "groups": [
+            {
+              "groupId": 777777,
+              "groupName": "ESPN Private League"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metaData": {
+        "entry": {
+          "gameId": 2,
+          "seasonId": 2026,
+          "entryId": 1,
+          "groups": [
+            {
+              "groupId": 999,
+              "groupName": "A basketball league"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metaData": {
+        "entry": {
+          "gameId": 1,
+          "seasonId": 2025,
+          "entryId": 2,
+          "groups": [
+            {
+              "groupId": 888,
+              "groupName": "Last year's league"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metaData": null
+    }
+  ]
+}

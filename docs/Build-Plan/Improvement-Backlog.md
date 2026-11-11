@@ -36,6 +36,8 @@ Baseline to beat (held-out 2024 / 2025, weeks 5–18, full PPR, average miss in 
 | M-13 | **Link rookies missing from nflverse's ID table.** A player with no `gsis_id` has no history and gets the generic prior. | CJ Daniels (WR, LA, `years_exp` 0) was the only unlinked rostered player of 313 | Low | A name + team + position match with an ambiguity guard; never guess | Open |
 | M-14 | **Weekly auto-refit of ranges with a promotion gate** (listed in the Projection Model spec under later upgrades). | Calibration is fitted once, by hand, from the backtest | Low | Needs M-09 and enough live weeks | Open |
 | M-15 | **Smarter rest-of-season value (P4).** P2 ships a simple version: the weekly model carried across the remaining schedule (byes, opponents, playoff weeks x1.5, short injuries for one game, IR for 4 weeks). Held-out 2025: 2.66 points per week vs 2.77 naive, rank correlation 0.545 vs 0.519, but **RB and TE are slightly worse than naive** (RB 2.86 vs 2.78, TE 1.96 vs 1.95; ranking 0.689 vs 0.713 and 0.697 vs 0.718). Candidates: workload trends, injury return dates, a separate long-range model like the earlier project's. | [Backtest Report](Backtest-Report.md) rest-of-season section | Med (P4) | ADR-002 approval for any reuse | Open |
+| M-17 | **Score the ESPN rules the free data can't carry yet:** yards allowed by a defense (`YA*`), field-goal yardage, per-play touchdown distances (`PTD40`, `RETD0`...), fumbles that were not lost, yards after catch. They are listed as unsupported with a reason, never scored as zero. | P3 scoring map (`not_in_data` in `scoring_espn.py`) | Med | A source (play-by-play or another dataset); check which of these the owner's league uses | Open |
+| M-18 | **IDP (individual defensive player) slots on ESPN.** An IDP starter is stored as bench and shows "not projected". | P3 mapping | Low (P4) | The P4 IDP work | Open |
 | M-16 | **Weak spots to watch**: running backs are slightly worse than the season-average baseline (MAE 4.12 vs 4.08); quarterbacks, kickers and defenses order poorly (rank correlation 0.45 / 0.13 / 0.17). | [Backtest Report](Backtest-Report.md), held-out 2025 | Info | Re-read after each model change | Open |
 
 ## UI
@@ -77,6 +79,12 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 | P-16 | **Seven React effects set state directly** (the "mounted" flag in the theme toggle, reading saved choices after load, clearing a job id): ESLint's `react-hooks/set-state-in-effect` flags them, set to a warning in `web/eslint.config.mjs`. They work and are tested; rewrite them (derive state, or `useSyncExternalStore`) and turn the rule back to an error. | `npm run lint` warnings: settings page, onboarding (2), install provider, league context, header (2) | Low | None | Open |
 | P-17 | **`npm audit` reports 8 moderate findings, all in dev tooling** (a `minimatch` range pulled in by ESLint's dependencies); 0 in production dependencies. Re-check and upgrade when ESLint packages release a fix. | `npm audit` and `npm audit --omit=dev`, step 15 | Low | None | Open |
 
+| P-18 | **A browser extension for ESPN cookies.** One click instead of the guided copy-and-paste; Chrome/Edge desktop only. | [ADR-051](../Decisions/ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md) | Low | A second project, store review and upkeep | Open |
+| P-19 | **ESPN leagues that aren't head-to-head points** (total-points and category formats) are refused at connect with a plain message. | `UnsupportedLeague` in `adapters/espn.py` | Low | The league types to support, and how each is scored | Open |
+| P-20 | **Past ESPN seasons** (ESPN's league-history endpoint) and **trade deadline as a week** (ESPN gives a date; `trade_deadline` is left empty). | P3 mapping | Low | A source for each | Open |
+| P-21 | **The "email me a link" limit is per web server process** (3 a minute per user, in memory). Fine for one server; move it to Redis if the web tier is ever scaled out. | `web/src/lib/rate-limit.ts` | Low | None | Open |
+| P-22 | **Show which of a user's followed leagues need a login at a glance** (a badge on the league switcher), beyond the banner and Settings. | P3 UI | Low (P6) | The P6 design pass | Open |
+
 ## Done
 
 | ID | Item | Where |
@@ -89,4 +97,4 @@ The web app isn't built yet (P1 step 11), so this list starts with what the API 
 | P-06 | ESLint for the web app: flat config with Next, React hooks and TypeScript rules; `npm run lint`, run in CI | `web/eslint.config.mjs` |
 | P-12 | CI checks `uv.lock` matches `pyproject.toml` (`uv lock --check`) | [CI](CI.md) |
 
-Related: [Verification Gaps](Verification-Gaps.md) (built but not yet seen working) · [Backtest Report](Backtest-Report.md) · [P1 Build Plan](P1-Build-Plan.md) · [Later Phases Outline](P2-P4-Outline.md) · [Projection Model](../Specs/Projection-Model.md) · [Open Questions](../Specs/Open-Questions.md) · [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)
+Related: [Verification Gaps](Verification-Gaps.md) (built but not yet seen working) · [Backtest Report](Backtest-Report.md) · [P1 Build Plan](P1-Build-Plan.md) · [Later Phases Outline](P2-P8-Outline.md) · [Projection Model](../Specs/Projection-Model.md) · [Open Questions](../Specs/Open-Questions.md) · [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)

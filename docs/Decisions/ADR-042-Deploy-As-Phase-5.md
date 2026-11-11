@@ -30,4 +30,4 @@ status: accepted
 - **Deploy-time problems surface late** (production settings, image behavior on another processor, restart recovery: V-23 to V-27). Mitigation: CI already builds the images from a clean runner and runs the full stack end to end; P5 starts with a staging deploy.
 - Cost starts in P5, not before.
 
-Related: [ADR-009 Phasing](ADR-009-Phasing.md) · [ADR-022 Hosting](ADR-022-Hosting-Container-Platform.md) · [ADR-026 Execution order](ADR-026-Execution-Order.md) · [P1 Build Plan](../Build-Plan/P1-Build-Plan.md) · [P2–P4 Outline](../Build-Plan/P2-P4-Outline.md)
+Related: [ADR-009 Phasing](ADR-009-Phasing.md) · [ADR-022 Hosting](ADR-022-Hosting-Container-Platform.md) · [ADR-026 Execution order](ADR-026-Execution-Order.md) · [P1 Build Plan](../Build-Plan/P1-Build-Plan.md) · [P2–P4 Outline](../Build-Plan/P2-P8-Outline.md)

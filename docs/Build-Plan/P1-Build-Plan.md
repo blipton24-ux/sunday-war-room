@@ -55,4 +55,4 @@ Each step ends with something runnable and tested.
 - [ ] PWA installs on a phone (needs a real HTTPS address, so P8); dark/light toggle works.
 - [x] Backtest report committed (MAE by position, range coverage): [Backtest Report](Backtest-Report.md).
 
-Related: [Later Phases Outline](P2-P4-Outline.md) · [Architecture](../Specs/Architecture.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)
+Related: [Later Phases Outline](P2-P8-Outline.md) · [Architecture](../Specs/Architecture.md) · [ADR-019 Testing](../Decisions/ADR-019-Testing.md)

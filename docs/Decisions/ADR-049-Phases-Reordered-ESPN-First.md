@@ -34,4 +34,4 @@ Strategy tendencies is new scope: what it measures, where it shows and any reuse
 
 Supersedes the phase table in [ADR-043](ADR-043-Phases-Renumbered.md). **Amended by [ADR-050](ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md):** Yahoo moved out of P3 into its own P7, and deploy + push alerts became P8.
 
-Related: [ADR-009 Phasing](ADR-009-Phasing.md) · [ADR-043 Phases renumbered](ADR-043-Phases-Renumbered.md) · [Features by Phase](../Specs/Features-by-Phase.md) · [Later Phases Outline](../Build-Plan/P2-P4-Outline.md)
+Related: [ADR-009 Phasing](ADR-009-Phasing.md) · [ADR-043 Phases renumbered](ADR-043-Phases-Renumbered.md) · [Features by Phase](../Specs/Features-by-Phase.md) · [Later Phases Outline](../Build-Plan/P2-P8-Outline.md)

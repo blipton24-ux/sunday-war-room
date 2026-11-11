@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import type { Schemas } from "@/lib/api/client";
 import {
   useDeleteAccount,
+  useDisconnectEspn,
   useLeagues,
   useMe,
   useSetMyTeam,
@@ -21,7 +22,8 @@ import {
 } from "@/lib/api/queries";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
-import { timeAgo } from "@/lib/format";
+import { espnConnectPath } from "@/lib/espn";
+import { platformName, timeAgo } from "@/lib/format";
 
 export default function SettingsPage() {
   const me = useMe();
@@ -50,17 +52,20 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Connected platforms">
-        <Card className="flex items-center justify-between gap-3">
-          <div>
-            <div className="font-semibold">Sleeper</div>
-            <div className="text-sm text-ink-lo">
-              {me.data?.sleeper_username ? `@${me.data.sleeper_username}` : "Not connected"}
+        <div className="flex flex-col gap-2">
+          <Card className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-semibold">Sleeper</div>
+              <div className="text-sm text-ink-lo">
+                {me.data?.sleeper_username ? `@${me.data.sleeper_username}` : "Not connected"}
+              </div>
             </div>
-          </div>
-          <Link href="/onboarding" className="text-sm font-semibold text-accent">
-            {me.data?.sleeper_username ? "Add leagues" : "Connect"}
-          </Link>
-        </Card>
+            <Link href="/onboarding?platform=sleeper" className="text-sm font-semibold text-accent">
+              {me.data?.sleeper_username ? "Add leagues" : "Connect"}
+            </Link>
+          </Card>
+          <EspnCard status={me.data?.platforms.find((p) => p.platform === "espn")?.status} />
+        </div>
       </Section>
 
       <Section title="Leagues">
@@ -86,7 +91,7 @@ export default function SettingsPage() {
           </SecondaryButton>
           <ConfirmDialog
             title="Delete your account?"
-            description="This removes your account, your connected Sleeper username and the leagues you follow from Sunday War Room. Your Sleeper leagues themselves are not touched. This can't be undone."
+            description="This removes your account, your connected platforms (including any saved ESPN sign-in) and the leagues you follow from Sunday War Room. Your leagues on Sleeper and ESPN are not touched. This can't be undone."
             confirmLabel="Delete account"
             busy={deleteAccount.isPending}
             onConfirm={() =>
@@ -108,6 +113,60 @@ export default function SettingsPage() {
         </div>
       </Section>
     </>
+  );
+}
+
+/** ESPN: connected (signed in with two cookies, kept encrypted), expired, or not connected. */
+function EspnCard({ status }: { status: string | undefined }) {
+  const disconnect = useDisconnectEspn();
+  const toast = useToast();
+  const connected = status != null;
+  const expired = status === "needs_reconnect";
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="font-semibold">ESPN</div>
+          <div className={cn("text-sm", expired ? "text-warn" : "text-ink-lo")}>
+            {!connected
+              ? "Not connected"
+              : expired
+                ? "Sign-in expired: reconnect to resume your private leagues"
+                : "Connected"}
+          </div>
+        </div>
+        <Link
+          href={connected ? espnConnectPath() : "/onboarding?platform=espn"}
+          className="text-sm font-semibold text-accent"
+        >
+          {!connected ? "Connect" : expired ? "Reconnect" : "Update cookies"}
+        </Link>
+      </div>
+      {connected && (
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <Link href="/onboarding?platform=espn" className="font-semibold text-accent">
+            Add leagues
+          </Link>
+          <ConfirmDialog
+            title="Disconnect ESPN?"
+            description="This deletes the ESPN sign-in values we saved. Public leagues keep updating. Private leagues you follow pause until you reconnect. Nothing on ESPN is changed."
+            confirmLabel="Disconnect"
+            busy={disconnect.isPending}
+            onConfirm={() =>
+              disconnect.mutate(undefined, {
+                onSuccess: () => toast("ESPN disconnected"),
+                onError: () => toast("Couldn't disconnect. Try again."),
+              })
+            }
+            trigger={
+              <button className="shrink-0 text-xs font-semibold text-ink-lo hover:text-bad">
+                Disconnect
+              </button>
+            }
+          />
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -135,8 +194,13 @@ function LeagueSettings({ league }: { league: Schemas["LeagueOut"] }) {
         <div className="min-w-0">
           <div className="truncate font-semibold">{league.name}</div>
           <div className="text-xs text-ink-lo">
-            {league.season} · synced {timeAgo(league.last_synced_at)}
+            {platformName(league.platform)} · {league.season} · synced {timeAgo(league.last_synced_at)}
           </div>
+          {league.needs_reconnect && (
+            <Link href={espnConnectPath()} className="text-xs font-semibold text-warn underline">
+              Sign-in expired: reconnect ESPN
+            </Link>
+          )}
         </div>
         <ConfirmDialog
           title={`Unfollow ${league.name}?`}

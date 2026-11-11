@@ -127,7 +127,7 @@ def league_doc(league_id: str = PUBLIC_LEAGUE, **settings_over: Any) -> dict[str
             }
         )
     settings: dict[str, Any] = {
-        "name": "Fixture League",
+        "name": "ESPN Private League" if league_id == PRIVATE_LEAGUE else "ESPN Fixture League",
         "size": 4,
         "isPublic": league_id == PUBLIC_LEAGUE,
         "scoringSettings": {"scoringType": "H2H_POINTS", "scoringItems": _scoring_items()},
@@ -284,8 +284,8 @@ def fan_doc() -> dict[str, Any]:
 
     return {
         "preferences": [
-            pref(1, SEASON, 3, [(PUBLIC_LEAGUE, "Fixture League")]),
-            pref(1, SEASON, 7, [(PRIVATE_LEAGUE, "Private Fixture League")]),
+            pref(1, SEASON, 3, [(PUBLIC_LEAGUE, "ESPN Fixture League")]),
+            pref(1, SEASON, 2, [(PRIVATE_LEAGUE, "ESPN Private League")]),
             pref(2, SEASON, 1, [("999", "A basketball league")]),
             pref(1, SEASON - 1, 2, [("888", "Last year's league")]),
             {"metaData": None},  # a preference with no entry (ESPN has several kinds)
@@ -306,9 +306,17 @@ def _has_cookie(request: httpx.Request, s2: str, swid: str) -> bool:
     return f"espn_s2={s2}" in cookie and f"SWID={swid}" in cookie
 
 
-def mock_espn(*, on_request: Callable[[httpx.Request], None] | None = None) -> respx.MockRouter:
-    """A respx router serving the fixtures above. Use as `with mock_espn() as router:`."""
-    router = respx.mock(assert_all_called=False)
+def mock_espn(
+    *,
+    router: respx.MockRouter | None = None,
+    on_request: Callable[[httpx.Request], None] | None = None,
+) -> respx.MockRouter:
+    """A respx router serving the fixtures above. Use as `with mock_espn() as router:`.
+
+    Pass `router` to add the ESPN routes to one that is already active (the worker context's
+    Sleeper mock), so a single test can reach both platforms.
+    """
+    router = router if router is not None else respx.mock(assert_all_called=False)
 
     def league(request: httpx.Request) -> httpx.Response:
         if on_request:
@@ -340,6 +348,10 @@ def mock_espn(*, on_request: Callable[[httpx.Request], None] | None = None) -> r
             return httpx.Response(404, json={})  # signed out: ESPN answers 404 / anon
         return httpx.Response(200, json=fan_doc())
 
-    router.get(url__regex=rf"{BASE}/seasons/\d+/segments/0/leagues/\d+").mock(side_effect=league)
-    router.get(url__regex=rf"{FAN}/.*").mock(side_effect=fan)
+    # host + path patterns (not one URL) so these also work on a router that has a base_url
+    router.get(
+        host="lm-api-reads.fantasy.espn.com",
+        path__regex=r"/apis/v3/games/ffl/seasons/\d+/segments/0/leagues/\d+",
+    ).mock(side_effect=league)
+    router.get(host="fan.api.espn.com", path__regex=r"/apis/v2/fans/.*").mock(side_effect=fan)
     return router

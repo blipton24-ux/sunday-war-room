@@ -98,7 +98,7 @@ function RulesCard({ w }: { w: Waivers }) {
             Dropped players stay on waivers for {w.clear_days} day{w.clear_days === 1 ? "" : "s"}.
           </>
         )}{" "}
-        Make the move in Sleeper.
+        Make the move in your fantasy app.
       </p>
     </Card>
   );

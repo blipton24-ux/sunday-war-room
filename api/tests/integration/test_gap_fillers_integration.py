@@ -60,6 +60,8 @@ def test_worker_registers_every_job_and_its_schedule() -> None:
 
     assert {f.__name__ for f in WorkerSettings.functions} == {  # type: ignore[attr-defined]
         "connect_sleeper",
+        "connect_espn",  # P3: list a user's ESPN leagues from their saved cookies
+        "probe_espn",  # P3: is a pasted ESPN league public?
         "live_update_job",
         "sync_league_job",
         "sync_players_job",

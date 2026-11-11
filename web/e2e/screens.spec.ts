@@ -58,7 +58,7 @@ test.describe("Lineup", () => {
     await expect(harris).toBeVisible();
     await expect(page.getByText("Allen").first()).toBeVisible();
     await expect(page.getByText(/^\+28\.\d$/)).toBeVisible(); // Allen on bye -> Harris
-    await expect(page.getByText(/Win chance \d+% → \d+%\. Make the change in Sleeper\./)).toBeVisible();
+    await expect(page.getByText(/Win chance \d+% → \d+%\. Make the change in your fantasy app\./)).toBeVisible();
   });
 
   test("starters and bench show their game state", async ({ page }) => {

@@ -455,6 +455,7 @@ class EspnAdapter:
             what=f"league {league_id}",
         )
         doc: _LeagueDoc = _parse(_LeagueDoc, data, "league")
+        _require_points_league(doc.settings)
         return True, doc.settings.name, [(str(t.id), _team_name(t)) for t in doc.teams]
 
     # -- leagues -------------------------------------------------------------
@@ -468,12 +469,15 @@ class EspnAdapter:
         if self._credentials is None:
             raise AuthRequired("ESPN league list needs the user's cookies")
         fan = f"{get_settings().espn_fan_url.rstrip('/')}/{self._credentials.swid}"
-        data = await self._http.get(
-            fan,
-            [("context", "fantasy"), ("source", "espncom-fantasy-lm")],
-            self._credentials,
-            what="fan profile",
-        )
+        try:
+            data = await self._http.get(
+                fan,
+                [("context", "fantasy"), ("source", "espncom-fantasy-lm")],
+                self._credentials,
+                what="fan profile",
+            )
+        except NotFoundOnPlatform as exc:  # ESPN answers 404 for a profile that isn't signed in
+            raise CredentialsInvalid("ESPN doesn't recognise those cookies as a sign-in") from exc
         doc: _FanDoc = _parse(_FanDoc, data, "fan profile")
         out: list[tuple[LeagueRef, str | None]] = []
         for pref in doc.preferences:
@@ -491,11 +495,7 @@ class EspnAdapter:
     async def fetch_league(self, external_id: str) -> LeagueData:
         doc = await self._league_doc(external_id)
         st = doc.settings
-        if st.scoringSettings.scoringType not in (None, "H2H_POINTS"):
-            raise UnsupportedLeague(
-                "Sunday War Room supports head-to-head points leagues; "
-                f"this league uses {st.scoringSettings.scoringType}."
-            )
+        _require_points_league(st)
         return LeagueData(
             ref=LeagueRef("espn", external_id, doc.seasonId or self._season, st.name, st.size),
             avatar_url=None,
@@ -624,6 +624,14 @@ def _tx_status(status: str | None) -> str:
 
 
 # --------------------------------------------------------------------------- mapping helpers
+def _require_points_league(st: _Settings) -> None:
+    if st.scoringSettings.scoringType not in (None, "H2H_POINTS"):
+        raise UnsupportedLeague(
+            "Sunday War Room supports head-to-head points leagues; "
+            f"this league uses {st.scoringSettings.scoringType}."
+        )
+
+
 def _team_name(t: _Team) -> str:
     if t.name:
         return t.name
