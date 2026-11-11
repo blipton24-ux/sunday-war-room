@@ -6,8 +6,9 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters.base import PlayerHint
 from app.db.models import Player
-from app.services.player_ids import PlayerHint, platform_player_id, resolve_player_ids
+from app.services.player_ids import platform_player_id, resolve_player_ids
 
 pytestmark = pytest.mark.integration
 

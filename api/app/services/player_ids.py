@@ -1,4 +1,4 @@
-"""Matching a platform's player ids to our players (ADR-053).
+﻿"""Matching a platform's player ids to our players (ADR-053).
 
 Every platform spells a player differently. Sleeper's player list is the master list, so a
 Sleeper id is stored on every player; ESPN ids arrive from Sleeper's own `espn_id` and nflverse's
@@ -14,13 +14,12 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.adapters.base import Platform
+from app.adapters.base import Platform, PlayerHint
 from app.adapters.espn_teams import defense_team
 from app.db.models import Player
 from app.logging import get_logger
@@ -30,15 +29,6 @@ log = get_logger("player_ids")
 
 _SUFFIX = re.compile(r"\b(jr|sr|ii|iii|iv|v)\b")
 _NOT_ALNUM = re.compile(r"[^a-z0-9 ]")
-
-
-@dataclass(frozen=True)
-class PlayerHint:
-    """What a platform says about a player besides his id; used only when the id has no match."""
-
-    name: str
-    position: str | None
-    team: str | None
 
 
 def normalize_name(name: str) -> str:

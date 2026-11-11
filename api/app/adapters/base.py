@@ -26,6 +26,18 @@ class NotFoundOnPlatform(AdapterError):
     """The username / league id doesn't exist on the platform."""
 
 
+class AuthRequired(AdapterError):
+    """The league is private and we were not given credentials (ADR-051)."""
+
+
+class CredentialsInvalid(AdapterError):
+    """The platform refused the credentials we have: expired, revoked or wrong (reconnect)."""
+
+
+class UnsupportedLeague(AdapterError):
+    """A league we cannot represent yet (e.g. category scoring). Reported at connect time."""
+
+
 @dataclass(frozen=True)
 class PlatformUser:
     external_user_id: str
@@ -92,10 +104,21 @@ class LeagueData:
 
 
 @dataclass(frozen=True)
+class PlayerHint:
+    """What a platform says about a player besides his id; used only when the id has no match."""
+
+    name: str
+    position: str | None
+    team: str | None
+
+
+@dataclass(frozen=True)
 class RosterSpot:
     player_external_id: str
     slot: str  # one of STARTER_SLOTS, or BN / IR / TAXI
     is_starter: bool
+    # Name, position and team, for platforms whose ids our player list may not know (ESPN).
+    hint: PlayerHint | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True)

@@ -253,10 +253,12 @@ async def sync_league(
     weeks = sorted(set(history_weeks) | {current_week})
     matchups_by_week = {w: await adapter.fetch_matchups(data, w) for w in weeks}
 
-    all_ids = {s.player_external_id for t in teams for s in t.roster} | {
-        s.player_external_id for rows in matchups_by_week.values() for r in rows for s in r.roster
-    }
-    player_ids = await resolve_player_ids(db, data.ref.platform, all_ids)
+    spots = [s for t in teams for s in t.roster] + [
+        s for rows in matchups_by_week.values() for r in rows for s in r.roster
+    ]
+    all_ids = {s.player_external_id for s in spots}
+    hints = {s.player_external_id: s.hint for s in spots if s.hint is not None}
+    player_ids = await resolve_player_ids(db, data.ref.platform, all_ids, hints)
 
     unmapped: set[str] = set()
     for t in teams:
@@ -296,6 +298,9 @@ async def sync_league(
 async def upsert_transactions(
     db: AsyncSession, league_id: int, transactions: Sequence[TransactionData]
 ) -> None:
+    # One row per transaction id: a platform may report the same move in two weekly reads, and
+    # Postgres refuses to update one row twice in a single statement. The later read wins.
+    unique = {t.external_id: t for t in transactions}
     rows = [
         {
             "league_id": league_id,
@@ -308,7 +313,7 @@ async def upsert_transactions(
             "drops": t.drops,
             "waiver_bid": t.waiver_bid,
         }
-        for t in transactions
+        for t in unique.values()
     ]
     for chunk in _chunks(rows):
         stmt = insert(LeagueTransaction).values(list(chunk))
