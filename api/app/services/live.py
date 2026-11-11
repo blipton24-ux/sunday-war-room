@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters.base import LeagueAdapter
+from app.adapters.base import LeagueAdapter, NflSource
 from app.db.models import League, LeagueMembership, LiveGame, NflGame
 from app.logging import get_logger
 from app.services.sync import refresh_live_matchups
@@ -78,12 +78,17 @@ async def store_scoreboard(db: AsyncSession, games: Sequence[GameStatus], now: d
 
 async def live_update(
     db: AsyncSession,
-    adapter: LeagueAdapter,
+    adapter: NflSource,
     fetch_week: FetchWeek,
     *,
     now: datetime | None = None,
+    resolve: Callable[[League], LeagueAdapter | None] | None = None,
 ) -> dict[str, Any]:
-    """One live tick. Returns what it did (logged by the job)."""
+    """One live tick. Returns what it did (logged by the job).
+
+    `adapter` supplies the NFL clock. `resolve` picks the adapter that reads each league's scores
+    by platform; without it every league is read through `adapter` (a Sleeper-only setup).
+    """
     now = now or datetime.now(UTC)
     state = await adapter.fetch_state()
     if state.season_type != "regular" and state.season_type != "post":
@@ -109,7 +114,10 @@ async def live_update(
     updated = 0
     for league in leagues:
         try:
-            await refresh_live_matchups(db, adapter, league, week)
+            reader = resolve(league) if resolve else cast(LeagueAdapter, adapter)
+            if reader is None:  # no usable adapter (e.g. credentials need reconnecting)
+                continue
+            await refresh_live_matchups(db, reader, league, week)
             updated += 1
         except Exception as exc:  # one bad league must not stop the others
             await db.rollback()

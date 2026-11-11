@@ -163,13 +163,32 @@ class NflState:
 
 
 class LeagueAdapter(Protocol):
+    """What every platform provides: one league's settings, teams, scores and moves."""
+
     platform: Platform
 
-    async def find_user(self, username: str) -> PlatformUser: ...
-    async def find_leagues(self, user: PlatformUser, season: int) -> list[LeagueRef]: ...
     async def fetch_league(self, external_id: str) -> LeagueData: ...
     async def fetch_teams(self, league: LeagueData) -> list[TeamData]: ...
     async def fetch_matchups(self, league: LeagueData, week: int) -> list[MatchupData]: ...
     async def fetch_transactions(self, league: LeagueData, week: int) -> list[TransactionData]: ...
+
+
+class NflSource(Protocol):
+    """The NFL-wide facts every platform shares: the master player list and the current week.
+
+    Sleeper provides both for all platforms (ADR-053): its player list is the master list that
+    platform ids are matched against, and its state endpoint is the single NFL clock.
+    """
+
     async def fetch_players(self) -> list[PlayerData]: ...
     async def fetch_state(self) -> NflState: ...
+
+
+class DiscoveryAdapter(Protocol):
+    """Finding a user's leagues by username. Only platforms with public usernames (Sleeper).
+
+    ESPN finds leagues from pasted cookies or a league link instead (ADR-051).
+    """
+
+    async def find_user(self, username: str) -> PlatformUser: ...
+    async def find_leagues(self, user: PlatformUser, season: int) -> list[LeagueRef]: ...

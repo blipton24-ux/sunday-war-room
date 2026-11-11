@@ -2,6 +2,7 @@
 
 ARQ passes `ctx` (a dict) first. The worker's startup fills it with:
   ctx["sessionmaker"]: async_sessionmaker   ctx["adapters"]: {"sleeper": SleeperAdapter}
+Adapters are looked up through app.adapters.registry, never by reaching into ctx directly.
 """
 
 from __future__ import annotations
@@ -12,7 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters.base import LeagueAdapter, NflState
+from app.adapters.base import NflState
+from app.adapters.registry import adapter_for, nfl_source, sleeper_discovery
 from app.db.models import League, LeagueMembership, PlatformAccount, SyncRun
 from app.jobs.tracking import create_run, run_tracked
 from app.logging import get_logger
@@ -28,11 +30,6 @@ from app.sources.espn_scoreboard import fetch_week
 Ctx = dict[str, Any]
 
 
-def _sleeper(ctx: Ctx) -> LeagueAdapter:
-    adapter: LeagueAdapter = ctx["adapters"]["sleeper"]
-    return adapter
-
-
 def season_week(state: NflState) -> tuple[int, int]:
     """The week to treat as 'current'. Off-season/preseason clamps to week 1."""
     week = state.week if state.season_type == "regular" else 1
@@ -41,13 +38,14 @@ def season_week(state: NflState) -> tuple[int, int]:
 
 async def connect_sleeper(ctx: Ctx, run_id: int, user_id: int, username: str) -> dict[str, Any]:
     """Find a Sleeper user's leagues for the current season and link the account."""
-    adapter = _sleeper(ctx)
+    source = nfl_source(ctx)
+    finder = sleeper_discovery(ctx)
 
     async def body(db: AsyncSession) -> dict[str, Any]:
-        state = await adapter.fetch_state()
+        state = await source.fetch_state()
         season, _ = season_week(state)
-        su = await adapter.find_user(username)
-        leagues = await adapter.find_leagues(su, season)
+        su = await finder.find_user(username)
+        leagues = await finder.find_leagues(su, season)
         stmt = insert(PlatformAccount).values(
             user_id=user_id,
             platform="sleeper",
@@ -86,19 +84,21 @@ async def connect_sleeper(ctx: Ctx, run_id: int, user_id: int, username: str) ->
 
 async def sync_league_job(ctx: Ctx, run_id: int, league_id: int) -> dict[str, Any]:
     """Refresh one league. First sync also back-fills every past week of the season."""
-    adapter = _sleeper(ctx)
+    source = nfl_source(ctx)
 
     async def body(db: AsyncSession) -> dict[str, Any]:
         league = await db.get(League, league_id)
         if league is None:
             raise LookupError(f"league {league_id} not found")
-        state = await adapter.fetch_state()
+        adapter = adapter_for(ctx, league.platform)  # type: ignore[arg-type]
+        state = await source.fetch_state()
         season, week = season_week(state)
         if season != league.season:
             # A past season's league: its final week is the last one with games.
             week = 17
         if await players_are_stale(db):
-            await upsert_platform_players(db, "sleeper", await adapter.fetch_players())
+            # Sleeper's list is the master list for every platform (ADR-053).
+            await upsert_platform_players(db, "sleeper", await source.fetch_players())
         history = range(1, week) if league.last_synced_at is None else [w for w in (week - 1,) if w]
         synced = await sync_league(
             db, adapter, league.external_id, current_week=week, history_weeks=history
@@ -116,7 +116,7 @@ async def sync_league_job(ctx: Ctx, run_id: int, league_id: int) -> dict[str, An
 async def sync_players_job(ctx: Ctx) -> int:
     """Daily refresh of the Sleeper player list (names, teams, injury status)."""
     async with ctx["sessionmaker"]() as db:
-        return await upsert_platform_players(db, "sleeper", await _sleeper(ctx).fetch_players())
+        return await upsert_platform_players(db, "sleeper", await nfl_source(ctx).fetch_players())
 
 
 async def sync_all_leagues(ctx: Ctx) -> int:
@@ -145,7 +145,12 @@ async def sync_all_leagues(ctx: Ctx) -> int:
 async def live_update_job(ctx: Ctx) -> dict[str, Any]:
     """Every minute (P2, ADR-045): fresh scores and game clocks, but only while games are on."""
     async with ctx["sessionmaker"]() as db:
-        result = await live_update(db, _sleeper(ctx), lambda s, w: fetch_week(s, w))
+        result = await live_update(
+            db,
+            nfl_source(ctx),
+            lambda s, w: fetch_week(s, w),
+            resolve=lambda league: adapter_for(ctx, league.platform),  # type: ignore[arg-type]
+        )
     if "skipped" not in result:
         get_logger("live").info("live_update", **result)
     return result
