@@ -13,9 +13,9 @@ The owner's league is private and he is not the commissioner, so the cookie path
 Each step ends runnable, tested, committed and green in CI.
 
 1. **Docs and decisions** (ADR-050 to 053, this plan, vault renumbering).
-2. **Adapter registry:** `LeagueAdapter` keeps the league reads; Sleeper-only discovery moves to its own protocol; `adapters/registry.py` picks the adapter by `league.platform`; worker, `sync_league_job` and `live_update_job` use it.
-3. **Sync not tied to Sleeper:** remove the `sleeper_id`-only assumptions in `services/sync.py`, `waivers.py`, `projections.py`; `resolve_player_ids` (platform id, team defenses, name + position + team fallback with an unmatched log).
-4. **Encryption and schema:** `app/crypto.py` (MultiFernet), `CREDENTIALS_KEYS`, credentials and status columns, per-follow pause status, log scrubbing, key-rotation script.
+2. **Adapter registry** (done 2026-11-10): `LeagueAdapter` keeps the league reads; Sleeper-only discovery moves to its own protocol; `adapters/registry.py` picks the adapter by `league.platform`; worker, `sync_league_job` and `live_update_job` use it.
+3. **Sync not tied to Sleeper** (done 2026-11-10; ESPN team ids and D/ST ids in `adapters/espn_teams.py`, to be confirmed against a real league in step 15): remove the `sleeper_id`-only assumptions in `services/sync.py`, `waivers.py`, `projections.py`; `resolve_player_ids` (platform id, team defenses, name + position + team fallback with an unmatched log).
+4. **Encryption and schema** (done 2026-11-10): `app/crypto.py` (MultiFernet), `CREDENTIALS_KEYS` (the API refuses the public dev key in production), `platform_accounts.credentials_encrypted` / `status` / `credentials_checked_at`, and `league_memberships.platform_account_id` (which account's cookies each follower reads with, so one member's expired cookies never touch another's), log scrubbing, `python -m app.scripts.rotate_credentials`.
 5. **ESPN raw client** (`adapters/espn.py`) with shape checks, retries, fixtures.
 6. **ESPN mapping** to the common types; head-to-head points leagues only.
 7. **ESPN scoring map** (`espn:` rule names; step rules, game bonuses, ladders, touchdown groups).
