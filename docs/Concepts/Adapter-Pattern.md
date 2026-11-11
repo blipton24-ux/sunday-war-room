@@ -19,7 +19,7 @@ class LeagueAdapter(Protocol):
 
 class SleeperAdapter(LeagueAdapter): ...   # P1
 class EspnAdapter(LeagueAdapter): ...      # P3 — needs user's cookies
-class YahooAdapter(LeagueAdapter): ...     # P3 — needs OAuth
+class YahooAdapter(LeagueAdapter): ...     # P7 — needs OAuth
 ```
 
 ## Rules in Sunday War Room

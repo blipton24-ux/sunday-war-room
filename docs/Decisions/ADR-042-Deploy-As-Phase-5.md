@@ -6,7 +6,7 @@ status: accepted
 ---
 # ADR-042: Deployment moves to Phase 5, after the app is feature-complete
 
-> **Renumbered by [ADR-043](ADR-043-Phases-Renumbered.md):** deployment (with push alerts) is now Phase 6; Phase 5 is improved model projections. **Reordered again by [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md):** deployment is now Phase 7, the last phase. Read "P5" below as "the deploy phase".
+> **Renumbered by [ADR-043](ADR-043-Phases-Renumbered.md):** deployment (with push alerts) is now Phase 6; Phase 5 is improved model projections. **Reordered again by [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md):** deployment was moved to Phase 7, and [ADR-050](ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md) then made it Phase 8, the last phase. Read "P5" below as "the deploy phase".
 
 ## Context
 [ADR-009](ADR-009-Phasing.md) had every phase ship deployed, and P1's step 16 was the first deploy. Hosting is billed for running containers, not for visitors, so a live but unused app costs about the same as a busy one (rough ballparks: $5–12 a month for one small server, $20–62 for a managed platform; unverified, check each provider's pricing page before deploying). Nobody but the owner would use P1 on its own, so the cost would start long before there is a reason to pay it.

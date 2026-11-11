@@ -1,20 +1,17 @@
 ---
-title: "Later Phases Outline (P2–P7)"
+title: "Later Phases Outline (P2–P8)"
 date: 2026-11-08
 tags: [build-plan]
 ---
-# Phases 2–7 — outline
+# Phases 2–8 — outline
 
-Each phase gets its own detailed plan, owner decisions and build after the previous phase is done ([ADR-026](../Decisions/ADR-026-Execution-Order.md)). Order after P2: [ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md). (The file keeps its old name so existing links still work.)
+Each phase gets its own detailed plan, owner decisions and build after the previous phase is done ([ADR-026](../Decisions/ADR-026-Execution-Order.md)). Order after P2: [ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md), amended by [ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md). (The file keeps its old name so existing links still work.)
 
 ## P2 — Waivers, trades, live game day
-Built 2026-11-10: [P2 Build Plan](P2-Build-Plan.md). Push alerts moved to P7 and model upgrades to P4.
+Built 2026-11-10: [P2 Build Plan](P2-Build-Plan.md). Push alerts moved to P8 and model upgrades to P4.
 
-## P3 — ESPN + Yahoo (next)
-- **Decide first:** ESPN cookie capture flow for a web app, encrypted at rest ([Open Questions](../Specs/Open-Questions.md) #12).
-- **ESPN adapter first**, tested against the owner's real ESPN league; ESPN scoring-rule coverage (adapt the table approved in [ADR-031](../Decisions/ADR-031-Approved-Reuses.md)).
-- Yahoo adapter: OAuth flow + token refresh; Yahoo scoring coverage.
-- Goal: no feature code changes, only new adapters (the [adapter pattern](../Concepts/Adapter-Pattern.md) payoff). Every P2 feature (waivers, trades, live) must work on an ESPN league.
+## P3 — ESPN (next)
+Decided and planned: [P3 Build Plan](P3-Build-Plan.md) ([ADR-051](../Decisions/ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md) access, [ADR-052](../Decisions/ADR-052-Credential-Encryption.md) encryption, [ADR-053](../Decisions/ADR-053-ESPN-Client-Own-Code.md) client). Yahoo moved to P7 ([ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)). Every P2 feature (waivers, trades, live) must work on the owner's ESPN league.
 
 ## P4 — Improved model projections
 The [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md) upgrades (per-position expected-points models, depth-chart adjustments, defenses from betting totals, correlated simulation), smarter rest-of-season projections, IDP players, dynasty/keeper future value. Each needs reuse approval (ADR-002) and must beat model 1.0.0 on held-out weeks, including the startable-player slice.
@@ -31,8 +28,12 @@ The [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md) upgrades (per
 - Open UI rows in the [Improvement Backlog](Improvement-Backlog.md) are the starting list.
 - Accessibility stays at WCAG 2.1 AA ([ADR-041](../Decisions/ADR-041-Accessibility-Standard.md)); E2E tests updated with the screens.
 
-## P7 — Deploy + push alerts
-Moved here from P1 step 16 ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md); P7 since ADR-049), the last phase.
+## P7 — Yahoo
+- Yahoo adapter: OAuth flow + token refresh (tokens stored with the P3 encryption, [ADR-052](../Decisions/ADR-052-Credential-Encryption.md)); Yahoo scoring coverage.
+- Needs a Yahoo developer app, an https redirect address and a Yahoo league to verify against, which is why it sits next to deployment ([ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)). Goal: only a new adapter and an OAuth flow, because P3 made the rest platform-neutral.
+
+## P8 — Deploy + push alerts
+Moved here from P1 step 16 ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md); P8 since ADR-050), the last phase.
 - Push alerts: VAPID keys, `push_subscriptions`, `send_push_alerts` job (starter ruled OUT, close matchup late, big swing), iPhone install prompt.
 - Re-decide the platform and domain against current prices ([Open Questions](../Specs/Open-Questions.md) #1–2); verify pgvector support on whatever hosts Postgres.
 - Staging deploy first, then production; `deploy.yml` on merge to main (migrate, then roll out); HTTPS; backups with a tested restore.

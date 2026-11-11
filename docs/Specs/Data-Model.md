@@ -47,6 +47,6 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 | `sync_runs` | id, kind, league_id?, status, started_at, finished_at, error | Shown as "updated N min ago"; debugging |
 
 ## Later phases
-P3 encrypted ESPN cookies / Yahoo OAuth tokens on `platform_accounts` · P5 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P7 `push_subscriptions`, `alerts` ([ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md)).
+P3 encrypted ESPN cookies on `platform_accounts` (P7: Yahoo OAuth tokens) · P5 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P8 `push_subscriptions`, `alerts` ([ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)).
 
 Related: [Multi-Tenancy](../Concepts/Multi-Tenancy.md) · [Architecture](Architecture.md) · [Projection Model](Projection-Model.md)

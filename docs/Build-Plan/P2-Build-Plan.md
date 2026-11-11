@@ -5,7 +5,7 @@ tags: [build-plan, p2]
 ---
 # Phase 2 Build Plan: waivers, trades, live game day
 
-Decisions: [ADR-043](../Decisions/ADR-043-Phases-Renumbered.md) (phases) · [ADR-044](../Decisions/ADR-044-Live-Data-Sources.md) (live data) · [ADR-045](../Decisions/ADR-045-Live-Delivery-Polling.md) (polling) · [ADR-046](../Decisions/ADR-046-Any-League-Settings.md) (any league) · [ADR-047](../Decisions/ADR-047-Waivers-Value-Added.md) (waivers) · [ADR-048](../Decisions/ADR-048-Trades-Lineup-Impact.md) (trades). Not in P2: push alerts and deploy (P7), model upgrades, IDP and dynasty value (P4); phase order per [ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md).
+Decisions: [ADR-043](../Decisions/ADR-043-Phases-Renumbered.md) (phases) · [ADR-044](../Decisions/ADR-044-Live-Data-Sources.md) (live data) · [ADR-045](../Decisions/ADR-045-Live-Delivery-Polling.md) (polling) · [ADR-046](../Decisions/ADR-046-Any-League-Settings.md) (any league) · [ADR-047](../Decisions/ADR-047-Waivers-Value-Added.md) (waivers) · [ADR-048](../Decisions/ADR-048-Trades-Lineup-Impact.md) (trades). Not in P2: push alerts and deploy (P8), model upgrades, IDP and dynasty value (P4); phase order per [ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md).
 
 ## Build order
 Each step ends runnable, tested, committed and green in CI.

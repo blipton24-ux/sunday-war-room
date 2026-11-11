@@ -27,7 +27,7 @@ tags: [spec, architecture]
                                          │ scores · push · news (later)    │
                                          └──────┬──────────────────────────┘
                                                 ▼
-                        Sleeper API · nflverse files · (P2 scores) · (P3 ESPN/Yahoo) · (P5 news, Claude API)
+                        Sleeper API · nflverse files · (P2 scores) · (P3 ESPN, P7 Yahoo) · (P5 news, Claude API)
 ```
 
 ## Responsibilities

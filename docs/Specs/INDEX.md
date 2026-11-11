@@ -8,7 +8,7 @@ tags: [index, spec]
 What Sunday War Room is and how it's put together. Read these before building.
 
 - [Product Vision](Product-Vision.md): the one-line pitch, users, principles
-- [Features by Phase](Features-by-Phase.md): exactly what ships in P1–P7
+- [Features by Phase](Features-by-Phase.md): exactly what ships in P1–P8
 - [Architecture](Architecture.md): services, responsibilities, code layout, cross-cutting rules
 - [Data Model](Data-Model.md): initial tables
 - [API](API.md): initial `/api/v1` endpoints and conventions

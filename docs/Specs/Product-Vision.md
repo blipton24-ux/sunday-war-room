@@ -9,7 +9,7 @@ tags: [spec, product]
 **Sunday War Room is the Sunday command center for fantasy football managers:** connect your leagues once, and get clear, explainable start/sit calls, matchup odds, pickups, trades, live game-day tracking and an assistant that answers with your real data.
 
 ## Who it's for
-Any fantasy football player on Sleeper (P1), then ESPN and Yahoo (P3) ([ADR-005](../Decisions/ADR-005-Public-Multi-Tenant.md), [ADR-006](../Decisions/ADR-006-Platform-Adapters.md)). The owner is user #1 and uses it every week.
+Any fantasy football player on Sleeper (P1), then ESPN (P3) and Yahoo (P7) ([ADR-005](../Decisions/ADR-005-Public-Multi-Tenant.md), [ADR-006](../Decisions/ADR-006-Platform-Adapters.md)). The owner is user #1 and uses it every week.
 
 ## Principles
 1. **Explain every number.** A projection shows its factors (recent form, opponent, injury, role) and a range, never a black box.

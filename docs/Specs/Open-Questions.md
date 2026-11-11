@@ -9,8 +9,8 @@ Not blocking Step 1. Each is decided by the owner (explain → side-by-side → 
 
 | # | Question | Needed by | Notes |
 |---|---|---|---|
-| 1 | Which container platform: Railway, Render or Fly.io? | P7 deploy ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md), [ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md)) | Verify current pricing, managed Postgres **pgvector** support, Redis, deploy-from-GitHub flow |
-| 2 | Domain name | P7 deploy | ~$10–15/yr; needed so web + api share cookies (`ffcc.app` / `api.ffcc.app`) |
+| 1 | Which container platform: Railway, Render or Fly.io? | P8 deploy ([ADR-042](../Decisions/ADR-042-Deploy-As-Phase-5.md), [ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)) | Verify current pricing, managed Postgres **pgvector** support, Redis, deploy-from-GitHub flow |
+| 2 | Domain name | P8 deploy | ~$10–15/yr; needed so web + api share cookies (`ffcc.app` / `api.ffcc.app`) |
 | 3 | ~~Repo license and repo name~~ | — | **Decided:** [ADR-028](../Decisions/ADR-028-Repo-Name-and-License.md) |
 | 4 | ~~Email provider for magic links~~ | — | **Decided:** Resend, [ADR-029](../Decisions/ADR-029-Email-Resend.md) |
 | 5 | ~~Stats storage~~ | — | **Decided:** PostgreSQL, bulk-loaded, [ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md) |
@@ -21,6 +21,6 @@ Not blocking Step 1. Each is decided by the owner (explain → side-by-side → 
 | 10 | Embedding model/provider for RAG | P5 spec | |
 | 11 | AI daily message limit value | P5 spec | Cost-driven |
 | 13 | ~~Player headshots~~ | — | **Decided:** Next.js image cache, [ADR-037](../Decisions/ADR-037-Headshots-Next-Image-Cache.md) |
-| 12 | ESPN cookie capture flow for a web app (old one used a desktop window) | **P3 spec (next)** | Security: encrypt at rest |
+| 12 | ~~ESPN cookie capture flow for a web app~~ | — | **Decided:** link first, guided cookie paste, [ADR-051](../Decisions/ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md); encrypted, [ADR-052](../Decisions/ADR-052-Credential-Encryption.md) |
 
 Related: [Improvement Backlog](../Build-Plan/Improvement-Backlog.md) (known improvements, as opposed to open decisions) · [Features by Phase](Features-by-Phase.md) · [ADR-022 Hosting](../Decisions/ADR-022-Hosting-Container-Platform.md) · [ADR-018 AI](../Decisions/ADR-018-AI-Agent-With-RAG.md)

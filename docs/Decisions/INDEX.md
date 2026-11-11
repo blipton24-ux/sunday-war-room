@@ -50,13 +50,17 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-036 API access through the web server](ADR-036-API-Access-Through-Web-Server.md): the browser never holds the API token
 - [ADR-037 Headshots via the Next.js image cache](ADR-037-Headshots-Next-Image-Cache.md): resized, cached ESPN images with initials fallback (closes open question #13)
 - [ADR-042 Deploy becomes Phase 5](ADR-042-Deploy-As-Phase-5.md): build P1–P4 locally with CI; deploy once the app is complete (amends ADR-009; hosting choice waits)
-- [ADR-043 Phases renumbered](ADR-043-Phases-Renumbered.md): P5 improved model, P6 deploy + push alerts (phase table superseded by ADR-049)
+- [ADR-043 Phases renumbered](ADR-043-Phases-Renumbered.md): P5 improved model, P6 deploy + push alerts (phase table superseded by ADR-049, amended by ADR-050)
 - [ADR-044 Live data sources](ADR-044-Live-Data-Sources.md): Sleeper points + ESPN public scoreboard for game state (closes open question #8)
 - [ADR-045 Live delivery by polling](ADR-045-Live-Delivery-Polling.md): re-fetch every 30-60 s only while games are live (closes #7)
 - [ADR-046 Any league](ADR-046-Any-League-Settings.md): every feature reads the league's waiver, roster and scoring settings
 - [ADR-047 Waivers](ADR-047-Waivers-Value-Added.md): value added to my lineup, rest of season or this week, drop and FAAB bid suggestions
 - [ADR-048 Trades](ADR-048-Trades-Lineup-Impact.md): lineup impact, any two teams, "best for me, still acceptable" suggestions
-- [ADR-049 Phases reordered, ESPN first](ADR-049-Phases-Reordered-ESPN-First.md): P3 ESPN + Yahoo, P4 improved model, P5 AI assistant + strategy tendencies, P6 UI/UX overhaul, P7 deploy + push alerts
+- [ADR-049 Phases reordered, ESPN first](ADR-049-Phases-Reordered-ESPN-First.md): P3 ESPN + Yahoo, P4 improved model, P5 AI assistant + strategy tendencies, P6 UI/UX overhaul, P7 deploy + push alerts (amended by ADR-050)
+- [ADR-050 Yahoo is P7, deploy is P8](ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md): P3 ESPN only; Yahoo right before deployment
+- [ADR-051 ESPN access](ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md): league link first, guided cookie paste for private leagues, own cookies only (closes open question #12)
+- [ADR-052 Credential encryption](ADR-052-Credential-Encryption.md): app-level Fernet key from the environment; cookies never in job args, logs or responses
+- [ADR-053 ESPN client](ADR-053-ESPN-Client-Own-Code.md): our own client; approved rewrites of earlier ESPN lessons (amends ADR-031)
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
 - [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in
