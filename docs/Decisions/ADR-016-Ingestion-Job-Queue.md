@@ -14,8 +14,8 @@ League data (Sleeper, later ESPN/Yahoo), NFL stats (nflverse) and live scores mu
 | Leagues, rosters, matchups | Sleeper API (public, no login) | P1 |
 | Player stats/history | nflverse via `nflreadpy` | P1 |
 | Live scores | Sleeper / public scoreboard feed | P2 |
-| News/injury articles | TBD ([Open Questions](../Specs/Open-Questions.md)) | P3 |
-| ESPN, Yahoo leagues | ESPN (cookies), Yahoo (OAuth) | P4 |
+| News/injury articles | TBD ([Open Questions](../Specs/Open-Questions.md)) | P5 ([ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)) |
+| ESPN, Yahoo leagues | ESPN (cookies), Yahoo (OAuth) | P3 ([ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)) |
 
 ## Options considered — "Refresh my league" on a Sunday
 ```

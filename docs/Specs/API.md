@@ -36,6 +36,6 @@ REST + OpenAPI ([ADR-014](../Decisions/ADR-014-API-REST-OpenAPI.md)). Every endp
 - Data responses include `as_of` (last sync time) so the UI can show freshness, and `model_version`.
 - Player rows carry `game_status` (upcoming / in_progress / final / bye); players whose game started are locked in lineup suggestions. `actual_points` is filled from nflverse once a game is final.
 - Screens list `unsupported_rules`: league scoring rules that aren't scored yet (shown, never hidden).
-- Rate limiting per user on refresh endpoints (and the P3 chat): one manual refresh per league per minute; a refresh while a sync is already queued returns that job instead of starting another.
+- Rate limiting per user on refresh endpoints (and the P5 chat): one manual refresh per league per minute; a refresh while a sync is already queued returns that job instead of starting another.
 
 Related: [REST vs GraphQL](../Concepts/REST-vs-GraphQL.md) · [Data Model](Data-Model.md) · [UI Screens](UI-Screens.md)

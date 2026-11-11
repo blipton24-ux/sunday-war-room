@@ -5,7 +5,7 @@ tags: [spec, product, planning]
 ---
 # Features by Phase
 
-Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working and passing CI; improved model projections are Phase 5 and deployment Phase 6 ([ADR-043](../Decisions/ADR-043-Phases-Renumbered.md)).
+Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working and passing CI. Order after P2 ([ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md)): P3 ESPN + Yahoo, P4 improved model, P5 AI assistant + strategy tendencies, P6 UI/UX overhaul, P7 deploy + push alerts.
 
 ## P1 — Sleeper MVP
 - **Accounts:** sign in with Google or an email magic link; profile; sign out; delete account.
@@ -25,23 +25,27 @@ Phasing: [ADR-009](../Decisions/ADR-009-Phasing.md). Each phase ships working an
 - **Live game day** ([ADR-044](../Decisions/ADR-044-Live-Data-Sources.md), [ADR-045](../Decisions/ADR-045-Live-Delivery-Polling.md)): scores, player game status, live projected finals and win chance, re-fetched every 30–60 s while games are live.
 - **Any league** ([ADR-046](../Decisions/ADR-046-Any-League-Settings.md)): every waiver type, roster format and scoring setup. Plan: [P2 Build Plan](../Build-Plan/P2-Build-Plan.md).
 
-## P3 — AI assistant
-- **Chat tab:** Claude agent with read-only tools over Sunday War Room data plus news search (RAG) ([ADR-018](../Decisions/ADR-018-AI-Agent-With-RAG.md)).
-- News ingestion + embeddings (pgvector); news badges on players.
-- Per-user daily message limit; conversation history.
-
-## P4 — ESPN + Yahoo
-- **ESPN adapter:** private leagues need the user's `espn_s2`/`SWID` cookies, so a secure capture flow and encrypted storage are needed.
+## P3 — ESPN + Yahoo (next)
+- **ESPN adapter first** (the owner's own league, so it is the first real test of every later phase): private leagues need the user's `espn_s2`/`SWID` cookies, so a secure capture flow and encrypted storage are needed.
 - **Yahoo adapter:** OAuth "Sign in with Yahoo" and token refresh.
 - Scoring-rule coverage for each platform (every rule scored or explicitly reported as unsupported).
 
-## P5 — Improved model projections
+## P4 — Improved model projections
 The [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md) upgrades (per-position models, depth charts, correlated simulation), smarter rest-of-season projections, IDP players, dynasty/keeper future-season value. Each upgrade must beat the current model on held-out weeks.
 
-## P6 — Deploy + push alerts
-Push alerts (starter ruled OUT, close matchup late, big swing; needs a real HTTPS address). Hosting platform, managed or self-run Postgres and Redis, `deploy.yml` (migrate, then roll out), domain and HTTPS, Google OAuth and Resend production setup, backups, live URL and screenshots in the README. Plan: [P2–P4 Outline § P5](../Build-Plan/P2-P4-Outline.md#p5--deploy).
+## P5 — AI assistant + strategy tendencies
+- **Chat tab:** Claude agent with read-only tools over Sunday War Room data plus news search (RAG) ([ADR-018](../Decisions/ADR-018-AI-Agent-With-RAG.md)).
+- News ingestion + embeddings (pgvector); news badges on players.
+- Per-user daily message limit; conversation history.
+- **Strategy tendencies** (new scope): a manager's habits shown as badges and nudges. What it measures and where it appears are decided in the P5 plan.
+
+## P6 — UI/UX overhaul
+A full design pass over every screen so the app presents everything P1–P5 added coherently. Scope decided in the P6 plan.
+
+## P7 — Deploy + push alerts
+Push alerts (starter ruled OUT, close matchup late, big swing; needs a real HTTPS address). Hosting platform, managed or self-run Postgres and Redis, `deploy.yml` (migrate, then roll out), domain and HTTPS, Google OAuth and Resend production setup, backups, live URL and screenshots in the README. Plan: [Later Phases Outline § P7](../Build-Plan/P2-P4-Outline.md#p7--deploy--push-alerts).
 
 ## Later / optional
 Accuracy scoreboard vs external projections · paid tier (Stripe) ([ADR-011](../Decisions/ADR-011-Monetization.md)) · AWS + Terraform migration ([ADR-022](../Decisions/ADR-022-Hosting-Container-Platform.md)) · playoff odds simulation.
 
-Related: [Product Vision](Product-Vision.md) · [P1 Build Plan](../Build-Plan/P1-Build-Plan.md) · [P2–P4 Outline](../Build-Plan/P2-P4-Outline.md)
+Related: [Product Vision](Product-Vision.md) · [P1 Build Plan](../Build-Plan/P1-Build-Plan.md) · [Later Phases Outline](../Build-Plan/P2-P4-Outline.md)

@@ -40,7 +40,7 @@ Per [ADR-002](Decisions/ADR-002-Fresh-Build.md), these are **lessons, not code**
 | Threads/subprocesses for background work | Redis queue + ARQ workers | Retries, scaling, observability |
 | Email + password (scrypt), session cookie (fork) | Auth.js: Google + magic links | No password storage |
 | ESPN as primary platform | Sleeper first | Official public API, no cookies |
-| Local LLM (Ollama) for news | Hosted Claude (P3) | Works for all users; the old code already isolated the LLM in one module for exactly this swap |
+| Local LLM (Ollama) for news | Hosted Claude (P5) | Works for all users; the old code already isolated the LLM in one module for exactly this swap |
 | No CI, no containers, never deployed | Full CI/CD, Docker, deployed | Production-grade bar ([ADR-004](Decisions/ADR-004-Production-Grade-Bar.md)) |
 
 ## Resolved: stats storage
@@ -48,7 +48,7 @@ The old project moved historical stats **out** of the database into cached parqu
 
 ## Reuse decisions
 Decided in [ADR-031](Decisions/ADR-031-Approved-Reuses.md):
-- Scoring-rule mapping table: **idea now** (Sleeper mapping built fresh with all three rule shapes), **ESPN table adapted in P4**.
+- Scoring-rule mapping table: **idea now** (Sleeper mapping built fresh with all three rule shapes), **ESPN table adapted in P3**.
 - Residual-quantile approach for ranges: **method reused**, all numbers refit on Sunday War Room's own backtest.
 - Backtest metric definitions: **reused** (MAE, RMSE, bias, rank correlation, bucket error, interval coverage).
 

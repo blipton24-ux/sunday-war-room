@@ -44,8 +44,8 @@ Things that are **built but not yet seen working** in a real browser or with rea
 | ID | What isn't verified | Why not | How to test | Where | Status |
 |---|---|---|---|---|---|
 | V-23 | **Images on other processors** (Apple Silicon, ARM servers). Only built and run on this PC's x86 Docker. | One machine | Build and run on an ARM machine, or build multi-platform in CI; check what the hosting platform builds | CI / hosting platform | Open |
-| V-25 | **Restart and recovery**: stopping and restarting the stack keeps data (the `db-data` volume) and the worker resumes; a worker or api crash restarts under the hosting platform's rules. | Only a clean first start was tried | `docker compose down` then `up` (without `-v`); kill the worker mid-sync | By hand; hosting platform (P6) | Open |
-| V-26 | **Production settings**: the images with real secrets, a public HTTPS address, a real Resend key and Google OAuth. Locally everything ran with development secrets on `localhost`. | No domain or credentials yet | Deploy (P6) and sign in with both methods | Deploy | Open |
+| V-25 | **Restart and recovery**: stopping and restarting the stack keeps data (the `db-data` volume) and the worker resumes; a worker or api crash restarts under the hosting platform's rules. | Only a clean first start was tried | `docker compose down` then `up` (without `-v`); kill the worker mid-sync | By hand; hosting platform (P7) | Open |
+| V-26 | **Production settings**: the images with real secrets, a public HTTPS address, a real Resend key and Google OAuth. Locally everything ran with development secrets on `localhost`. | No domain or credentials yet | Deploy (P7) and sign in with both methods | Deploy | Open |
 | V-27 | **The container browser experience**: pages were fetched with `curl` and a browser earlier against the non-container build, but the container's `localhost:3000` site wasn't opened in a browser. | Efficiency; same code | Open it once in a browser after `docker compose up` | By hand | Open |
 
 ## Added in step 14 (2026-11-09)
@@ -54,7 +54,7 @@ Things that are **built but not yet seen working** in a real browser or with rea
 |---|---|---|---|---|---|
 | V-28 | **Safari / WebKit.** The end-to-end suite runs in Chromium only; every iPhone browser uses WebKit. | Not in the suite yet | Add a WebKit project in CI (backlog P-14) and look on an iPhone | CI + real iPhone | Open |
 | V-29 | **Keyboard-only and screen-reader use.** Axe checks about a third of accessibility problems automatically ([ADR-041](../Decisions/ADR-041-Accessibility-Standard.md)). | Needs a person | Tab through every screen; listen with VoiceOver or NVDA | By hand | Open |
-| V-30 | **Rate limits behind a real proxy.** Better Auth limits sign-in links per IP; behind the hosting proxy every visitor may look like one address unless it reads the forwarded-IP header (backlog P-13). | Only tested on localhost | Request several links from different networks on the deployed site | Deploy (P6) | Open |
+| V-30 | **Rate limits behind a real proxy.** Better Auth limits sign-in links per IP; behind the hosting proxy every visitor may look like one address unless it reads the forwarded-IP header (backlog P-13). | Only tested on localhost | Request several links from different networks on the deployed site | Deploy (P7) | Open |
 
 ## Added in step 15 (2026-11-09)
 

@@ -2,9 +2,11 @@
 title: "ADR-043: Phases renumbered: model is P5, deploy and push alerts are P6"
 date: 2026-11-09
 tags: [adr, process, planning]
-status: accepted
+status: superseded
 ---
 # ADR-043: Phases renumbered
+
+> **Superseded by [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md):** the phase table below is replaced. Now P3 ESPN + Yahoo, P4 improved model, P5 AI assistant + strategy tendencies, P6 UI/UX overhaul, P7 deploy + push alerts. The reasoning (features before model, push alerts with deployment) still holds.
 
 ## Context
 [ADR-042](ADR-042-Deploy-As-Phase-5.md) moved deployment to a final phase. The projection-model upgrades ([ADR-034](ADR-034-Ship-Model-v1-Upgrade-Later.md)) were listed inside P2, and push alerts were in P2 even though they can't be tested on a phone without a real HTTPS address.

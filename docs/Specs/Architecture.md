@@ -27,14 +27,14 @@ tags: [spec, architecture]
                                          │ scores · push · news (later)    │
                                          └──────┬──────────────────────────┘
                                                 ▼
-                        Sleeper API · nflverse files · (P2 scores) · (P3 news, Claude API) · (P4 ESPN/Yahoo)
+                        Sleeper API · nflverse files · (P2 scores) · (P3 ESPN/Yahoo) · (P5 news, Claude API)
 ```
 
 ## Responsibilities
 | Service | Does | Never does |
 |---|---|---|
 | web | Render screens, sign-in UI, call the API | Touch the DB or third-party APIs |
-| api | Auth check, tenant scoping, read DB, enqueue jobs, (P3) run the agent loop | Call platforms during a request (except via jobs) |
+| api | Auth check, tenant scoping, read DB, enqueue jobs, (P5) run the agent loop | Call platforms during a request (except via jobs) |
 | worker | All external fetching, projections, scheduled work | Serve HTTP |
 | db | Source of truth | — |
 | redis | Job queue (and later, rate-limit counters) | Hold anything that can't be lost |

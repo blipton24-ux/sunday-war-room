@@ -22,7 +22,9 @@ status: accepted
 | **P3** | AI assistant chat (agent + news RAG) |
 | **P4** | ESPN + Yahoo adapters |
 
-> **Amended by [ADR-042](ADR-042-Deploy-As-Phase-5.md):** phases ship working and passing CI; deployment is a final phase (Phase 6 since [ADR-043](ADR-043-Phases-Renumbered.md)).
+> **Amended by [ADR-042](ADR-042-Deploy-As-Phase-5.md):** phases ship working and passing CI; deployment is a final phase (Phase 7 since [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)).
+>
+> **Reordered by [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md):** P3 ESPN + Yahoo, P4 improved model, P5 AI assistant + strategy tendencies, P6 UI/UX overhaul, P7 deploy + push alerts.
 
 ## Why
 Shipping a deployed P1 early proves the whole pipeline (code → tests → container → live URL). Every later phase is just more features on a working base.

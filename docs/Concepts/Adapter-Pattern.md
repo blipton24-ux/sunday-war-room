@@ -18,8 +18,8 @@ class LeagueAdapter(Protocol):
     async def fetch_matchups(self, ref: LeagueRef, week: int) -> list[Matchup]: ...
 
 class SleeperAdapter(LeagueAdapter): ...   # P1
-class EspnAdapter(LeagueAdapter): ...      # P4 — needs user's cookies
-class YahooAdapter(LeagueAdapter): ...     # P4 — needs OAuth
+class EspnAdapter(LeagueAdapter): ...      # P3 — needs user's cookies
+class YahooAdapter(LeagueAdapter): ...     # P3 — needs OAuth
 ```
 
 ## Rules in Sunday War Room

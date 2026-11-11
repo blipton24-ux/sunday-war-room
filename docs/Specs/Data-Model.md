@@ -16,7 +16,7 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 ## Platform connections (per user)
 | Table | Key fields | Notes |
 |---|---|---|
-| `platform_accounts` | id, user_id → users, platform (`sleeper`/`espn`/`yahoo`), external_user_id, display_name, credentials_encrypted (P4) | Sleeper needs only a username/id |
+| `platform_accounts` | id, user_id → users, platform (`sleeper`/`espn`/`yahoo`), external_user_id, display_name, credentials_encrypted (P3) | Sleeper needs only a username/id |
 | `league_memberships` | id, user_id, league_id → leagues, my_team_id → teams | Which leagues a user follows, and which team is theirs. **The tenant boundary.** |
 
 ## Leagues (shared: one row per real platform league)
@@ -47,6 +47,6 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 | `sync_runs` | id, kind, league_id?, status, started_at, finished_at, error | Shown as "updated N min ago"; debugging |
 
 ## Later phases
-P6 `push_subscriptions`, `alerts` · P3 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P4 encrypted ESPN cookies / Yahoo OAuth tokens on `platform_accounts`.
+P3 encrypted ESPN cookies / Yahoo OAuth tokens on `platform_accounts` · P5 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P7 `push_subscriptions`, `alerts` ([ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md)).
 
 Related: [Multi-Tenancy](../Concepts/Multi-Tenancy.md) · [Architecture](Architecture.md) · [Projection Model](Projection-Model.md)

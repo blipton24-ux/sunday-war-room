@@ -11,7 +11,7 @@ Style: Sunday War Room, flat, with player photos ([ADR-032](../Decisions/ADR-032
 
 ## Global
 - **Header:** Sunday War Room logo + name, league switcher (league name as a menu, with sync status dot and "synced 3m ago"), week stepper, refresh, theme toggle.
-- **Tabs:** Home · Lineup · Matchup · Chat (P3) · More (Waivers P2, Trades P2, Accuracy). Settings via the league menu.
+- **Tabs:** Home · Lineup · Matchup · Chat (P5) · More (Waivers P2, Trades P2, Accuracy). Settings via the league menu.
 - **States:** every screen has designed loading (skeletons), empty and error states.
 
 ## Screens (P1)
