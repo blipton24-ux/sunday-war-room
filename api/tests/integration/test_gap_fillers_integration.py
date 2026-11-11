@@ -15,8 +15,9 @@ from app.jobs import nfl_jobs
 from app.jobs.league_jobs import sync_league_job
 from app.jobs.tracking import create_run, run_tracked
 from app.services import ingest
+from app.services.player_ids import resolve_player_ids
 from app.services.projections import compute_projections
-from app.services.sync import _player_ids, players_are_stale, sync_league, upsert_platform_players
+from app.services.sync import players_are_stale, sync_league, upsert_platform_players
 from tests.integration.test_ingest import frames
 from tests.sleeper_fixtures import LEAGUE_ID
 
@@ -171,7 +172,7 @@ async def test_player_list_staleness(db: AsyncSession, ctx: dict[str, Any]) -> N
     await db.execute(update(Player).values(updated_at=old))
     await db.commit()
     assert await players_are_stale(db) is True
-    assert await _player_ids(db, set()) == {}  # nothing asked, nothing queried
+    assert await resolve_player_ids(db, "sleeper", set()) == {}  # nothing asked, nothing queried
 
 
 async def test_teams_with_no_opponent_are_stored_as_byes(

@@ -27,6 +27,7 @@ from app.adapters.base import (
 from app.db.models import League, LeagueTransaction, Matchup, Player, RosterEntry, Team
 from app.logging import get_logger
 from app.model.scoring import scoring_key
+from app.services.player_ids import resolve_player_ids
 
 log = get_logger("sync")
 BATCH = 1000
@@ -41,12 +42,13 @@ def _chunks(rows: Sequence[dict[str, Any]], n: int = BATCH) -> Iterable[Sequence
 async def upsert_platform_players(
     db: AsyncSession, platform: str, players: Sequence[PlayerData]
 ) -> int:
-    """Insert/update players keyed by the platform's id (P1: Sleeper).
+    """Insert/update the master player list, keyed by Sleeper's id (ADR-053).
 
-    nflverse ids (gsis_id) are NOT taken from the platform: the nflverse crosswalk owns them,
-    which avoids two sources fighting over a unique column.
+    Sleeper's list is the master for every platform; ESPN and Yahoo ids are matched against it
+    (services/player_ids.py). nflverse ids (gsis_id) are NOT taken from the platform: the
+    nflverse crosswalk owns them, which avoids two sources fighting over a unique column.
     """
-    assert platform == "sleeper", "P1 keys players by sleeper_id"
+    assert platform == "sleeper", "only Sleeper's list is the master player list"
     rows = [
         {
             "sleeper_id": p.external_id,
@@ -82,15 +84,6 @@ async def upsert_platform_players(
         )
     await db.commit()
     return len(rows)
-
-
-async def _player_ids(db: AsyncSession, sleeper_ids: set[str]) -> dict[str, int]:
-    if not sleeper_ids:
-        return {}
-    rows = await db.execute(
-        select(Player.sleeper_id, Player.id).where(Player.sleeper_id.in_(sleeper_ids))
-    )
-    return {sid: pid for sid, pid in rows if sid is not None}
 
 
 # --------------------------------------------------------------------------- league
@@ -263,7 +256,7 @@ async def sync_league(
     all_ids = {s.player_external_id for t in teams for s in t.roster} | {
         s.player_external_id for rows in matchups_by_week.values() for r in rows for s in r.roster
     }
-    player_ids = await _player_ids(db, all_ids)
+    player_ids = await resolve_player_ids(db, data.ref.platform, all_ids)
 
     unmapped: set[str] = set()
     for t in teams:
@@ -352,7 +345,9 @@ async def refresh_live_matchups(
     )
     team_ids = {ext: tid for ext, tid in team_rows}
     rows = [r for r in rows if r.team_external_id in team_ids]
-    player_ids = await _player_ids(db, {pid for r in rows for pid in r.player_points})
+    player_ids = await resolve_player_ids(
+        db, data.ref.platform, {pid for r in rows for pid in r.player_points}
+    )
     await _upsert_matchups(db, league.id, week, rows, team_ids, player_ids)
     await db.commit()
     return len(rows)
