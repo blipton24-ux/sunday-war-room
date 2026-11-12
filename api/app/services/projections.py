@@ -21,6 +21,7 @@ from app.db.models import (
     League,
     NflGame,
     Player,
+    PlayerStatusSnapshot,
     PlayerWeekStats,
     Projection,
     RestOfSeasonProjection,
@@ -161,6 +162,7 @@ async def compute_projections(
             history, targets, Context(season, week), load_calibration(MODEL_VERSION)
         )
         await _upsert(db, result, season, week, key, now)
+        await record_status_snapshots(db, to_compute, season, week, now)
 
     # Freeze everything whose game has started (including rows computed in an earlier run).
     started = [p.id for p in players if has_kicked_off(games.get(p.nfl_team or ""), now)]
@@ -182,6 +184,49 @@ async def compute_projections(
     log.info("projections_computed", league_id=league.id, week=week, computed=len(to_compute),
              newly_frozen=frozen)  # fmt: skip
     return {"computed": len(to_compute), "frozen": frozen}
+
+
+async def record_status_snapshots(
+    db: AsyncSession, players: list[Player], season: int, week: int, now: datetime
+) -> int:
+    """Keep a row whenever a player's injury status or depth-chart slot changed since the last
+    one stored for this week, so a later model can be tested on what the app knew (M-11)."""
+    if not players:
+        return 0
+    latest = {
+        pid: (status, depth)
+        for pid, status, depth in await db.execute(
+            select(
+                PlayerStatusSnapshot.player_id,
+                PlayerStatusSnapshot.injury_status,
+                PlayerStatusSnapshot.depth_chart_order,
+            )
+            .where(
+                PlayerStatusSnapshot.season == season,
+                PlayerStatusSnapshot.week == week,
+                PlayerStatusSnapshot.player_id.in_([p.id for p in players]),
+            )
+            .distinct(PlayerStatusSnapshot.player_id)
+            .order_by(PlayerStatusSnapshot.player_id, PlayerStatusSnapshot.captured_at.desc())
+        )
+    }
+    rows = [
+        {
+            "player_id": p.id,
+            "season": season,
+            "week": week,
+            "captured_at": now,
+            "injury_status": p.injury_status,
+            "depth_chart_order": p.depth_chart_order,
+        }
+        for p in players
+        if latest.get(p.id) != (p.injury_status, p.depth_chart_order)
+    ]
+    for i in range(0, len(rows), 1000):
+        await db.execute(
+            insert(PlayerStatusSnapshot).values(rows[i : i + 1000]).on_conflict_do_nothing()
+        )
+    return len(rows)
 
 
 async def _upsert(

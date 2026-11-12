@@ -1237,7 +1237,7 @@
           "views"
         ],
         "summary": "Get Accuracy",
-        "description": "How frozen, pre-kickoff projections compared with actual results in past weeks.",
+        "description": "How frozen, pre-kickoff projections compared with actual results in past weeks.\n\nOne model version at a time: the current one unless `model_version` names another.",
         "operationId": "get_accuracy",
         "parameters": [
           {
@@ -1247,6 +1247,22 @@
             "schema": {
               "type": "integer",
               "title": "League Id"
+            }
+          },
+          {
+            "name": "model_version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model Version"
             }
           }
         ],
@@ -1892,6 +1908,14 @@
             },
             "type": "array",
             "title": "Weeks"
+          },
+          "available_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Versions",
+            "default": []
           }
         },
         "type": "object",

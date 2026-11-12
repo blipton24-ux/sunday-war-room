@@ -8,7 +8,7 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import PlayerWeekStats
+from app.db.models import InjuryReport, PlayerWeekStats
 from app.model.scoring import score
 
 
@@ -40,6 +40,22 @@ async def load_stat_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFra
         for gid, season, week, pos, team, opp, snap, stats in rows
     ]
     return pd.DataFrame(records)
+
+
+async def load_injury_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFrame:
+    """Weekly injury designations and reserve-list status, for backtests."""
+    rows = await db.execute(
+        select(
+            InjuryReport.gsis_id,
+            InjuryReport.season,
+            InjuryReport.week,
+            InjuryReport.report_status,
+            InjuryReport.roster_status,
+        ).where(InjuryReport.season.in_(list(seasons)))
+    )
+    return pd.DataFrame(
+        rows.all(), columns=["gsis_id", "season", "week", "report_status", "roster_status"]
+    )
 
 
 def scored_history(stat_rows: pd.DataFrame, rules: Mapping[str, float]) -> pd.DataFrame:

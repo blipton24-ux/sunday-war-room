@@ -139,11 +139,73 @@ def test_fetch_frames_gathers_every_dataset(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(nflreadpy, "load_ff_playerids", lambda: fake.ff_playerids(
         [{"gsis_id": "00-1", "sleeper_id": 100, "pfr_id": "A00"}]
     ))  # fmt: skip
+    monkeypatch.setattr(nflreadpy, "load_injuries", lambda s: fake.injuries(
+        [{"gsis_id": "00-1", "season": 2026, "week": 1, "report_status": "Out"}]
+    ))  # fmt: skip
+    monkeypatch.setattr(nflreadpy, "load_rosters_weekly", lambda s: fake.rosters_weekly(
+        [{"gsis_id": "00-1", "season": 2026, "week": 1, "status": "ACT"}]
+    ))  # fmt: skip
     frames = ingest.fetch_frames([2026])
     assert frames.schedule.height == 1 and frames.player_stats.height == 1
     assert frames.defense_stats["points_allowed"].to_list() == [17.0]  # LA allowed KC's 17
     assert frames.ids["sleeper_id"].to_list() == ["100"]
     assert frames.snaps["gsis_id"].to_list() == ["00-1"]  # pfr id mapped through the crosswalk
+    assert frames.injuries is not None and frames.injuries["report_status"].to_list() == ["Out"]
+
+
+def test_injury_reports_keep_the_latest_game_status_per_player_week(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Practice days are separate rows; the game designation is the last one filed that week."""
+    rows = fake.injuries(
+        [
+            {"gsis_id": "00-1", "season": 2026, "week": 3, "practice_status": "Limited",
+             "date_modified": "2026-09-24T20:00:00Z"},
+            {"gsis_id": "00-1", "season": 2026, "week": 3, "report_status": "Questionable",
+             "practice_status": "Limited", "date_modified": "2026-09-25T20:00:00Z"},
+            {"gsis_id": "00-1", "season": 2026, "week": 3, "report_status": "Out",
+             "practice_status": "Did Not Participate", "date_modified": "2026-09-26T20:00:00Z"},
+            {"gsis_id": "00-2", "season": 2026, "week": 3, "practice_status": "Full"},
+            {"gsis_id": "00-3", "season": 2026, "week": 3, "game_type": "WC",
+             "report_status": "Out"},
+        ]
+    )  # fmt: skip
+    monkeypatch.setattr(nflreadpy, "load_injuries", lambda s: rows)
+    monkeypatch.setattr(nflreadpy, "load_rosters_weekly", lambda s: fake.rosters_weekly(
+        [
+            {"gsis_id": "00-1", "season": 2026, "week": 3, "status": "ACT"},
+            {"gsis_id": "00-4", "season": 2026, "week": 3, "status": "RES"},  # IR, no report
+            {"gsis_id": "00-1", "season": 2026, "week": 4, "status": "RES"},
+            {"gsis_id": "00-5", "season": 2026, "week": 3, "status": "CUT"},
+            {"gsis_id": "00-6", "season": 2026, "week": 3, "status": "RES", "game_type": "WC"},
+        ]
+    ))  # fmt: skip
+    out = nflverse.load_injury_reports([2026]).sort("gsis_id", "week")
+    assert out.select("gsis_id", "week").rows() == [
+        ("00-1", 3),
+        ("00-1", 4),
+        ("00-2", 3),
+        ("00-4", 3),
+    ]  # playoff and non-reserve roster rows dropped
+    assert out["report_status"].to_list() == ["Out", None, None, None]
+    assert out["roster_status"].to_list() == [None, "RES", None, "RES"]
+    assert out["practice_status"].to_list() == ["Did Not Participate", None, "Full", None]
+
+
+def test_injury_reports_fail_loudly_when_a_column_disappears(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = fake.injuries([{"gsis_id": "00-1", "season": 2026, "week": 1}]).drop("report_status")
+    monkeypatch.setattr(nflreadpy, "load_injuries", lambda s: rows)
+    monkeypatch.setattr(nflreadpy, "load_rosters_weekly", lambda s: fake.rosters_weekly([]))
+    with pytest.raises(nflverse.NflverseSchemaError):
+        nflverse.load_injury_reports([2026])
+    ok = fake.injuries([{"gsis_id": "00-1", "season": 2026, "week": 1}])
+    no_status = fake.rosters_weekly([{"gsis_id": "00-1", "season": 2026, "week": 1}]).drop("status")
+    monkeypatch.setattr(nflreadpy, "load_injuries", lambda s: ok)
+    monkeypatch.setattr(nflreadpy, "load_rosters_weekly", lambda s: no_status)
+    with pytest.raises(nflverse.NflverseSchemaError):
+        nflverse.load_injury_reports([2026])
 
 
 # --------------------------------------------------------------------------- Sleeper adapter

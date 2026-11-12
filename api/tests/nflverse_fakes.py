@@ -45,6 +45,26 @@ def snap_counts(rows: list[dict[str, Any]]) -> pl.DataFrame:
     return pl.DataFrame([{"game_type": "REG"} | r for r in rows])
 
 
+def injuries(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    """Raw nflverse injury rows: one per practice day, so a player-week can have several."""
+    base = {
+        "game_type": "REG", "report_status": None, "practice_status": None,
+        "report_primary_injury": None, "date_modified": "2026-09-10T00:00:00Z",
+    }  # fmt: skip
+    return pl.DataFrame(
+        [base | r for r in rows],
+        schema_overrides={
+            "report_status": pl.String,
+            "practice_status": pl.String,
+            "report_primary_injury": pl.String,
+        },
+    )
+
+
+def rosters_weekly(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    return pl.DataFrame([{"game_type": "REG", "status": "ACT"} | r for r in rows])
+
+
 def ff_playerids(rows: list[dict[str, Any]]) -> pl.DataFrame:
     base = {"espn_id": None, "yahoo_id": None, "pfr_id": None, "name": "X", "position": "WR"}
     return pl.DataFrame([base | r for r in rows], schema_overrides={"sleeper_id": pl.Int64})
