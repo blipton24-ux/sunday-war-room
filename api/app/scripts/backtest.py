@@ -3,6 +3,12 @@
     python -m app.scripts.backtest                       # report only
     python -m app.scripts.backtest --write-calibration   # also refresh app/model/calibration.json
     python -m app.scripts.backtest --report ../docs/Build-Plan/Backtest-Report.md
+    python -m app.scripts.backtest --scoring full        # half (default), full or standard PPR
+    python -m app.scripts.backtest --compare shipped,skip-injury-history
+
+--compare runs two model configurations (app/model/config.py) over the same player-games,
+grades them on the tuning seasons and the check season, and applies the keep rule (ADR-055).
+Games spoiled by an injury are left out of its numbers (ADR-054, features/injury_games.py).
 
 Walk-forward: each week is projected using only games before it, exactly as it would have been
 live. Ranges are fit on the earlier test seasons and their coverage is checked on the last,
@@ -25,25 +31,46 @@ from typing import Any
 import pandas as pd
 
 from app.db.session import get_engine, get_sessionmaker
-from app.model import metrics
+from app.model import compare, metrics
+from app.model.config import SHIPPED, ModelConfig, by_name
 from app.model.distribution import CALIBRATION_FILE, apply_range, fit_calibration
+from app.model.features.injury_games import excluded, mark_injury_games
 from app.model.projection import MODEL_VERSION, Context, project_week
 from app.model.rest_of_season import Horizon, project_rest_of_season
 from app.model.scoring import REFERENCE_RULES
-from app.services.history import load_stat_rows, scored_history
+from app.services.history import load_injury_rows, load_stat_rows, scored_history
+
+SCORING = {  # the reference rules are Sleeper's half-PPR; ranges are only fit in half-PPR
+    "half": REFERENCE_RULES,
+    "full": {**REFERENCE_RULES, "rec": 1.0},
+    "standard": {**REFERENCE_RULES, "rec": 0.0},
+}
 
 
-def walk_forward(history: pd.DataFrame, seasons: list[int]) -> pd.DataFrame:
-    """Projection vs actual for every player-game in `seasons`, plus a naive baseline."""
+def walk_forward(
+    history: pd.DataFrame, seasons: list[int], config: ModelConfig = SHIPPED
+) -> pd.DataFrame:
+    """Projection vs actual for every player-game in `seasons`, plus a naive baseline.
+
+    If `history` carries `injury_game` (see `load`), each row also gets `injury_flag`.
+    """
     frames = []
     for season in seasons:
         for week in sorted(history.loc[history["season"] == season, "week"].unique()):
             actual = history[(history["season"] == season) & (history["week"] == week)]
             targets = actual[["gsis_id", "position", "team", "opponent"]]
-            proj = project_week(history, targets, Context(season, int(week)), calibration=None)
-            merged = proj[["gsis_id", "position", "points"]].merge(
-                actual[["gsis_id", "points"]].rename(columns={"points": "actual"}), on="gsis_id"
+            proj = project_week(
+                history, targets, Context(season, int(week)), calibration=None, config=config
             )
+            flag = "injury_game" if "injury_game" in actual.columns else None
+            merged = proj[["gsis_id", "position", "points"]].merge(
+                actual[["gsis_id", "points", *([flag] if flag else [])]].rename(
+                    columns={"points": "actual", "injury_game": "injury_flag"}
+                ),
+                on="gsis_id",
+            )
+            if flag is None:
+                merged["injury_flag"] = None
             merged["naive"] = naive_projection(history, merged["gsis_id"], season, int(week))
             merged["season"], merged["week"] = season, int(week)
             frames.append(merged.rename(columns={"points": "proj"}))
@@ -197,6 +224,8 @@ def report(
         "",
         *_table(by_pos, naive),
         "",
+        *startable_section(graded, test),
+        *injury_section(graded, test),
         "## Error by projected points (held out)",
         "",
         "| Projected | MAE |",
@@ -217,25 +246,108 @@ def report(
     return "\n".join(lines) + "\n"
 
 
-async def load(seasons: list[int]) -> pd.DataFrame:
+async def load(seasons: list[int], scoring: str = "half") -> pd.DataFrame:
+    """Scored history with an `injury_game` mark on every row (features/injury_games.py): used to
+    pick which games are fair to judge and, as an experiment, to leave out of a player's own
+    history."""
     async with get_sessionmaker()() as db:
         rows = await load_stat_rows(db, seasons)
+        injuries = await load_injury_rows(db, seasons)
     await get_engine().dispose()
     if rows.empty:
         raise SystemExit("No nflverse rows in the database: run the ingest_nflverse job first.")
-    return scored_history(rows, REFERENCE_RULES)
+    history = scored_history(rows, SCORING[scoring])
+    history["injury_game"] = mark_injury_games(history, injuries)
+    return history
+
+
+def injury_section(df_test: pd.DataFrame, test: int) -> list[str]:
+    """What the injury rule left out, and the numbers with and without those games."""
+    flags = df_test["injury_flag"].fillna("none").value_counts()
+    kept = df_test[~excluded(df_test["injury_flag"])]
+    startable = metrics.startable_mask(df_test, "naive")
+    lines = [
+        f"## Injury games ({test}, held out)",
+        "",
+        "Games spoiled by an injury (ADR-054) are left out of the headline when comparing models. "
+        f"Of {len(df_test):,} player-games: {int(flags.get('before', 0)):,} listed Out or Doubtful "
+        f"who played, {int(flags.get('during', 0)):,} hurt during the game, "
+        f"{int(flags.get('questionable', 0)):,} Questionable who played (kept).",
+        "",
+        "| | Games | MAE | Startable MAE (picked by season average) |",
+        "|---|---|---|---|",
+    ]
+    for label, frame in (("Everything counted", df_test), ("Injury games left out", kept)):
+        s = frame[startable.loc[frame.index]]
+        lines.append(
+            f"| {label} | {len(frame):,} | {metrics.grade(frame)['mae']:.2f} "
+            f"| {metrics.grade(s)['mae']:.2f} |"
+        )
+    lines.append("")
+    return lines
+
+
+def startable_section(df_test: pd.DataFrame, test: int) -> list[str]:
+    """The slice start/sit depends on, picked two ways, by weeks, with and without injury games."""
+    lines = [
+        f"## Startable players ({test}, held out)",
+        "",
+        "Each week's top 15 QB and TE and top 36 RB and WR. Picked by the plain season average, "
+        "so every model is judged on the same players, and by the model's own projection (the "
+        "players it would start; ADR-034's table was built this way, with every game counted).",
+        "",
+        "| Picked by | Injury games | Weeks | Games | MAE | Season average MAE | Rank corr |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for by, label in (("naive", "season average"), ("proj", "model projection")):
+        for left_out in (True, False):
+            frame = df_test[~excluded(df_test["injury_flag"])] if left_out else df_test
+            mask = metrics.startable_mask(frame, by)
+            groups = metrics.week_group(frame)
+            for weeks in ("5+", "1-4"):
+                g = frame[mask & (groups == weeks)]
+                m = metrics.grade(g)
+                n = metrics.grade(g.assign(proj=g["naive"]))
+                lines.append(
+                    f"| {label} | {'left out' if left_out else 'counted'} | {weeks} "
+                    f"| {len(g):,} | {m['mae']:.2f} | {n['mae']:.2f} | {m['rank_corr']:.3f} |"
+                )
+    lines.append("")
+    return lines
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--first", type=int, default=2022, help="first season of history")
+    parser.add_argument("--first", type=int, default=2021, help="first season of history")
     parser.add_argument("--test", type=int, default=2025, help="held-out season")
+    parser.add_argument("--scoring", choices=sorted(SCORING), default="half")
+    parser.add_argument(
+        "--compare", metavar="BASE,CANDIDATE", help="two names from app/model/config.py"
+    )
     parser.add_argument("--write-calibration", action="store_true")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
 
-    history = asyncio.run(load(list(range(args.first, args.test + 1))))
+    history = asyncio.run(load(list(range(args.first, args.test + 1)), args.scoring))
     fit_seasons = list(range(args.first + 1, args.test))  # first season is history only
+    if args.compare:
+        base_name, cand_name = args.compare.split(",")
+        graded_seasons = [*fit_seasons, args.test]
+        paired = compare.pair(
+            walk_forward(history, graded_seasons, by_name(base_name)),
+            walk_forward(history, graded_seasons, by_name(cand_name)),
+        )
+        text = compare.render(
+            base_name,
+            cand_name,
+            paired[paired["season"].isin(fit_seasons)],
+            paired[paired["season"] == args.test],
+            f"Model comparison ({args.scoring} PPR)",
+        )
+        print(text)
+        if args.report:
+            args.report.write_text(text, encoding="utf-8")
+        return
     df = walk_forward(history, [*fit_seasons, args.test])
     df_fit, df_test = df[df["season"].isin(fit_seasons)], df[df["season"] == args.test]
 

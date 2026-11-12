@@ -279,6 +279,8 @@ export interface paths {
         /**
          * Get Accuracy
          * @description How frozen, pre-kickoff projections compared with actual results in past weeks.
+         *
+         *     One model version at a time: the current one unless `model_version` names another.
          */
         get: operations["get_accuracy"];
         put?: never;
@@ -436,6 +438,11 @@ export interface components {
             };
             /** Weeks */
             weeks: components["schemas"]["AccuracyWeek"][];
+            /**
+             * Available Versions
+             * @default []
+             */
+            available_versions: string[];
         };
         /** AccuracyWeek */
         AccuracyWeek: {
@@ -2040,7 +2047,9 @@ export interface operations {
     };
     get_accuracy: {
         parameters: {
-            query?: never;
+            query?: {
+                model_version?: string | null;
+            };
             header?: never;
             path: {
                 league_id: number;

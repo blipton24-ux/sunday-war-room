@@ -7,6 +7,15 @@ tags: [build-plan, p4, model]
 
 Decisions: [ADR-054](../Decisions/ADR-054-P4-Test-Every-Idea-One-At-A-Time.md) (test one idea at a time) · [ADR-055](../Decisions/ADR-055-P4-Keep-Rule.md) (the keep rule) · [ADR-056](../Decisions/ADR-056-P4-Earlier-Techniques-Ideas-Only.md) (earlier techniques, ideas only) · [ADR-057](../Decisions/ADR-057-P4-Scope-Weekly-Accuracy.md) (scope). Results go in the [Model Experiments](Model-Experiments.md) ledger.
 
+## Progress
+**Stage 1 built 2026-11-12** (model still 1.0.0). Results of the checks that gate everything else:
+- The upgraded backtest reproduces ADR-034: full PPR, 2025, weeks 5-18, startable players picked by the model's own projection, every game counted: **6.45** (season average 6.50). Half-PPR overall 4.03 matches the committed report.
+- `--compare shipped,shipped` shows exactly 0.000 change on every slice.
+- Injury rule hand-checked on 14 + 8 + 12 named 2025 games; the first version was wrong and was fixed (see 5a).
+- First experiment run through the machinery: E-01 in the [ledger](Model-Experiments.md), dropped.
+- 449 backend tests at 99% coverage, 91 web tests, strict mypy clean (run in a Linux container; see backlog P-18).
+Stage 2 (the experiments) is next.
+
 ## Why
 Model 1.0.0 misses by 6.45 points per startable player (held-out 2025, full PPR), against 6.50 for a plain season average and 5.83 for the earlier project's model ([ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)). Today it looks only at **points** (`api/app/model/projection.py`): a recent-weighted average, times one opponent factor and a snap-share factor. It never sees targets, carries, yards or touchdowns separately.
 
@@ -15,11 +24,13 @@ Model 1.0.0 misses by 6.45 points per startable player (held-out 2025, full PPR)
 2. **`--compare`**: two model versions over the same weeks in one table, with a paired bootstrap so noise is labelled noise.
 3. **`ModelConfig`**: a frozen dataclass of switches passed into `project_week`. Live code runs the shipped config; only the backtest turns extra switches on.
 4. **Raw stats reach the model**: extend the history frame with targets, carries, yards, touchdowns, receptions and attempts. Feature code lives in `api/app/model/features/` as pure functions (history before the week in, one row per player or team out).
-5. **Three sets of seasons**: tuning 2022–2024, check 2025, fresh 2026 weeks looked at once per version.
-   - **5a. Injury-affected games don't count.** A game is marked *hurt during* when the player's snap share falls far below his own recent normal **and** he is on the next injury report or misses the next game (both signs required, so a benching or blowout isn't mistaken for an injury). *Hurt before* means listed Out, Doubtful or inactive. Questionable players who played are kept and reported as their own line. The report prints both "injury games left out" (headline) and "everything counted", with the count. The rule is fixed before experiments start. Marked games are also left out of a player's own history when projecting later weeks (an experiment like any other).
-6. **Past weeks stay visible across versions (M-01)**: past weeks read the row from the version that froze them; grading stays per version. Must land before 1.1.0.
+5. **Three sets of seasons**: tuning 2022–2024, check 2025, fresh 2026 weeks looked at once per version. (2021 is loaded too, as history for 2022's projections.)
+   - **5a. Injury-affected games don't count.** Implemented in `api/app/model/features/injury_games.py`. A game is marked *hurt during* when the player's snap share falls under half his own recent normal (the mean of up to 4 earlier games, normal at least 30%, at least 2 earlier games) **and** there is direct evidence of an injury at his team's next game: an injury-report designation (Out, Doubtful, Questionable) or a reserve-list listing (injured reserve; nflverse weekly rosters, `RES`). *Hurt before* means listed Out or Doubtful and played anyway (a player who did not play has no stat row and is already absent). Questionable players who played are kept and reported as their own line. The report prints "injury games left out" (headline) and "everything counted", with the counts. Both pieces of evidence are known before the next kickoff, so the same marking also serves the experiment of leaving those games out of a player's own history, with no look at anything later.
+   - *Hand check, 2025 (before any experiment):* the first version used "missed his next game" as evidence. It flagged two quarterbacks who were benched when the starter returned (Browning, Rattler), because absence cannot tell injury from demotion. Roster status separates them (injured players show `RES`, benched ones stay `ACT`), so the rule now needs the report or reserve evidence. Re-check: Burrow, Skattebo, Wilson, Tracy, Ridley and Harris are marked; Browning, Rattler, Moore (cut) and Campbell (practice squad) are not; 14 more random marks, none clearly wrong. The rule is strict on purpose (backlog M-20). It is now fixed and is not tuned against model results.
+   - *Startable picks:* the slice is picked by the plain season average, so two models are graded on the same players; the report also shows it picked by the model's own projection (how ADR-034's table was built).
+6. **Past weeks stay visible across versions (M-01)** (done): screens show the frozen row from whichever version froze it, else the current version's (`api/app/services/versions.py`); Accuracy stays per version with `?model_version=` and `available_versions` (UI picker is backlog U-17).
 7. **Experiment ledger** ([Model Experiments](Model-Experiments.md)).
-8. **Injury and depth-chart snapshots at every compute (M-11)**, so later versions can be tested on them.
+8. **Injury and depth-chart snapshots (M-11)** (done): `player_status_snapshots` keeps a row whenever a computed player's injury status or depth-chart slot changed; nflverse's weekly injury reports and reserve lists are stored in `injury_reports` (2021–2026).
 
 ## Stage 2: experiments
 Loop per idea: write it in the ledger → build behind a switch → compare on tuning seasons → confirm on 2025 → record → keep or drop. Kept ideas are grouped into a numbered version with the fresh-weeks check, refitted ranges (`--write-calibration`), a spec update and a `MODEL_VERSION` bump in the same commit.

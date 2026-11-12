@@ -24,7 +24,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from app.model.config import SHIPPED, ModelConfig
 from app.model.distribution import Calibration, apply_range
+from app.model.features.injury_games import excluded
 
 MODEL_VERSION = "1.0.0"
 
@@ -91,6 +93,7 @@ def project_week(
     targets: pd.DataFrame,
     ctx: Context,
     calibration: Calibration | None,
+    config: ModelConfig = SHIPPED,
 ) -> pd.DataFrame:
     """Project every row of `targets` for ctx.season / ctx.week.
 
@@ -98,12 +101,15 @@ def project_week(
              league's rules. Rows at or after the target week are ignored (no leakage).
     targets: TARGET_COLUMNS; `opponent` None means no game (bye). Optional columns:
              `injury_status`, `depth_chart_order`.
+    config:  switches for ideas under test (app/model/config.py); live code uses SHIPPED.
     Returns targets + points, p10, p50, p90, factors.
     """
     hist = history[
         (history["season"] < ctx.season)
         | ((history["season"] == ctx.season) & (history["week"] < ctx.week))
     ]
+    if config.skip_injury_games_in_history and "injury_game" in hist.columns:
+        hist = hist[~excluded(hist["injury_game"])]
     cur = hist[hist["season"] == ctx.season]
     last = hist[hist["season"] == ctx.season - 1]
     opp_table, opp_league = _opponent_table(cur)

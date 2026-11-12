@@ -49,6 +49,9 @@ TEAM_KEY_COLUMNS = ("team", "opponent_team", "season", "week", "season_type")
 SCHEDULE_COLUMNS = ("game_id", "season", "game_type", "week", "gameday", "gametime",
                     "home_team", "away_team", "home_score", "away_score")  # fmt: skip
 SNAP_COLUMNS = ("pfr_player_id", "season", "week", "game_type", "offense_pct")
+ROSTER_COLUMNS = ("season", "week", "game_type", "gsis_id", "status")
+INJURY_COLUMNS = ("season", "game_type", "week", "gsis_id", "report_status", "practice_status",
+                  "report_primary_injury", "date_modified")  # fmt: skip
 ID_COLUMNS = ("gsis_id", "sleeper_id", "espn_id", "yahoo_id", "pfr_id", "name", "position")
 
 
@@ -174,6 +177,43 @@ def load_snap_shares(seasons: Sequence[int], ids: pl.DataFrame) -> pl.DataFrame:
         .select("gsis_id", "season", "week", pl.col("offense_pct").cast(pl.Float64))
         .unique(subset=["gsis_id", "season", "week"], keep="first")
     )
+
+
+def load_injury_reports(seasons: Sequence[int]) -> pl.DataFrame:
+    """Weekly game-status injury reports, one row per player-week (regular season).
+
+    nflverse lists each practice day as its own row; the game designation (Out, Doubtful,
+    Questionable) is the latest one the team filed that week. Players on the report with no
+    designation keep a null `report_status`. Players on a reserve list that week (the weekly
+    roster status `RES`, which includes injured reserve and is visible the week the placement
+    happens, unlike the report) carry `roster_status = "RES"`.
+    """
+    raw = nfl.load_injuries(list(seasons))
+    check_columns(raw, INJURY_COLUMNS, "injuries")
+    _check_seasons(raw, seasons, "injuries")
+    reports = (
+        raw.filter((pl.col("game_type") == "REG") & pl.col("gsis_id").is_not_null())
+        .sort("date_modified")
+        .group_by(["gsis_id", "season", "week"], maintain_order=True)
+        .agg(
+            pl.col("report_status").drop_nulls().last().alias("report_status"),
+            pl.col("practice_status").drop_nulls().last().alias("practice_status"),
+            pl.col("report_primary_injury").drop_nulls().last().alias("injury"),
+        )
+    )
+    rosters = nfl.load_rosters_weekly(list(seasons))
+    check_columns(rosters, ROSTER_COLUMNS, "rosters_weekly")
+    _check_seasons(rosters, seasons, "rosters_weekly")
+    reserve = (
+        rosters.filter(
+            (pl.col("game_type") == "REG")
+            & pl.col("gsis_id").is_not_null()
+            & (pl.col("status") == "RES")
+        )
+        .select("gsis_id", "season", "week", pl.lit("RES").alias("roster_status"))
+        .unique(subset=["gsis_id", "season", "week"])
+    )
+    return reports.join(reserve, on=["gsis_id", "season", "week"], how="full", coalesce=True)
 
 
 def load_id_crosswalk() -> pl.DataFrame:

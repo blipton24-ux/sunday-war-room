@@ -46,6 +46,9 @@ Constants live in `api/app/model/projection.py`; fitted ranges in `api/app/model
 - Ranges are fit in Sleeper default half-PPR and applied to every league's scoring (a v1 simplification).
 - Lineup: exact assignment (Hungarian algorithm), so overlapping flex slots are handled. Win probability: 10,000 seeded draws from a split normal through p10/p50/p90.
 
+## Ideas under test (P4)
+Each idea is a switch in `api/app/model/config.py` (`ModelConfig`); live code runs `SHIPPED`, which changes only in the commit that bumps `MODEL_VERSION`. An idea is kept by the rule in [ADR-055](../Decisions/ADR-055-P4-Keep-Rule.md) after testing on past seasons ([ADR-054](../Decisions/ADR-054-P4-Test-Every-Idea-One-At-A-Time.md)); results are in the [experiment ledger](../Build-Plan/Model-Experiments.md). `python -m app.scripts.backtest --compare shipped,<idea>` runs the comparison. Games spoiled by an injury are left out of the numbers (`app/model/features/injury_games.py`).
+
 ## Later upgrades (P2+)
 Decided to come after the P1 deploy, with the comparison that motivated them: [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md).
 
