@@ -32,18 +32,27 @@ describe("detectBrowser", () => {
 });
 
 describe("cookieSteps", () => {
-  it("names both cookies in every browser's steps", () => {
+  it("gives every browser a sign-in step and a copy step for each cookie", () => {
     for (const b of ["chrome", "edge", "firefox", "safari", "other"] as const) {
-      const text = cookieSteps(b).join(" ");
-      expect(text).toContain("espn_s2");
-      expect(text).toContain("SWID");
-      expect(text).toContain("signed in");
+      const steps = cookieSteps(b);
+      expect(steps[0]).toContain("signed in");
+      expect(steps.some((s) => s.includes("espn_s2") && /copy/i.test(s))).toBe(true);
+      expect(steps.some((s) => s.includes("SWID") && /copy/i.test(s))).toBe(true);
+      expect(new Set(steps).size).toBe(steps.length); // steps are React keys
     }
   });
 
-  it("points Firefox at Storage, Chrome at Application, and Safari at the Develop menu", () => {
+  it("names no panel position in the shared copy steps (it differs by browser)", () => {
+    for (const b of ["firefox", "safari"] as const) {
+      expect(cookieSteps(b).join(" ")).not.toContain("panel at the bottom");
+    }
+  });
+
+  it("points Firefox at Storage, Chrome and Edge at Application, and Safari at the Develop menu", () => {
     expect(cookieSteps("firefox").join(" ")).toContain("Storage tab");
     expect(cookieSteps("chrome").join(" ")).toContain("Application tab");
+    expect(cookieSteps("edge").join(" ")).toContain("Application tab");
+    expect(cookieSteps("edge").join(" ")).toMatch(/click the \+/); // where Edge hides it
     expect(cookieSteps("safari").join(" ")).toContain("Develop");
   });
 });

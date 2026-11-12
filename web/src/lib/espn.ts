@@ -93,34 +93,55 @@ export function isPhoneLike(coarsePointer: boolean, viewportWidth: number): bool
 
 /** The steps for copying `espn_s2` and `SWID`, for one browser. Plain words, no jargon. */
 export function cookieSteps(browser: BrowserKind): string[] {
-  const open = "On a computer, open fantasy.espn.com in a new tab and make sure you're signed in.";
-  const copy =
-    "Double-click the Value next to espn_s2 and copy it (Ctrl+C, or Cmd+C on a Mac). Paste it into the first box here. Do the same for SWID in the second box.";
+  const open =
+    "On a computer, open a new tab, go to fantasy.espn.com, and make sure you're signed in (you should see your team or leagues, not a Log In button). Stay on that tab for the next steps.";
+  // Shared by every browser, so it names no panel: where the full value shows differs by browser.
+  const copy = [
+    "Click the row named espn_s2. Its value is very long, so make sure you get all of it: double-click the value so the whole thing is selected, then copy it (Ctrl+C, or Cmd+C on a Mac). Paste it into the first box on this page.",
+    "Now click the row named SWID. Its value looks like {XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}, curly braces included. Copy all of it, braces and all, and paste it into the second box.",
+  ];
+  const toList = [
+    "On the left, under Storage, click the small arrow next to Cookies to open it, then click https://www.espn.com. A table of cookies appears on the right.",
+    "Look down the Name column for espn_s2 and SWID. If the list is long, click the filter box above the table and type espn to narrow it.",
+  ];
+  const openTools =
+    "Press F12 (on some laptops, Fn + F12) or right-click the page and choose Inspect. A panel opens at the side or bottom of the window.";
   switch (browser) {
     case "firefox":
       return [
         open,
-        "Press F12 to open the developer tools, then click the Storage tab.",
-        "On the left, open Cookies and click https://www.espn.com.",
-        "In the list, find the rows named espn_s2 and SWID.",
-        copy,
+        openTools,
+        "Click the Storage tab along the top of that panel. If you don't see it, click the » arrows at the right end of the tab row and choose Storage.",
+        "On the left, click the arrow next to Cookies, then click https://www.espn.com. A table of cookies appears on the right.",
+        "Look down the Name column for espn_s2 and SWID. You can type espn in the Filter Items box to narrow the list.",
+        ...copy,
       ];
     case "safari":
       return [
         open,
-        "Turn on the Develop menu once: Safari > Settings > Advanced > Show features for web developers.",
-        "Choose Develop > Show Web Inspector, then click the Storage tab.",
-        "On the left, open Cookies and click www.espn.com.",
-        "Find the rows named espn_s2 and SWID.",
-        copy,
+        "Turn on the Develop menu once: in the menu bar choose Safari > Settings > Advanced, then tick Show features for web developers.",
+        "Choose Develop > Show Web Inspector in the menu bar, then click the Storage tab at the top of the inspector.",
+        "On the left, click Cookies, then www.espn.com. A table of cookies appears.",
+        "Look down the Name column for espn_s2 and SWID.",
+        ...copy,
       ];
-    default: // Chrome, Edge and other Chromium browsers share the same developer tools
+    case "edge":
       return [
         open,
-        "Press F12 to open the developer tools, then click the Application tab (it may be behind the » arrows).",
-        "On the left, under Storage, open Cookies and click https://www.espn.com.",
-        "In the list, find the rows named espn_s2 and SWID.",
-        copy,
+        openTools,
+        "Along the top of that panel is a row of tabs (Welcome, Elements, Console, Sources...). Click the Application tab. If you don't see it, click the + at the right end of the tab row and choose Application from the list (in some versions it is behind » instead).",
+        ...toList,
+        ...copy,
+      ];
+    // Chrome, and any browser we don't recognise: most (Brave, Opera, Vivaldi) share Chrome's
+    // developer tools, so these steps are the best guess rather than a promise.
+    default:
+      return [
+        open,
+        openTools,
+        "Along the top of that panel is a row of tabs (Elements, Console, Sources, Network...). Click the Application tab. If you can't see it, click the » arrows at the right end of the tab row (or the + if your browser has one) and choose Application.",
+        ...toList,
+        ...copy,
       ];
   }
 }
