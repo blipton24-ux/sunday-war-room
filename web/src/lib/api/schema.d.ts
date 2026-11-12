@@ -54,6 +54,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platforms/espn/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Espn League
+         * @description Is a pasted ESPN league public? (ADR-051: league link first.)
+         *
+         *     Poll GET /api/v1/jobs/{job_id}. The result is one of: `public` (with `leagues` and `teams`),
+         *     `private` (ask for the cookies), or `unsupported` (a league type we can't score yet).
+         */
+        post: operations["probe_espn_league"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platforms/espn/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect Espn
+         * @description Save the user's ESPN cookies (encrypted) and list their leagues (ADR-051, ADR-052).
+         *
+         *     The cookies are stored here and only the account id is queued, because job arguments are kept
+         *     unencrypted in Redis. Poll GET /api/v1/jobs/{job_id}; when done, `result.leagues` lists the
+         *     user's ESPN leagues, each with `team_id` (the user's own team). The cookies are never returned
+         *     by any endpoint.
+         */
+        post: operations["connect_espn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platforms/espn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect Espn
+         * @description Forget the user's stored ESPN cookies.
+         *
+         *     Leagues followed with those cookies stay followed but ask to reconnect; an account no league
+         *     uses is removed outright.
+         */
+        delete: operations["disconnect_espn"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/leagues": {
         parameters: {
             query?: never;
@@ -66,7 +137,10 @@ export interface paths {
         put?: never;
         /**
          * Follow League
-         * @description Follow a league found by the user's latest Sleeper connect, then sync it.
+         * @description Follow a league the user's connect step offered, then sync it.
+         *
+         *     Sleeper: from the latest username lookup. ESPN: from a public-link probe, or from the league
+         *     list a cookie connect returned (then this follow reads the league with the user's own cookies).
          */
         post: operations["follow_league"];
         delete?: never;
@@ -384,6 +458,30 @@ export interface components {
             /** Code */
             code: string;
         };
+        /**
+         * EspnCredentialsIn
+         * @description The two ESPN cookies (ADR-051). SecretStr keeps them out of validation-error echoes.
+         */
+        EspnCredentialsIn: {
+            /**
+             * Espn S2
+             * Format: password
+             */
+            espn_s2: string;
+            /**
+             * Swid
+             * Format: password
+             */
+            swid: string;
+        };
+        /**
+         * EspnProbeIn
+         * @description A pasted league link (or just the league id): is the league public?
+         */
+        EspnProbeIn: {
+            /** Link */
+            link: string;
+        };
         /** Factor */
         Factor: {
             /** Name */
@@ -399,9 +497,9 @@ export interface components {
         FollowLeagueIn: {
             /**
              * Platform
-             * @constant
+             * @enum {string}
              */
-            platform: "sleeper";
+            platform: "sleeper" | "espn";
             /** External Id */
             external_id: string;
         };
@@ -473,6 +571,11 @@ export interface components {
             last_synced_at: string | null;
             /** Sync Status */
             sync_status: string | null;
+            /**
+             * Needs Reconnect
+             * @default false
+             */
+            needs_reconnect: boolean;
         };
         /** LineupOut */
         LineupOut: {
@@ -551,6 +654,8 @@ export interface components {
             plan: string;
             /** Sleeper Username */
             sleeper_username: string | null;
+            /** Platforms */
+            platforms: components["schemas"]["PlatformOut"][];
             /** Memberships */
             memberships: components["schemas"]["MembershipOut"][];
         };
@@ -568,6 +673,18 @@ export interface components {
             my_team_id: number | null;
             /** Last Synced At */
             last_synced_at: string | null;
+        };
+        /**
+         * PlatformOut
+         * @description A connected platform account. Never carries the stored credentials.
+         */
+        PlatformOut: {
+            /** Platform */
+            platform: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Status */
+            status: string;
         };
         /** PlayerLine */
         PlayerLine: {
@@ -685,6 +802,8 @@ export interface components {
         TeamOut: {
             /** Id */
             id: number;
+            /** External Id */
+            external_id: string;
             /** Name */
             name: string;
             /** Owner Name */
@@ -1059,6 +1178,207 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["JobAccepted"];
                 };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not found (also returned for another user's league) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not ready yet (e.g. first sync unfinished, or no team chosen) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    probe_espn_league: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EspnProbeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not found (also returned for another user's league) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not ready yet (e.g. first sync unfinished, or no team chosen) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    connect_espn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EspnCredentialsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not found (also returned for another user's league) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not ready yet (e.g. first sync unfinished, or no team chosen) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    disconnect_espn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Missing, invalid or expired token */
             401: {

@@ -18,7 +18,7 @@ Suggestions could be win-win trades, **best for me while still acceptable to the
 - **Value = lineup impact** over the rest of the season, per team, under the league's rules ([ADR-046](ADR-046-Any-League-Settings.md)).
 - **Any two teams** can be analyzed (for example a trade two other managers just made).
 - **Suggestions: best for me, still acceptable.** The other team's lineup may lose at most a limit the user sets with a slider (default about 1 point per week).
-- **This season only.** Dynasty and keeper leagues are labeled "this-season value"; future-season value comes with the model work in P5 ([ADR-043](ADR-043-Phases-Renumbered.md)).
+- **This season only.** Dynasty and keeper leagues are labeled "this-season value"; future-season value comes with the model work in P4 ([ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)).
 - Recommendations only; trades are proposed in the platform's app.
 
 Related: [ADR-047 Waivers](ADR-047-Waivers-Value-Added.md) · [P2 Build Plan](../Build-Plan/P2-Build-Plan.md)

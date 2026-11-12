@@ -1,12 +1,14 @@
 "use client";
 
 import type { UseQueryResult } from "@tanstack/react-query";
-import { CalendarClock, RefreshCw, UserRound } from "lucide-react";
+import { CalendarClock, KeyRound, RefreshCw, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { useLeague } from "@/components/league-context";
 import { EmptyState, ErrorState, ScreenSkeleton } from "@/components/ui/primitives";
 import { isApiError } from "@/lib/api/client";
+import { espnConnectPath } from "@/lib/espn";
+import { platformName } from "@/lib/format";
 
 export function TitleRow({ title, note }: { title: string; note?: React.ReactNode }) {
   return (
@@ -36,11 +38,31 @@ export function Gate<T>({
   if (league && league.last_synced_at == null) {
     return (
       <EmptyState icon={RefreshCw} title="Syncing your league">
-        We&apos;re pulling {league.name} from Sleeper. This page fills in by itself in a moment.
+        We&apos;re pulling {league.name} from {platformName(league.platform)}. This page fills in by
+        itself in a moment.
       </EmptyState>
     );
   }
   if (query.error) {
+    if (isApiError(query.error, "credentials_expired")) {
+      return (
+        <EmptyState
+          icon={KeyRound}
+          title="Reconnect ESPN"
+          action={
+            <Link
+              href={espnConnectPath()}
+              className="rounded-[14px] bg-accent px-4 py-3 font-extrabold text-on-accent"
+            >
+              Reconnect ESPN
+            </Link>
+          }
+        >
+          Your ESPN sign-in for {league?.name ?? "this league"} expired. ESPN signs you out when you
+          log out or change your password. Copy your two cookies again to pick up where you left off.
+        </EmptyState>
+      );
+    }
     if (isApiError(query.error, "team_not_chosen")) {
       return (
         <EmptyState

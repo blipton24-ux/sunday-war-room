@@ -199,13 +199,50 @@ export function useConnectSleeper() {
   });
 }
 
+/** Ask ESPN (through the worker) whether a pasted league link is a public league. */
+export function useProbeEspn() {
+  return useMutation({
+    mutationFn: (link: string) =>
+      unwrap(browserApi.POST("/api/v1/platforms/espn/probe", { body: { link } })),
+  });
+}
+
+/** Save the user's two ESPN cookies (encrypted by the API) and list their leagues. */
+export function useConnectEspn() {
+  return useMutation({
+    mutationFn: (cookies: { espn_s2: string; swid: string }) =>
+      unwrap(browserApi.POST("/api/v1/platforms/espn/credentials", { body: cookies })),
+  });
+}
+
+export function useDisconnectEspn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(browserApi.DELETE("/api/v1/platforms/espn")),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/** Email the signed-in user a link to finish the ESPN cookie step on a computer. */
+export function useEmailEspnLink() {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/espn-link", { method: "POST" });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { detail?: string } | null;
+        throw new Error(body?.detail ?? "Couldn't send the email. Try again.");
+      }
+    },
+  });
+}
+
 export function useFollowLeague() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (externalId: string) =>
+    mutationFn: ({ platform, externalId }: { platform: "sleeper" | "espn"; externalId: string }) =>
       unwrap(
         browserApi.POST("/api/v1/leagues", {
-          body: { platform: "sleeper", external_id: externalId },
+          body: { platform, external_id: externalId },
         }),
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.leagues }),

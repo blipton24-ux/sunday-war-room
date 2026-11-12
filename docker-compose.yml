@@ -13,6 +13,8 @@ x-api-env: &api-env
   DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-swr}:${POSTGRES_PASSWORD:-swr}@db:5432/${POSTGRES_DB:-swr}
   REDIS_URL: redis://redis:6379/0
   API_JWT_SECRET: ${API_JWT_SECRET:-dev-only-secret-change-me-0123456789abcdef}
+  # Encrypts stored ESPN cookies (ADR-052). The default is public and only for local runs.
+  CREDENTIALS_KEYS: ${CREDENTIALS_KEYS:-ZGV2LW9ubHktc3dyLWNyZWRlbnRpYWxzLWtleS0wMDA=}
 
 services:
   db:

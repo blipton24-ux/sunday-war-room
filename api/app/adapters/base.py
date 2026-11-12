@@ -26,6 +26,18 @@ class NotFoundOnPlatform(AdapterError):
     """The username / league id doesn't exist on the platform."""
 
 
+class AuthRequired(AdapterError):
+    """The league is private and we were not given credentials (ADR-051)."""
+
+
+class CredentialsInvalid(AdapterError):
+    """The platform refused the credentials we have: expired, revoked or wrong (reconnect)."""
+
+
+class UnsupportedLeague(AdapterError):
+    """A league we cannot represent yet (e.g. category scoring). Reported at connect time."""
+
+
 @dataclass(frozen=True)
 class PlatformUser:
     external_user_id: str
@@ -92,10 +104,21 @@ class LeagueData:
 
 
 @dataclass(frozen=True)
+class PlayerHint:
+    """What a platform says about a player besides his id; used only when the id has no match."""
+
+    name: str
+    position: str | None
+    team: str | None
+
+
+@dataclass(frozen=True)
 class RosterSpot:
     player_external_id: str
     slot: str  # one of STARTER_SLOTS, or BN / IR / TAXI
     is_starter: bool
+    # Name, position and team, for platforms whose ids our player list may not know (ESPN).
+    hint: PlayerHint | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True)
@@ -163,13 +186,32 @@ class NflState:
 
 
 class LeagueAdapter(Protocol):
+    """What every platform provides: one league's settings, teams, scores and moves."""
+
     platform: Platform
 
-    async def find_user(self, username: str) -> PlatformUser: ...
-    async def find_leagues(self, user: PlatformUser, season: int) -> list[LeagueRef]: ...
     async def fetch_league(self, external_id: str) -> LeagueData: ...
     async def fetch_teams(self, league: LeagueData) -> list[TeamData]: ...
     async def fetch_matchups(self, league: LeagueData, week: int) -> list[MatchupData]: ...
     async def fetch_transactions(self, league: LeagueData, week: int) -> list[TransactionData]: ...
+
+
+class NflSource(Protocol):
+    """The NFL-wide facts every platform shares: the master player list and the current week.
+
+    Sleeper provides both for all platforms (ADR-053): its player list is the master list that
+    platform ids are matched against, and its state endpoint is the single NFL clock.
+    """
+
     async def fetch_players(self) -> list[PlayerData]: ...
     async def fetch_state(self) -> NflState: ...
+
+
+class DiscoveryAdapter(Protocol):
+    """Finding a user's leagues by username. Only platforms with public usernames (Sleeper).
+
+    ESPN finds leagues from pasted cookies or a league link instead (ADR-051).
+    """
+
+    async def find_user(self, username: str) -> PlatformUser: ...
+    async def find_leagues(self, user: PlatformUser, season: int) -> list[LeagueRef]: ...

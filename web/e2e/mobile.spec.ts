@@ -154,6 +154,25 @@ test.describe("phone layout", () => {
   });
 });
 
+test.describe("connecting a private ESPN league on a phone", () => {
+  // Copying the two cookies can't be done on a phone, so the step says so and offers an email.
+  test("says to use a computer, emails a link, and lets a computer user carry on", async ({ page }) => {
+    await page.goto("/onboarding?platform=espn&cookies=1");
+    await expect(page.getByRole("heading", { name: "Finish this on a computer" })).toBeVisible();
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await shot(page, "phone-espn-cookies");
+
+    const email = page.getByRole("button", { name: "Email me a link" });
+    expect((await email.boundingBox())!.height).toBeGreaterThanOrEqual(MIN_TOUCH);
+    await email.tap();
+    await expect(page.getByRole("status").filter({ hasText: "Sent. Open it on your computer." })).toBeVisible();
+
+    await page.getByRole("button", { name: /on a computer anyway/ }).tap();
+    await expect(page.getByRole("heading", { name: "Connect your private ESPN league" })).toBeVisible();
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  });
+});
+
 test.describe("a small phone (360 px wide)", () => {
   test.use({ viewport: { width: 360, height: 640 } });
 
