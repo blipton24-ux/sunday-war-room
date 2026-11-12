@@ -30,11 +30,11 @@ Each step ends runnable, tested, committed and green in CI.
 
 ## Verification checklist
 - [ ] A public ESPN league connects from a pasted link with no cookies.
-- [ ] A private league connects with pasted cookies; the user's leagues are listed and their team is preselected.
+- [x] A private league connects with pasted cookies; the user's leagues are listed and their team is preselected. *Seen 2026-11-12 on the owner's real account: credentials checked `ok`, two ESPN leagues followed with a team chosen, six syncs finished. Two ESPN players couldn't be matched to our player list (M-19).*
 - [ ] Waivers, trades, lineup and live work on an ESPN league.
 - [ ] Our score for a finished week matches ESPN's per-player totals within 0.01 for rules computed exactly.
 - [ ] Expired cookies pause only that user's league and show a reconnect banner.
-- [ ] Cookies appear nowhere in logs, job arguments, API responses or committed fixtures.
+- [ ] Cookies appear nowhere in logs, job arguments, API responses or committed fixtures. *Logs checked 2026-11-12 after the real connect: no cookie names or values in the api, worker or web logs. Job arguments and API responses are covered by tests only.*
 - [ ] pytest, Vitest and Playwright pass locally and in GitHub Actions.
 
 Related: [P2 Build Plan](P2-Build-Plan.md) · [Later Phases Outline](P2-P8-Outline.md) · [Features by Phase](../Specs/Features-by-Phase.md)
