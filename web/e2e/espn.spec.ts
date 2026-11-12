@@ -96,7 +96,8 @@ test("cookies ESPN refuses are explained, and nothing is left behind as working"
   const email = await startEspn(page, "espnrefused");
   await page.goto("/onboarding?platform=espn&cookies=1");
   await fillCookies(page, ESPN.revoked_s2, ESPN.good_swid);
-  await expect(page.getByRole("alert")).toContainText(/ESPN didn't accept those values/);
+  // Filter by text: Next.js's hidden route announcer is also role="alert".
+  await expect(page.getByRole("alert").filter({ hasText: /ESPN didn't accept those values/ })).toBeVisible();
   expect((await espnAccount(email))?.status).toBe("needs_reconnect");
 });
 
