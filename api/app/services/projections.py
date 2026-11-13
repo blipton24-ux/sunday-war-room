@@ -29,13 +29,48 @@ from app.db.models import (
     Team,
 )
 from app.logging import get_logger
+from app.model.config import SHIPPED
 from app.model.distribution import load_calibration
-from app.model.projection import MODEL_VERSION, Context, project_week
+from app.model.features.context import Extras, build_extras, game_context
+from app.model.projection import MODEL_VERSION, RAW_COLUMNS, Context, project_week
 from app.model.rest_of_season import Horizon, project_rest_of_season, season_horizon
 from app.model.scoring import scoring_key
-from app.services.history import load_stat_rows, scored_history
+from app.services.history import (
+    load_game_rows,
+    load_injury_rows,
+    load_stat_rows,
+    scored_history,
+)
 
 log = get_logger("projections")
+
+# The shipped settings' fits (touchdown rate per opportunity, team carries against the spread)
+# read earlier seasons, as the backtest did: this season and the five before it.
+HISTORY_SEASONS = 6
+
+
+async def model_history(db: AsyncSession, league: League, season: int) -> pd.DataFrame:
+    """Scored history for the shipped model: raw stat columns too when some position's settings
+    read them, and enough earlier seasons for their fits."""
+    deep = SHIPPED.needs_raw_stats_anywhere or SHIPPED.needs_extras_anywhere
+    seasons = (
+        list(range(season - HISTORY_SEASONS + 1, season + 1)) if deep else [season - 1, season]
+    )
+    stat_rows = await load_stat_rows(db, seasons)
+    keep = RAW_COLUMNS if SHIPPED.needs_raw_stats_anywhere else ()
+    return scored_history(stat_rows, league.scoring_rules, keep=keep)
+
+
+async def model_extras(db: AsyncSession, season: int) -> Extras | None:
+    """Game context for the shipped settings: stored betting lines and scores, and the stored
+    injury reports and reserve lists. None when no position's settings need it."""
+    if not SHIPPED.needs_extras_anywhere:
+        return None
+    seasons = list(range(season - HISTORY_SEASONS + 1, season + 1))
+    games = await load_game_rows(db, seasons)
+    injuries = await load_injury_rows(db, seasons)
+    return build_extras(game_context(games), None, injuries)
+
 
 # Rest-of-season rows carry the weekly model's version plus their own (rest_of_season.py).
 ROS_MODEL_VERSION = f"{MODEL_VERSION}+ros1"
@@ -142,8 +177,8 @@ async def compute_projections(
     ]  # fmt: skip
 
     if to_compute:
-        stat_rows = await load_stat_rows(db, [season - 1, season])
-        history = scored_history(stat_rows, league.scoring_rules)
+        history = await model_history(db, league, season)
+        extras = await model_extras(db, season)
         targets = pd.DataFrame(
             [
                 {
@@ -159,7 +194,12 @@ async def compute_projections(
             ]
         )
         result = project_week(
-            history, targets, Context(season, week), load_calibration(MODEL_VERSION)
+            history,
+            targets,
+            Context(season, week),
+            load_calibration(MODEL_VERSION),
+            SHIPPED,
+            extras,
         )
         await _upsert(db, result, season, week, key, now)
         await record_status_snapshots(db, to_compute, season, week, now)
@@ -315,7 +355,7 @@ async def compute_rest_of_season(
 
     players = (await db.scalars(select(Player).where(Player.id.in_(player_ids)))).all()
     schedule = await season_schedule(db, season, horizon.weeks)
-    history = scored_history(await load_stat_rows(db, [season - 1, season]), league.scoring_rules)
+    history = await model_history(db, league, season)  # no lines: later weeks have none yet
     targets = pd.DataFrame(
         [
             {

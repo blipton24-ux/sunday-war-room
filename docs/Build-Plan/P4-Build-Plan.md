@@ -60,6 +60,8 @@ Data the new ideas need (depth charts, nflverse expected points, air yards, week
 
 **Built 2026-11-13:** the staged tuner (`--stage sweep|tune|check`, `--jobs`, `--settings` to add newly built ideas to an earlier sweep; a re-tune after the check keeps the earlier look on record) and the four deferred ideas as settings (`nfl_xfp_weight`, `depth_rank`, `teammate_out`, `return_discount`), tested in `api/tests/unit/test_round_2.py`. On real data, nflverse expected points cover about 90% of QB/RB/WR/TE games and depth tiers 86-96% in every season. Per-position pages: [Tuning](Tuning/README.md).
 
+**RB shipped as model 1.1.0 (2026-11-13)**, per [ADR-059](../Decisions/ADR-059-P4-Ship-Each-Position-When-It-Passes.md): passed on 2022-2024, 2025 and the 2026 weeks 1-9. Betting lines are now stored (`nfl_games.spread_line`, `total_line`, migration `c5e8a2f71b36`) and the live compute reads them with the stored reserve lists and five earlier seasons of raw stats. Next: WR (ideas list for the owner first).
+
 ## How the tuners work
 
 Built 2026-11-12 after the owner asked for ideas to be kept per position and tuned as far as they will go. Code: `api/app/scripts/tune.py`, settings in `api/app/model/config.py`.

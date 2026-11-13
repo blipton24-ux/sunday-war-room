@@ -473,6 +473,12 @@ def main() -> None:
     )
     args = parser.parse_args()
     position, grid = args.position, GRIDS[args.position]
+    if position in dict(SHIPPED.overrides):
+        # Shipped per-position settings would override every value tried here (ADR-059).
+        raise SystemExit(
+            f"{position} already ships its own settings; re-tuning it needs the tuner to start "
+            "from SHIPPED.for_position(position) first."
+        )
     if args.settings:
         if args.stage != "sweep":
             raise SystemExit("--settings is for --stage sweep only")

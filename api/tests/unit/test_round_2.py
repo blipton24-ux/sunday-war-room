@@ -457,7 +457,7 @@ def test_carry_volume_follows_his_share_and_the_teams_expected_carries() -> None
     row = one(hist, rb_target(), cfg, week=5)
     step = factor(row, "carry volume")
     assert step["value"] > 1.0 and "Share of team carries last 2 games 90%" in step["note"]
-    assert not has(one(hist, rb_target(), SHIPPED, week=5), "carry volume")
+    assert not has(one(hist, rb_target(), ModelConfig(), week=5), "carry volume")
     # the betting line adds the team's expected carries when a fit and a game exist
     past = []
     for s in (2023, 2024):
@@ -493,3 +493,44 @@ def test_no_round_2_idea_reads_the_week_being_projected_or_later() -> None:
         a = one(past, tgt, cfg, extras, week=4)
         b = one(pd.concat([past, future]), tgt, cfg, extras, week=4)
         assert a["points"] == b["points"] and a["factors"] == b["factors"]
+
+
+# --------------------------------------------------------------------------- model 1.1.0
+def test_model_1_1_0_changes_running_backs_only() -> None:
+    from app.model.projection import MODEL_VERSION
+
+    assert MODEL_VERSION == "1.1.0"
+    rb = SHIPPED.for_position("RB")
+    assert (rb.td_regression, rb.implied_total, rb.opp_clamp) == (0.5, 0.3, 0.15)
+    assert (rb.return_discount, rb.role_clamp, rb.carry_volume) == (0.2, 0.075, 0.125)
+    for pos in ("QB", "WR", "TE", "K", "DEF"):
+        assert SHIPPED.for_position(pos) == ModelConfig()  # still 1.0.0
+    assert SHIPPED.needs_raw_stats_anywhere and SHIPPED.needs_extras_anywhere
+    assert not ModelConfig().needs_raw_stats_anywhere
+    assert not ModelConfig().needs_extras_anywhere
+
+
+def test_a_points_only_history_switches_the_raw_stat_ideas_off() -> None:
+    hist = back([(w, 15, 60, 2, 15) for w in (1, 2, 3)])
+    bare = hist[["gsis_id", "season", "week", "position", "team", "opponent", "points", "snap"]]
+    rb = SHIPPED.for_position("RB")
+    assert one(bare, rb_target(), rb, week=4)["points"] == pytest.approx(
+        one(bare, rb_target(), rb.without_raw_stats(), week=4)["points"]
+    )
+    off = rb.without_raw_stats()
+    assert not off.needs_raw_stats and off.implied_total == 0.3  # context ideas stay
+
+
+def test_stored_games_become_one_context_row_per_team() -> None:
+    from app.model.features.context import game_context
+
+    games_df = pd.DataFrame(
+        [{"season": 2026, "week": 10, "home": "NYJ", "away": "BUF", "spread_line": -8.5,
+          "total_line": 50.5, "home_score": None, "away_score": None}]
+    )  # fmt: skip
+    ctx = game_context(games_df).set_index("team")
+    assert ctx.loc["BUF", "spread"] == 8.5 and ctx.loc["BUF", "implied"] == pytest.approx(29.5)
+    assert ctx.loc["NYJ", "implied"] == pytest.approx(21.0) and bool(ctx.loc["NYJ", "home"])
+    assert ctx.loc["BUF", "opponent"] == "NYJ" and np.isnan(ctx.loc["BUF", "points_for"])
+    extras = build_extras(game_context(games_df))
+    assert extras.game("BUF", 2026, 10)["implied"] == pytest.approx(29.5)

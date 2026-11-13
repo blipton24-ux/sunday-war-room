@@ -35,7 +35,7 @@ from app.model.features import opportunity, rushing
 from app.model.features.context import LEAGUE_POINTS, Extras, is_dome
 from app.model.features.injury_games import excluded
 
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "1.1.0"
 
 HALF_LIFE_GAMES = 4.0  # a game 4 games ago counts half as much as the latest one
 PRIOR_GAMES = 3.0  # last season's average counts like this many games of this season
@@ -377,6 +377,9 @@ def _project(
         (history["season"] < ctx.season)
         | ((history["season"] == ctx.season) & (history["week"] < ctx.week))
     ]
+    if config.needs_raw_stats and not set(RAW_COLUMNS) <= set(history.columns):
+        # A history of points only (tests, older callers): the raw-stat ideas cannot run.
+        config = config.without_raw_stats()
     if config.skip_injury_games_in_history and "injury_game" in hist.columns:
         hist = hist[~excluded(hist["injury_game"])]
     raw_cur = hist[hist["season"] == ctx.season]  # actual points, for the opponent tables
