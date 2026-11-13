@@ -2,7 +2,7 @@
 title: "ADR-055: The keep rule for model ideas"
 date: 2026-11-12
 tags: [adr, model]
-status: accepted
+status: accepted (amended by ADR-058)
 ---
 # ADR-055: What an idea must prove to be kept
 
@@ -26,5 +26,7 @@ An idea that helps one position and hurts another can be kept **for the position
 
 ## Trade-offs accepted
 Small real gains inside the noise are dropped. They stay in the ledger and can be retried with more seasons of data.
+
+Amended by [ADR-058](ADR-058-P4-Round-2-One-Position-At-A-Time.md): kept is judged on all weeks together.
 
 Related: [ADR-054](ADR-054-P4-Test-Every-Idea-One-At-A-Time.md) · [ADR-034](ADR-034-Ship-Model-v1-Upgrade-Later.md) · [Model Experiments](../Build-Plan/Model-Experiments.md)

@@ -14,7 +14,8 @@ Decisions: [ADR-054](../Decisions/ADR-054-P4-Test-Every-Idea-One-At-A-Time.md) (
 - Injury rule hand-checked on 14 + 8 + 12 named 2025 games; the first version was wrong and was fixed (see 5a).
 - First experiment run through the machinery: E-01 in the [ledger](Model-Experiments.md), dropped.
 - 449 backend tests at 99% coverage, 91 web tests, strict mypy clean (run in a Linux container; see backlog P-18).
-**Stage 2 in progress:** every idea is built as a setting, each was run alone against the shipped model, and per-position tuners are running (see How the tuners work). The single-idea sweep and the finished kicker and defense tuners are in the [ledger](Model-Experiments.md); QB, RB, WR and TE are still tuning. The idea code has its unit tests (`api/tests/unit/test_model_ideas.py`, including one that turns every switch on and fails if a game at or after the projected week moves the number); 354 unit tests pass, strict mypy clean.
+**Stage 2, round 1 done (2026-11-12):** every idea built as a setting, each run alone, then six per-position tuners side by side. RB, WR, TE and DEF beat the shipped model on both sets of seasons (all weeks); QB and K did not hold up on 2025. Results in the [ledger](Model-Experiments.md). The idea code has its unit tests (`api/tests/unit/test_model_ideas.py`, including one that turns every switch on and fails if a game at or after the projected week moves the number).
+**Stage 2, round 2 next** ([ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md)): one position at a time (RB, WR, TE, QB, DEF, K), every idea at every strength, the five deferred ideas and ideas specific to each position, a finer tuner, and a review with the owner after each position. See Round 2 below.
 
 ## Why
 Model 1.0.0 misses by 6.45 points per startable player (held-out 2025, full PPR), against 6.50 for a plain season average and 5.83 for the earlier project's model ([ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)). Today it looks only at **points** (`api/app/model/projection.py`): a recent-weighted average, times one opponent factor and a snap-share factor. It never sees targets, carries, yards or touchdowns separately.
@@ -44,6 +45,18 @@ Loop per idea: write it in the ledger → build behind a switch → compare on t
 - **G. Kickers and defenses:** from expected team score, dome, stalled drives; defenses from the opponent's expected score and the opposing QB's sack and turnover rates (M-04).
 - **H. How the pieces combine:** per-position half-life and last-season weight; hand-set multipliers against learned weights against a tree model (a learned model ships only if every number is still explainable on the Player screen); a blend of the best two.
 - **I. Ranges and win chance:** ranges per scoring format (M-08); wider or narrower ranges by player type; QB and his receivers moving together in the simulation (M-07); weekly auto-refit with the same keep rule (M-14).
+
+## Round 2: one position at a time
+
+Decided in [ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md). Round 1's tuners were already per position, but searched shallowly. Round 2, for each position in turn:
+
+1. **Ideas list:** round 1's settings for the position, the deferred ideas (E-04 nflverse expected points, E-14 depth-chart rank, E-15 teammate out, E-20 first games back; E-19 fitted injury discounts gets its own test), and new ideas specific to the position. The owner sees the list before the ideas are built.
+2. **Sweep** (`tune.py --stage sweep`): every idea at every strength, alone against the shipped model, tuning seasons only.
+3. **Tune** (`--stage tune`): round 1's method, started from the sweep's best values, then a refine step between grid points.
+4. **Check** (`--stage check`): 2025 opened once; kept if better beyond chance on all weeks together, on both sets of seasons.
+5. **Stop:** results to the ledger and `api/backtest/tuning/<POS>.md`, then a review with the owner before the next position.
+
+Data the new ideas need (depth charts, nflverse expected points, air yards, weekly rosters) is loaded straight from nflverse inside the backtest only; the live app is untouched until something is kept (backlog M-22). Before a version ships, the 2026 weeks played so far get their one look.
 
 ## How the tuners work
 
