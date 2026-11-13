@@ -84,6 +84,13 @@ Everything ESPN-shaped was written from earlier knowledge of the API and tested 
 | V-43 | **The scheduled nflverse job with the new downloads.** The ingest now also fetches weekly injury reports and weekly rosters (reserve lists). The ingest function was run by hand against real nflverse for 2021-2026 (58,151 injury rows) and its tests pass, but the worker's own daily run hasn't been watched with them. | The daily job runs at its own time | After the next scheduled run, check `injury_reports` has the current week and the job log shows `injury_reports=` | Worker log, `injury_reports` table | Open |
 | V-42 | **ESPN rate limits and blocking.** The client retries 429/5xx politely and polls only during game windows, but ESPN's real limits for a shared server address are unknown. | Unofficial API | Watch the worker log for 429s over a real Sunday; see V-35 | Real Sunday | Open |
 
+## Added in P4 (2026-11-13)
+
+| ID | What isn't verified | Why not | How to test | Where | Status |
+|---|---|---|---|---|---|
+| V-44 | **Model 1.1.0 on the screens.** The stored week 10 projections were checked in the database (four running backs, three leagues, matching the hand-run numbers exactly), but no screen was opened: the Player screen's new factors (betting market, carry volume, first game back) and the Accuracy page with two versions for one week. | Shipped from the terminal | Open a running back on the Player screen and read the factors; after week 10 is graded, switch Accuracy between 1.0.0 and 1.1.0 | Browser | Open |
+| V-45 | **Betting lines kept fresh by the daily ingest.** The lines were back-filled by hand for 2021-2026 (all games to week 10 of 2026 have one); the scheduled job now writes them too, but its run has not been watched. Lines move during the week, so a projection uses whatever was stored at its last compute. | The daily job runs at its own time | After the next 10:00 UTC run, check `nfl_games.spread_line` for next week's games | Worker log, `nfl_games` | Open |
+
 ## Verified
 
 | ID | What | When | How |
