@@ -865,7 +865,7 @@
           "leagues"
         ],
         "summary": "Refresh League",
-        "description": "Queue a sync now. Returns the running job if one is already in flight.\n\nRate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS).",
+        "description": "Queue a sync now. Returns the running job if one is already in flight.\n\nRate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS), counted from when the\nuser's last refresh finished, so a slow sync does not shorten the wait.",
         "operationId": "refresh_league",
         "parameters": [
           {

@@ -200,7 +200,8 @@ export interface paths {
          * Refresh League
          * @description Queue a sync now. Returns the running job if one is already in flight.
          *
-         *     Rate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS).
+         *     Rate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS), counted from when the
+         *     user's last refresh finished, so a slow sync does not shorten the wait.
          */
         post: operations["refresh_league"];
         delete?: never;
