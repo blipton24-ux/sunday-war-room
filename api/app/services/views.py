@@ -50,6 +50,7 @@ from app.schemas import (
 )
 from app.services.live import live_games_for_week
 from app.services.projections import GameInfo, has_kicked_off, week_games
+from app.services.versions import choose_projections, shown_version
 
 ESTIMATED_GAME_LENGTH_S = 3 * 3600  # when the scoreboard is down: a game lasts about 3 hours
 
@@ -78,18 +79,16 @@ def headshot(p: Player) -> str | None:
 async def load_week(db: AsyncSession, league: League, week: int, player_ids: set[int]) -> WeekData:
     key = league.scoring_key or scoring_key(league.scoring_rules)
     players = {p.id: p for p in await db.scalars(select(Player).where(Player.id.in_(player_ids)))}
-    projections = {
-        pr.player_id: pr
-        for pr in await db.scalars(
+    projections = choose_projections(  # frozen rows keep their version (backlog M-01)
+        await db.scalars(
             select(Projection).where(
                 Projection.player_id.in_(player_ids),
                 Projection.season == league.season,
                 Projection.week == week,
                 Projection.scoring_key == key,
-                Projection.model_version == MODEL_VERSION,
             )
         )
-    }
+    )
     games = await week_games(db, league.season, week)
     final_teams = await _final_teams(db, league.season, week)
 
@@ -321,7 +320,7 @@ async def matchup_view(
         league_id=league.id,
         week=week,
         as_of=league.last_synced_at,
-        model_version=MODEL_VERSION,
+        model_version=shown_version(w.projections.values()),
         me=me,
         opponent=opponent,
         outlook=outlook(me.starters, opponent.starters) if opponent else None,
@@ -383,7 +382,7 @@ async def lineup_view(
         league_id=league.id,
         week=week,
         as_of=league.last_synced_at,
-        model_version=MODEL_VERSION,
+        model_version=shown_version(w.projections.values()),
         starters=starters,
         bench=[lines[e.player_id] for e in entries if not e.is_starter],
         optimal=result.slots,
@@ -448,13 +447,34 @@ async def player_projection_view(
     )
 
 
-async def accuracy_view(db: AsyncSession, league: League) -> AccuracyOut:
-    """Genuine (pre-kickoff), graded projections for players rostered in this league."""
+async def accuracy_view(
+    db: AsyncSession, league: League, model_version: str | None = None
+) -> AccuracyOut:
+    """Genuine (pre-kickoff), graded projections for players rostered in this league.
+
+    One model version at a time (default: the current one): projections from different versions
+    are never averaged together. `available_versions` lists every version with graded rows, so
+    the history before a version bump stays reachable (backlog M-01).
+    """
     key = league.scoring_key or scoring_key(league.scoring_rules)
+    version = model_version or MODEL_VERSION
     rostered = (
         select(RosterEntry.player_id)
         .join(Team, Team.id == RosterEntry.team_id)
         .where(Team.league_id == league.id)
+    )
+    available = sorted(
+        await db.scalars(
+            select(Projection.model_version)
+            .join(ProjectionGrade, ProjectionGrade.projection_id == Projection.id)
+            .where(
+                Projection.scoring_key == key,
+                Projection.season == league.season,
+                Projection.player_id.in_(rostered),
+                ProjectionGrade.genuine.is_(True),
+            )
+            .distinct()
+        )
     )
     rows = (
         await db.execute(
@@ -464,15 +484,16 @@ async def accuracy_view(db: AsyncSession, league: League) -> AccuracyOut:
             .where(
                 Projection.scoring_key == key,
                 Projection.season == league.season,
-                Projection.model_version == MODEL_VERSION,
+                Projection.model_version == version,
                 Projection.player_id.in_(rostered),
                 ProjectionGrade.genuine.is_(True),
             )
         )
     ).all()
     if not rows:
-        return AccuracyOut(league_id=league.id, model_version=MODEL_VERSION, n=0, mae=None,
-                           bias=None, coverage_80=None, by_position={}, weeks=[])  # fmt: skip
+        return AccuracyOut(league_id=league.id, model_version=version, n=0, mae=None,
+                           bias=None, coverage_80=None, by_position={}, weeks=[],
+                           available_versions=available)  # fmt: skip
     df = pd.DataFrame(
         [
             {"position": pos, "season": pr.season, "week": pr.week, "proj": pr.points,
@@ -495,7 +516,7 @@ async def accuracy_view(db: AsyncSession, league: League) -> AccuracyOut:
         )
     return AccuracyOut(
         league_id=league.id,
-        model_version=MODEL_VERSION,
+        model_version=version,
         n=overall["n"],
         mae=round(overall["mae"], 2),
         bias=round(overall["bias"], 2),
@@ -509,4 +530,5 @@ async def accuracy_view(db: AsyncSession, league: League) -> AccuracyOut:
             for pos, v in by_pos.items()
         },
         weeks=weeks,
+        available_versions=available,
     )

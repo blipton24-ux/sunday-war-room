@@ -18,6 +18,7 @@ from app.db.models import (
     LeagueMembership,
     NflGame,
     Player,
+    PlayerStatusSnapshot,
     PlayerWeekStats,
     Projection,
     ProjectionGrade,
@@ -294,3 +295,64 @@ async def test_grades_use_the_leagues_own_scoring_on_the_real_stat_line(
     )
     assert graded == pytest.approx(12.0)
     assert await grade_finished(db, 2026) == 0  # nothing left to grade
+
+
+# --------------------------------------------------------------------------- model versions (M-01)
+async def test_a_version_bump_does_not_make_past_weeks_disappear(
+    db: AsyncSession, world: dict[str, Any], client: httpx.AsyncClient
+) -> None:
+    """Frozen rows keep their own version on screen, and Accuracy history stays reachable."""
+    league, user = world["league"], world["user"]
+    h = auth_headers(user.id)
+    await compute_projections(db, league, 9, now=BEFORE)
+    await compute_projections(db, league, 9, now=AFTER)  # games have started: rows freeze
+    await db.execute(update(NflGame).values(home_score=21, away_score=17))  # games final
+    await db.commit()
+    await grade_finished(db, 2026)
+
+    # The code moves to a new model version; every stored row now belongs to the old one.
+    await db.execute(update(Projection).values(model_version="0.9.0"))
+    await db.commit()
+
+    matchup = (await client.get(f"/api/v1/leagues/{league.id}/matchup?week=9", headers=h)).json()
+    starters = matchup["me"]["starters"]
+    assert starters and all(s["projection"] is not None for s in starters)
+    assert matchup["model_version"] == "0.9.0"  # the version that froze what is shown
+
+    now_version = await client.get(f"/api/v1/leagues/{league.id}/accuracy", headers=h)
+    body = now_version.json()
+    assert body["n"] == 0 and body["available_versions"] == ["0.9.0"]  # nothing graded yet
+    assert body["model_version"] != "0.9.0"
+    old = (
+        await client.get(f"/api/v1/leagues/{league.id}/accuracy?model_version=0.9.0", headers=h)
+    ).json()
+    assert old["model_version"] == "0.9.0" and old["n"] > 0 and old["weeks"][0]["week"] == 9
+
+
+async def test_status_snapshots_are_kept_only_when_something_changed(
+    db: AsyncSession, world: dict[str, Any]
+) -> None:
+    """M-11: the app's injury and depth-chart knowledge is recorded for future model tests."""
+    league = world["league"]
+    t0 = datetime.now(UTC)  # still before the week-9 kickoff, and later than the sync's own run
+    await compute_projections(db, league, 9, now=t0)
+    first = len((await db.scalars(select(PlayerStatusSnapshot))).all())
+    assert first > 300  # a row for every computed player
+
+    await compute_projections(db, league, 9, now=t0 + timedelta(minutes=1))
+    assert len((await db.scalars(select(PlayerStatusSnapshot))).all()) == first  # nothing changed
+
+    player = await db.get(Player, await db.scalar(select(Projection.player_id).limit(1)))
+    assert player is not None
+    player.injury_status = "Questionable"
+    await db.commit()
+    await compute_projections(db, league, 9, now=t0 + timedelta(minutes=2))
+    mine = (
+        await db.scalars(
+            select(PlayerStatusSnapshot)
+            .where(PlayerStatusSnapshot.player_id == player.id)
+            .order_by(PlayerStatusSnapshot.captured_at)
+        )
+    ).all()
+    assert mine[-1].injury_status == "Questionable" and mine[-2].injury_status is None
+    assert len((await db.scalars(select(PlayerStatusSnapshot))).all()) == first + 1

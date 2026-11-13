@@ -8,7 +8,7 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import PlayerWeekStats
+from app.db.models import InjuryReport, NflGame, PlayerWeekStats
 from app.model.scoring import score
 
 
@@ -42,12 +42,50 @@ async def load_stat_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFra
     return pd.DataFrame(records)
 
 
-def scored_history(stat_rows: pd.DataFrame, rules: Mapping[str, float]) -> pd.DataFrame:
-    """History in the model's shape: key columns + `points` under these scoring rules."""
+async def load_injury_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFrame:
+    """Weekly injury designations and reserve-list status, for backtests."""
+    rows = await db.execute(
+        select(
+            InjuryReport.gsis_id,
+            InjuryReport.season,
+            InjuryReport.week,
+            InjuryReport.report_status,
+            InjuryReport.roster_status,
+        ).where(InjuryReport.season.in_(list(seasons)))
+    )
+    return pd.DataFrame(
+        rows.all(), columns=["gsis_id", "season", "week", "report_status", "roster_status"]
+    )
+
+
+async def load_game_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFrame:
+    """Stored regular-season games with scores and betting lines (model 1.1.0's game context)."""
+    rows = await db.execute(
+        select(
+            NflGame.season, NflGame.week, NflGame.home, NflGame.away, NflGame.spread_line,
+            NflGame.total_line, NflGame.home_score, NflGame.away_score,
+        ).where(NflGame.season.in_(list(seasons)), NflGame.game_type == "REG")
+    )  # fmt: skip
+    return pd.DataFrame(
+        rows.all(),
+        columns=["season", "week", "home", "away", "spread_line", "total_line", "home_score",
+                 "away_score"],
+    )  # fmt: skip
+
+
+def scored_history(
+    stat_rows: pd.DataFrame, rules: Mapping[str, float], keep: Sequence[str] = ()
+) -> pd.DataFrame:
+    """History in the model's shape: key columns + `points` under these scoring rules.
+
+    `keep` names extra raw stat columns (targets, carries, ...) to carry along for the P4
+    experiments; live code passes none, so its frame is unchanged."""
     if stat_rows.empty:
         return pd.DataFrame(
             columns=["gsis_id", "season", "week", "position", "team", "opponent", "points", "snap"]
         )
     out = stat_rows[["gsis_id", "season", "week", "position", "team", "opponent", "snap"]].copy()
     out["points"] = score(stat_rows, rules)
+    for column in keep:
+        out[column] = stat_rows[column].fillna(0.0) if column in stat_rows else 0.0
     return out

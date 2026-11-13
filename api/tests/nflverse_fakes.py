@@ -35,7 +35,8 @@ def team_stats(rows: list[dict[str, Any]]) -> pl.DataFrame:
 
 
 def schedules(rows: list[dict[str, Any]]) -> pl.DataFrame:
-    base = {"game_type": "REG", "gameday": "2026-09-13", "gametime": "13:00"}
+    base = {"game_type": "REG", "gameday": "2026-09-13", "gametime": "13:00",
+            "spread_line": None, "total_line": None}  # fmt: skip
     df = pl.DataFrame([base | r for r in rows])
     assert set(SCHEDULE_COLUMNS) <= set(df.columns)
     return df
@@ -43,6 +44,26 @@ def schedules(rows: list[dict[str, Any]]) -> pl.DataFrame:
 
 def snap_counts(rows: list[dict[str, Any]]) -> pl.DataFrame:
     return pl.DataFrame([{"game_type": "REG"} | r for r in rows])
+
+
+def injuries(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    """Raw nflverse injury rows: one per practice day, so a player-week can have several."""
+    base = {
+        "game_type": "REG", "report_status": None, "practice_status": None,
+        "report_primary_injury": None, "date_modified": "2026-09-10T00:00:00Z",
+    }  # fmt: skip
+    return pl.DataFrame(
+        [base | r for r in rows],
+        schema_overrides={
+            "report_status": pl.String,
+            "practice_status": pl.String,
+            "report_primary_injury": pl.String,
+        },
+    )
+
+
+def rosters_weekly(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    return pl.DataFrame([{"game_type": "REG", "status": "ACT"} | r for r in rows])
 
 
 def ff_playerids(rows: list[dict[str, Any]]) -> pl.DataFrame:

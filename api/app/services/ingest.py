@@ -16,7 +16,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import NflGame, Player, PlayerWeekStats
+from app.db.models import InjuryReport, NflGame, Player, PlayerWeekStats
 from app.logging import get_logger
 from app.nfl_teams import defense_key
 from app.sources import nflverse
@@ -35,6 +35,7 @@ class NflverseFrames:
     defense_stats: pl.DataFrame
     snaps: pl.DataFrame
     ids: pl.DataFrame
+    injuries: pl.DataFrame | None = None
 
 
 def fetch_frames(seasons: Sequence[int]) -> NflverseFrames:
@@ -47,6 +48,7 @@ def fetch_frames(seasons: Sequence[int]) -> NflverseFrames:
         defense_stats=nflverse.load_defense_stats(seasons, schedule),
         snaps=nflverse.load_snap_shares(seasons, ids),
         ids=ids,
+        injuries=nflverse.load_injury_reports(seasons),
     )
 
 
@@ -70,6 +72,8 @@ async def upsert_games(db: AsyncSession, schedule: pl.DataFrame) -> int:
                     "home": ex.home,
                     "away": ex.away,
                     "week": ex.week,
+                    "spread_line": ex.spread_line,
+                    "total_line": ex.total_line,
                 },
             )
         )
@@ -112,6 +116,14 @@ async def replace_week_stats(db: AsyncSession, rows: list[dict[str, Any]]) -> in
     seasons = sorted({r["season"] for r in rows})
     await db.execute(delete(PlayerWeekStats).where(PlayerWeekStats.season.in_(seasons)))
     await _bulk_insert(db, PlayerWeekStats, rows)
+    return len(rows)
+
+
+async def replace_injury_reports(db: AsyncSession, injuries: pl.DataFrame) -> int:
+    rows = injuries.to_dicts()
+    seasons = sorted({r["season"] for r in rows})
+    await db.execute(delete(InjuryReport).where(InjuryReport.season.in_(seasons)))
+    await _bulk_insert(db, InjuryReport, rows)
     return len(rows)
 
 
@@ -169,9 +181,18 @@ async def ingest_nflverse(db: AsyncSession, seasons: Sequence[int]) -> dict[str,
     frames = await asyncio.to_thread(fetch_frames, seasons)
     games = await upsert_games(db, frames.schedule)
     stats = await replace_week_stats(db, stats_rows(frames))
+    injuries = (
+        await replace_injury_reports(db, frames.injuries) if frames.injuries is not None else 0
+    )
     linked = await apply_crosswalk(db, frames.ids)
     espn = await fill_espn_ids(db, frames.ids)
     await db.commit()
-    result = {"games": games, "player_weeks": stats, "players_linked": linked, "espn_ids": espn}
+    result = {
+        "games": games,
+        "player_weeks": stats,
+        "players_linked": linked,
+        "espn_ids": espn,
+        "injury_reports": injuries,
+    }
     log.info("nflverse_ingested", seasons=list(seasons), **result)
     return result

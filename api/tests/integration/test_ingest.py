@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import NflGame, Player, PlayerWeekStats
+from app.db.models import InjuryReport, NflGame, Player, PlayerWeekStats
 from app.services import ingest
 from app.services.ingest import NflverseFrames
 
@@ -42,7 +42,20 @@ def frames(receiving_yards: float = 80.0) -> NflverseFrames:
     )  # fmt: skip
     snaps = pl.DataFrame({"gsis_id": ["00-1"], "season": [2026], "week": [1], "offense_pct": [0.9]})
     ids = pl.DataFrame({"gsis_id": ["00-1"], "sleeper_id": ["9001"], "espn_id": ["4426515"]})
-    return NflverseFrames(schedule, player_stats, defense, snaps, ids)
+    injuries = pl.DataFrame(
+        {
+            "gsis_id": ["00-1"],
+            "season": [2026],
+            "week": [1],
+            "report_status": ["Questionable"],
+            "roster_status": ["RES"],
+            "practice_status": ["Limited"],
+            "injury": [
+                "Hamstring, Ankle, Knee, Shoulder, Concussion, Illness, Back, Foot, Calf, Groin"
+            ],
+        }
+    )
+    return NflverseFrames(schedule, player_stats, defense, snaps, ids, injuries)
 
 
 async def test_ingest_is_idempotent_and_links_players(
@@ -77,6 +90,10 @@ async def test_ingest_is_idempotent_and_links_players(
     espn = dict((await db.execute(select(Player.sleeper_id, Player.espn_id))).all())
     assert espn["9001"] == "4426515"  # filled for headshots
     assert second["players_linked"] == 0  # nothing changed the second time
+    assert first["injury_reports"] == second["injury_reports"] == 1  # replaced, not duplicated
+    injury = await db.get(InjuryReport, ("00-1", 2026, 1))
+    assert injury is not None and injury.report_status == "Questionable"
+    assert injury.roster_status == "RES" and len(injury.injury or "") > 64  # long text fits
 
 
 async def test_crosswalk_moves_an_id_without_tripping_uniqueness(db: AsyncSession) -> None:
