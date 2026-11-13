@@ -1,7 +1,7 @@
 {
   "position": "RB",
   "scoring": "full",
-  "date": "2026-11-12",
+  "date": "2026-11-13",
   "sweep": {
     "shipped_miss": 5.9212,
     "rows": [
@@ -2422,5 +2422,132 @@
       "ypc_regression",
       "carry_volume"
     ]
+  },
+  "tune": {
+    "settings": {
+      "opp_clamp": 0.15,
+      "td_regression": 0.5,
+      "implied_total": 0.3,
+      "return_discount": 0.2,
+      "role_clamp": 0.075,
+      "carry_volume": 0.125
+    },
+    "spec": "opp_clamp=0.15@RB+td_regression=0.5@RB+implied_total=0.3@RB+return_discount=0.2@RB+role_clamp=0.075@RB+carry_volume=0.125@RB",
+    "miss": 5.8276,
+    "steps": [
+      {
+        "step": "shipped",
+        "miss": 5.9212
+      },
+      {
+        "step": "pass 1",
+        "setting": "td_regression",
+        "from": 0.0,
+        "to": 0.5,
+        "miss": 5.9012,
+        "gain": 0.0201
+      },
+      {
+        "step": "pass 1",
+        "setting": "implied_total",
+        "from": 0.0,
+        "to": 0.3,
+        "miss": 5.8692,
+        "gain": 0.032
+      },
+      {
+        "step": "pass 1",
+        "setting": "opp_clamp",
+        "from": 0.25,
+        "to": 0.15,
+        "miss": 5.8503,
+        "gain": 0.0188
+      },
+      {
+        "step": "pass 1",
+        "setting": "return_discount",
+        "from": 0.0,
+        "to": 0.2,
+        "miss": 5.8429,
+        "gain": 0.0074
+      },
+      {
+        "step": "refine 1",
+        "setting": "role_clamp",
+        "from": 0.15,
+        "to": 0.075,
+        "miss": 5.8334,
+        "gain": 0.0096
+      },
+      {
+        "step": "refine 1",
+        "setting": "carry_volume",
+        "from": 0.0,
+        "to": 0.125,
+        "miss": 5.8276,
+        "gain": 0.0058
+      }
+    ]
+  },
+  "check": {
+    "tuning": {
+      "all": {
+        "n": 1905,
+        "shipped": 5.9667,
+        "tuned": 5.8725,
+        "change": -0.0943,
+        "low": -0.1464,
+        "high": -0.0427,
+        "result": "better"
+      },
+      "5+": {
+        "n": 1481,
+        "shipped": 5.9311,
+        "tuned": 5.8306,
+        "change": -0.1006,
+        "low": -0.1615,
+        "high": -0.0401,
+        "result": "better"
+      },
+      "1-4": {
+        "n": 424,
+        "shipped": 6.0912,
+        "tuned": 6.0188,
+        "change": -0.0723,
+        "low": -0.134,
+        "high": -0.0142,
+        "result": "better"
+      }
+    },
+    "check": {
+      "all": {
+        "n": 643,
+        "shipped": 6.2876,
+        "tuned": 6.1271,
+        "change": -0.1605,
+        "low": -0.214,
+        "high": -0.1065,
+        "result": "better"
+      },
+      "5+": {
+        "n": 499,
+        "shipped": 6.4151,
+        "tuned": 6.2428,
+        "change": -0.1723,
+        "low": -0.2252,
+        "high": -0.1171,
+        "result": "better"
+      },
+      "1-4": {
+        "n": 144,
+        "shipped": 5.846,
+        "tuned": 5.7262,
+        "change": -0.1198,
+        "low": -0.2552,
+        "high": -0.0113,
+        "result": "better"
+      }
+    },
+    "kept": true
   }
 }
