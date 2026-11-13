@@ -35,7 +35,8 @@ def team_stats(rows: list[dict[str, Any]]) -> pl.DataFrame:
 
 
 def schedules(rows: list[dict[str, Any]]) -> pl.DataFrame:
-    base = {"game_type": "REG", "gameday": "2026-09-13", "gametime": "13:00"}
+    base = {"game_type": "REG", "gameday": "2026-09-13", "gametime": "13:00",
+            "spread_line": None, "total_line": None}  # fmt: skip
     df = pl.DataFrame([base | r for r in rows])
     assert set(SCHEDULE_COLUMNS) <= set(df.columns)
     return df

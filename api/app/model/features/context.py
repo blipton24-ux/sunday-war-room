@@ -112,5 +112,32 @@ def build_extras(
     )
 
 
+def game_context(games: pd.DataFrame) -> pd.DataFrame:
+    """The live app's stored games (nfl_games: season, week, home, away, spread_line, total_line,
+    home_score, away_score; regular season) in `load_game_context`'s shape, one row per team per
+    game. Conditions (roof, wind, temperature, rest) are not stored, so they are left empty."""
+    sides = []
+    for home in (True, False):
+        me, other = ("home", "away") if home else ("away", "home")
+        sign = 1.0 if home else -1.0
+        spread = pd.to_numeric(games["spread_line"], errors="coerce") * sign
+        total = pd.to_numeric(games["total_line"], errors="coerce")
+        sides.append(
+            pd.DataFrame(
+                {
+                    "season": games["season"].astype(int),
+                    "week": games["week"].astype(int),
+                    "roof": None, "temp": np.nan, "wind": np.nan, "rest": np.nan,
+                    "total": total,
+                    "team": games[me], "opponent": games[other], "home": home,
+                    "spread": spread, "implied": total / 2 + spread / 2,
+                    "points_for": pd.to_numeric(games[f"{me}_score"], errors="coerce"),
+                    "points_against": pd.to_numeric(games[f"{other}_score"], errors="coerce"),
+                }
+            )
+        )  # fmt: skip
+    return pd.concat(sides, ignore_index=True)
+
+
 def is_dome(roof: Any) -> bool:
     return str(roof).lower() in {"dome", "closed"}

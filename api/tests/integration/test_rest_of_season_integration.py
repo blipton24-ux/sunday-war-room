@@ -46,9 +46,7 @@ async def test_pool_is_rostered_players_plus_realistic_free_agents(
     assert free_agents and all(p.nfl_team and p.position for p in free_agents)
 
 
-async def test_rest_of_season_through_the_playoffs(
-    db: AsyncSession, world: dict[str, Any]
-) -> None:
+async def test_rest_of_season_through_the_playoffs(db: AsyncSession, world: dict[str, Any]) -> None:
     league = world["league"]
     bye_team = await seed_rest_of_season_schedule(db)
     pool = await projection_pool(db, league, 9)

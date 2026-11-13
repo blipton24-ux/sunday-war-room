@@ -46,6 +46,16 @@ Constants live in `api/app/model/projection.py`; fitted ranges in `api/app/model
 - Ranges are fit in Sleeper default half-PPR and applied to every league's scoring (a v1 simplification).
 - Lineup: exact assignment (Hungarian algorithm), so overlapping flex slots are handled. Win probability: 10,000 seeded draws from a split normal through p10/p50/p90.
 
+## 1.1.0: running backs (2026-11-13)
+Running backs take the settings tuned in P4 round 2 ([ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md), shipped per [ADR-059](../Decisions/ADR-059-P4-Ship-Each-Position-When-It-Passes.md); numbers in [Tuning: RB](../Build-Plan/Tuning/RB.md)). Every other position is unchanged from 1.0.0.
+- **Touchdown luck 50%:** before averaging, half of each game's touchdown points above or below what his targets and carries usually produce is taken out (the rate per opportunity is fit on earlier seasons).
+- **Betting market 30%:** x(1 + 0.3 x (team's implied score / league average implied score so far - 1)); the implied score comes from the stored spread and total (`nfl_games.spread_line`, `total_line`, refreshed by the daily nflverse ingest).
+- **Opponent limit ±15%** (was ±25%); **snap-share role limit ±7.5%** (was ±15%).
+- **First game back -20%:** his first game after weeks on a reserve list (stored injury reports and reserve lists).
+- **Carry volume 12.5%:** a light factor from his recent share of team carries against his season share, times the team's expected carries this week (team carries against the spread, fit on earlier seasons), applied to the rushing part of his points.
+- The live compute loads this season and the five before it, with raw stat columns, for those fits. Rest-of-season value uses the same history but no lines (later weeks have none yet), so the betting-market and carry-volume factors only apply to weekly projections.
+- Results: 2025 held out, all running backs MAE 4.07 (1.0.0: 4.12; season average 4.08); startable running backs, weeks 5+: -0.172 on 2025 and -0.190 on the 2026 weeks 1-9.
+
 ## Ideas under test (P4)
 Each idea is a switch in `api/app/model/config.py` (`ModelConfig`); live code runs `SHIPPED`, which changes only in the commit that bumps `MODEL_VERSION`. An idea is kept by the rule in [ADR-055](../Decisions/ADR-055-P4-Keep-Rule.md) after testing on past seasons ([ADR-054](../Decisions/ADR-054-P4-Test-Every-Idea-One-At-A-Time.md)); results are in the [experiment ledger](../Build-Plan/Model-Experiments.md). `python -m app.scripts.backtest --compare shipped,<idea>` runs the comparison. Games spoiled by an injury are left out of the numbers (`app/model/features/injury_games.py`).
 

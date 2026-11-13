@@ -431,7 +431,7 @@ def main() -> None:
         # Production ranges use every backtested season, including the held-out one.
         seasons = f"{fit_seasons[0]}-{args.test} walk-forward, half-PPR"
         cal = fit_calibration(df, MODEL_VERSION, seasons)
-        CALIBRATION_FILE.write_text(cal.to_json() + "\n", encoding="utf-8")
+        CALIBRATION_FILE.write_text(cal.to_json() + "\n", encoding="utf-8", newline="\n")
         print(f"wrote {CALIBRATION_FILE}")
 
 

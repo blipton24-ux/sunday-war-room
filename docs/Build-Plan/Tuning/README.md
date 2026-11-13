@@ -13,6 +13,6 @@ the numbers; what they mean and what was decided is written up in
 
 Order: RB, WR, TE, QB, DEF, K. A page appears once its position has started.
 
-- [RB](RB.md): done 2026-11-13, passes (2025 all weeks -0.161); owner review pending
+- [RB](RB.md): done 2026-11-13, passes (2025 all weeks -0.161, 2026 weeks 5+ -0.190); **shipped as model 1.1.0**
 
 Related: [Model Experiments](../Model-Experiments.md) · [P4 Build Plan](../P4-Build-Plan.md)

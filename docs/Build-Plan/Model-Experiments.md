@@ -97,7 +97,7 @@ Notes:
 
 Method: [ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md). Each position's numbers are on its own page under [Tuning](Tuning/README.md); this section says what they mean and what was decided. Kept means better beyond chance on all weeks together, on 2022-2024 and on 2025. 2025 was already looked at once in round 1, so a round 2 pass on 2025 is a second look; the 2026 weeks are the final check before anything ships.
 
-### RB (owner review pending)
+### RB: shipped as model 1.1.0 (2026-11-13)
 
 **Sweep** (each setting alone, 2022-2024; [RB page](Tuning/RB.md)): no single idea moved running backs much. The best were touchdown luck at 25% (-0.017, beyond chance) and 50% (-0.021, noise). The three RB ideas the owner approved did not help alone: receiving points with their own memory -0.004 (noise), yards-per-carry luck +0.003 or worse, carry share x expected team carries +0.016 or worse. The depth-chart tier idea hurt at every strength (+0.013 at 10%, +0.15 at full); a likely reason is that a back listed first in a committee does not get a true starter's points, so a whole-tier move overshoots.
 
@@ -123,7 +123,9 @@ Method: [ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md). Ea
 
 Re-checked with `python -m app.scripts.backtest --compare shipped,<RB settings>`: the same numbers (RB weeks 5+ -0.101 and -0.172), and exactly 0.000 at QB, WR and TE, so the settings touch running backs only. All startable players together, weeks 5+: -0.035 on 2022-2024 and -0.061 on 2025.
 
-Before shipping: the 2026 weeks; the betting-market and reserve-list settings need their data loaded live (backlog M-22); `return_discount` sits at the top of its grid, so a stronger value is worth a look in a later pass.
+**Fresh weeks** (2026 weeks 1-9, never used to choose anything; one look): RB startable weeks 5+ **-0.190** (-0.276 to -0.109) better; all startable players weeks 5+ -0.067, weeks 1-4 -0.043. The owner reviewed the RB results and example projections (James Cook, Ashton Jeanty, Kenneth Walker, Jadarian Price) and decided to ship ([ADR-059](../Decisions/ADR-059-P4-Ship-Each-Position-When-It-Passes.md)). Shipped as **1.1.0**: the live compute now reads the stored betting lines, reserve lists and five earlier seasons of raw stats. Held-out 2025, all running backs: MAE 4.07, now better than the season average (4.08; 1.0.0 was 4.12).
+
+Later: `return_discount` sits at the top of its grid, so a stronger value is worth a look; rookies with games are blended with a very low floor (backlog M-25).
 
 ## Candidate list (planned, 2026-11-12)
 

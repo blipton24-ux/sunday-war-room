@@ -47,7 +47,8 @@ TEAM_DEF_COLUMNS: tuple[str, ...] = (
 TEAM_KEY_COLUMNS = ("team", "opponent_team", "season", "week", "season_type")
 
 SCHEDULE_COLUMNS = ("game_id", "season", "game_type", "week", "gameday", "gametime",
-                    "home_team", "away_team", "home_score", "away_score")  # fmt: skip
+                    "home_team", "away_team", "home_score", "away_score", "spread_line",
+                    "total_line")  # fmt: skip
 SNAP_COLUMNS = ("pfr_player_id", "season", "week", "game_type", "offense_pct")
 ROSTER_COLUMNS = ("season", "week", "game_type", "gsis_id", "status")
 GAME_CONTEXT_COLUMNS = ("season", "game_type", "week", "home_team", "away_team", "spread_line",
@@ -166,6 +167,8 @@ def load_schedule(seasons: Sequence[int]) -> pl.DataFrame:
         .alias("kickoff_at"),
         pl.col("home_score").cast(pl.Int32),
         pl.col("away_score").cast(pl.Int32),
+        pl.col("spread_line").cast(pl.Float64),
+        pl.col("total_line").cast(pl.Float64),
     )
 
 

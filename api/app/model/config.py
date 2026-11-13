@@ -100,6 +100,30 @@ class ModelConfig:
             or self.def_run or self.def_sack_int or self.def_schedule_adjust
         )  # fmt: skip
 
+    @property
+    def needs_extras_anywhere(self) -> bool:
+        """Some position's settings read game context (lines, reserve lists)."""
+        return self.needs_extras or any(
+            self.for_position(p).needs_extras for p, _ in self.overrides
+        )
+
+    @property
+    def needs_raw_stats_anywhere(self) -> bool:
+        """Some position's settings read raw stats (targets, carries, touchdowns...)."""
+        return self.needs_raw_stats or any(
+            self.for_position(p).needs_raw_stats for p, _ in self.overrides
+        )
+
+    def without_raw_stats(self) -> ModelConfig:
+        """These settings with every idea that reads raw stats switched off (for a history frame
+        that carries points only)."""
+        return replace(
+            self, xfp_weight=0.0, nfl_xfp_weight=0.0, td_regression=0.0, usage_trend=False,
+            depth_rank=0.0, def_pass=False, def_run=False, def_sack_int=0.0,
+            def_schedule_adjust=False, receiving_half_life=None, ypc_regression=0.0,
+            carry_volume=0.0,
+        )  # fmt: skip
+
     def half_life_for(self, position: str) -> float:
         return dict(self.half_life_by_position).get(position, self.half_life)
 
@@ -110,7 +134,19 @@ class ModelConfig:
         return by_pos.get(position, self.prior_games)
 
 
-SHIPPED = ModelConfig()
+# Model 1.1.0: running backs take the settings tuned in P4 round 2 (ADR-058, kept on 2022-2024,
+# 2025 and the 2026 fresh weeks; docs/Build-Plan/Tuning/RB.md). Every other position runs 1.0.0.
+SHIPPED = ModelConfig().with_override(
+    ("RB",),
+    {
+        "td_regression": 0.5,
+        "implied_total": 0.3,
+        "opp_clamp": 0.15,
+        "return_discount": 0.2,
+        "role_clamp": 0.075,
+        "carry_volume": 0.125,
+    },
+)
 
 CANDIDATES: dict[str, ModelConfig] = {
     "shipped": SHIPPED,
