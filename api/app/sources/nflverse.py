@@ -50,6 +50,10 @@ SCHEDULE_COLUMNS = ("game_id", "season", "game_type", "week", "gameday", "gameti
                     "home_team", "away_team", "home_score", "away_score")  # fmt: skip
 SNAP_COLUMNS = ("pfr_player_id", "season", "week", "game_type", "offense_pct")
 ROSTER_COLUMNS = ("season", "week", "game_type", "gsis_id", "status")
+GAME_CONTEXT_COLUMNS = ("season", "game_type", "week", "home_team", "away_team", "spread_line",
+                        "total_line", "roof", "temp", "wind", "home_rest", "away_rest",
+                        "home_score", "away_score")  # fmt: skip
+DRAFT_COLUMNS = ("season", "round", "pick", "gsis_id", "position")
 INJURY_COLUMNS = ("season", "game_type", "week", "gsis_id", "report_status", "practice_status",
                   "report_primary_injury", "date_modified")  # fmt: skip
 ID_COLUMNS = ("gsis_id", "sleeper_id", "espn_id", "yahoo_id", "pfr_id", "name", "position")
@@ -162,6 +166,47 @@ def load_schedule(seasons: Sequence[int]) -> pl.DataFrame:
         .alias("kickoff_at"),
         pl.col("home_score").cast(pl.Int32),
         pl.col("away_score").cast(pl.Int32),
+    )
+
+
+def load_game_context(seasons: Sequence[int]) -> pl.DataFrame:
+    """Pre-game betting lines and conditions, one row per team per regular-season game (P4).
+
+    `spread` is from the team's side (positive: favoured by that many points), `implied` is the
+    team's implied score from the spread and the total, `rest` the days since its last game.
+    `points_for` / `points_against` are the final score, for rolling team strength; they are
+    only ever read for games before the week being projected.
+    """
+    raw = nfl.load_schedules(list(seasons))
+    check_columns(raw, GAME_CONTEXT_COLUMNS, "schedules")
+    _check_seasons(raw, seasons, "schedules")
+    games = raw.filter(pl.col("game_type") == "REG")
+    common = ["season", "week", "roof", "temp", "wind", "total_line"]
+
+    def side(home: bool) -> pl.DataFrame:
+        me, other = ("home", "away") if home else ("away", "home")
+        sign = 1.0 if home else -1.0
+        return games.select(
+            *common,
+            _canon(f"{me}_team").alias("team"),
+            _canon(f"{other}_team").alias("opponent"),
+            pl.lit(home).alias("home"),
+            (pl.col("spread_line") * sign).alias("spread"),
+            (pl.col("total_line") / 2 + pl.col("spread_line") * sign / 2).alias("implied"),
+            pl.col(f"{me}_rest").alias("rest"),
+            pl.col(f"{me}_score").cast(pl.Float64).alias("points_for"),
+            pl.col(f"{other}_score").cast(pl.Float64).alias("points_against"),
+        )
+
+    return pl.concat([side(True), side(False)]).rename({"total_line": "total"})
+
+
+def load_draft_capital(seasons: Sequence[int]) -> pl.DataFrame:
+    """Draft round and pick for every drafted player in `seasons` (the year he was drafted)."""
+    raw = nfl.load_draft_picks(list(seasons))
+    check_columns(raw, DRAFT_COLUMNS, "draft_picks")
+    return raw.filter(pl.col("gsis_id").is_not_null()).select(
+        "gsis_id", pl.col("season").alias("draft_year"), "round", "pick"
     )
 
 
