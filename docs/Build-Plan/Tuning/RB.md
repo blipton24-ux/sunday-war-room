@@ -1,6 +1,6 @@
 ---
 title: "Round 2 tuning: RB"
-date: 2026-11-12
+date: 2026-11-13
 tags: [build-plan, p4, model, tuning]
 ---
 # Round 2 tuning: RB
@@ -90,5 +90,30 @@ Shipped model's average miss: **5.9212**. Shipped values are not repeated; rows 
 | `depth_rank` | 1.0 | +0.148 (+0.081 to +0.215) worse | +0.205 (+0.129 to +0.274) worse | -0.052 (-0.139 to +0.026) noise |
 | `carry_volume` | 1.0 | +0.187 (+0.125 to +0.247) worse | +0.245 (+0.177 to +0.309) worse | -0.017 (-0.042 to +0.001) noise |
 | `team_offense` | 0.75 | +0.195 (+0.126 to +0.266) worse | +0.207 (+0.131 to +0.282) worse | +0.152 (-0.007 to +0.309) noise |
+
+## Tune: settings combined, tuning seasons 2022-2024
+
+Settings tried in order of their sweep gain; a move is kept only if it lowers the miss by more than 0.004 points.
+
+| Step | Setting | From | To | Miss | Gain |
+|---|---|---|---|---|---|
+| shipped | | | | 5.9212 | |
+| pass 1 | `td_regression` | 0.0 | 0.5 | 5.9012 | 0.0201 |
+| pass 1 | `implied_total` | 0.0 | 0.3 | 5.8692 | 0.0320 |
+| pass 1 | `opp_clamp` | 0.25 | 0.15 | 5.8503 | 0.0188 |
+| pass 1 | `return_discount` | 0.0 | 0.2 | 5.8429 | 0.0074 |
+| refine 1 | `role_clamp` | 0.15 | 0.075 | 5.8334 | 0.0096 |
+| refine 1 | `carry_volume` | 0.0 | 0.125 | 5.8276 | 0.0058 |
+
+Tuned settings: `opp_clamp` 0.15, `td_regression` 0.5, `implied_total` 0.3, `return_discount` 0.2, `role_clamp` 0.075, `carry_volume` 0.125.
+
+## Check: tuned against shipped
+
+| Seasons | All weeks | Weeks 5+ | Weeks 1-4 |
+|---|---|---|---|
+| Tuning 2022-2024 | -0.094 (-0.146 to -0.043) better | -0.101 (-0.162 to -0.040) better | -0.072 (-0.134 to -0.014) better |
+| Check 2025 | -0.161 (-0.214 to -0.106) better | -0.172 (-0.225 to -0.117) better | -0.120 (-0.255 to -0.011) better |
+
+Verdict: **kept** (better beyond chance on all weeks, on both sets of seasons).
 
 Related: [Tuning index](README.md) · [Model Experiments](../Model-Experiments.md) · [P4 Build Plan](../P4-Build-Plan.md)

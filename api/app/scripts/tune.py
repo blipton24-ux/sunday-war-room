@@ -327,9 +327,11 @@ def make_runner(pool: ProcessPoolExecutor | None, position: str, seasons: Sequen
 def write_results(position: str, results: dict[str, Any]) -> None:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     text = json.dumps(results, indent=2, default=str)
-    (RESULTS_DIR / f"{position}.json").write_text(text + "\n", encoding="utf-8")
+    unix = "\n"  # the repo uses LF; Windows would otherwise write CRLF
+    (RESULTS_DIR / f"{position}.json").write_text(text + unix, encoding="utf-8", newline=unix)
     VAULT_DIR.mkdir(parents=True, exist_ok=True)
-    (VAULT_DIR / f"{position}.md").write_text(render(position, results), encoding="utf-8")
+    page = render(position, results)
+    (VAULT_DIR / f"{position}.md").write_text(page, encoding="utf-8", newline=unix)
 
 
 def _cell(d: dict[str, Any]) -> str:

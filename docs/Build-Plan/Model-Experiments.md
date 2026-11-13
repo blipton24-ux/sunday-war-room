@@ -93,6 +93,38 @@ Notes:
 - Every setting that reads betting lines, venue or team strength needs the live compute to load that data first (backlog M-22). Nothing here is shipped; `SHIPPED` is unchanged and the model is still 1.0.0.
 - The fresh 2026 weeks have not been looked at.
 
+## Round 2, 2026-11-13: one position at a time
+
+Method: [ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md). Each position's numbers are on its own page under [Tuning](Tuning/README.md); this section says what they mean and what was decided. Kept means better beyond chance on all weeks together, on 2022-2024 and on 2025. 2025 was already looked at once in round 1, so a round 2 pass on 2025 is a second look; the 2026 weeks are the final check before anything ships.
+
+### RB (owner review pending)
+
+**Sweep** (each setting alone, 2022-2024; [RB page](Tuning/RB.md)): no single idea moved running backs much. The best were touchdown luck at 25% (-0.017, beyond chance) and 50% (-0.021, noise). The three RB ideas the owner approved did not help alone: receiving points with their own memory -0.004 (noise), yards-per-carry luck +0.003 or worse, carry share x expected team carries +0.016 or worse. The depth-chart tier idea hurt at every strength (+0.013 at 10%, +0.15 at full); a likely reason is that a back listed first in a committee does not get a true starter's points, so a whole-tier move overshoots.
+
+**Tune** (combined, 2022-2024): 5.9212 to **5.8276**. Six settings moved:
+
+| Setting | Shipped | Tuned | Plain meaning |
+|---|---|---|---|
+| `td_regression` | 0 | 0.5 | Half of a back's touchdown luck is taken out of his history |
+| `implied_total` | 0 | 0.3 | 30% weight on the betting market's expected score for his team |
+| `opp_clamp` | 0.25 | 0.15 | The opponent can move a projection by at most 15%, not 25% |
+| `return_discount` | 0 | 0.2 | 20% lower in his first game back from a reserve list (the top of the grid; higher was not tried) |
+| `role_clamp` | 0.15 | 0.075 | The snap-share trend can move a projection by at most 7.5% |
+| `carry_volume` | 0 | 0.125 | A light touch of his carry-share trend and his team's expected carries |
+
+**Check:**
+
+| RB, startable, injury games left out | All weeks | Weeks 5+ | Weeks 1-4 |
+|---|---|---|---|
+| Tuning 2022-2024 | **-0.094** (-0.146 to -0.043) better | -0.101 better | -0.072 better |
+| Check 2025 | **-0.161** (-0.214 to -0.107) better | -0.172 better | -0.120 better |
+
+**Passes the keep rule**, on every slice. Against round 1's RB settings (tuning -0.080, check -0.169 on all weeks): about the same on 2025, but now better beyond chance on weeks 5+ of 2022-2024 too, where round 1 was noise. Two ideas that alone did nothing or harm (carry volume, a tighter role factor) earned a small place next to the others; together the package is what helped, as the owner expected.
+
+Re-checked with `python -m app.scripts.backtest --compare shipped,<RB settings>`: the same numbers (RB weeks 5+ -0.101 and -0.172), and exactly 0.000 at QB, WR and TE, so the settings touch running backs only. All startable players together, weeks 5+: -0.035 on 2022-2024 and -0.061 on 2025.
+
+Before shipping: the 2026 weeks; the betting-market and reserve-list settings need their data loaded live (backlog M-22); `return_discount` sits at the top of its grid, so a stronger value is worth a look in a later pass.
+
 ## Candidate list (planned, 2026-11-12)
 
 Every idea below becomes a switch in `ModelConfig`. All switches are built first, then each is backtested one at a time against the best-so-far (ADR-054), then the code tests run once. Status: **built** means the switch exists and is in the sweep; **deferred** has a reason. A row moves into the results table above once it has been judged. Data is free nflverse unless noted.
