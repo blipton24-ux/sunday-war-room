@@ -21,6 +21,7 @@ Bump MODEL_VERSION in the same commit as any change to the math (Integrity rules
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -30,7 +31,7 @@ import pandas as pd
 from app.model.config import SHIPPED, ModelConfig
 from app.model.distribution import Calibration, apply_range
 from app.model.features import defense as defense_features
-from app.model.features import opportunity
+from app.model.features import opportunity, rushing
 from app.model.features.context import LEAGUE_POINTS, Extras, is_dome
 from app.model.features.injury_games import excluded
 
@@ -150,6 +151,88 @@ def _opportunity_fits(
     if extras is not None:
         extras.cache[key] = fits
     return fits
+
+
+DEFAULT_RECEIVING_SHARE = 0.3
+CARRY_LIMITS = (0.7, 1.4)  # the carry-volume factor moves a projection by at most this much
+
+
+def _cached[T](extras: Extras | None, key: tuple[str, int], build: Callable[[], T]) -> T:
+    """A table fitted once per target season, kept on `extras` when there is one."""
+    if extras is not None and key in extras.cache:
+        cached: T = extras.cache[key]
+        return cached
+    value = build()
+    if extras is not None:
+        extras.cache[key] = value
+    return value
+
+
+def _split_baseline(
+    games: pd.DataFrame | None,
+    n: int,
+    prior: float,
+    has_last_season: bool,
+    last_receiving: float | None,
+    half_life: float,
+    receiving_half_life: float,
+    prior_games: float,
+) -> tuple[float, str]:
+    """E-34: rushing and receiving points averaged apart, each part with its own memory.
+    With equal half-lives this is exactly the shipped baseline."""
+    if games is not None and n:
+        rec = (games["points"] * games["rec_share"].fillna(0.0)).to_numpy()
+        rush = games["points"].to_numpy() - rec
+        recent_rec, recent_rush = _ewm(rec, receiving_half_life), _ewm(rush, half_life)
+        own_share = float(games["rec_share"].mean()) if games["rec_share"].notna().any() else 0.0
+    else:
+        recent_rec = recent_rush = 0.0
+        own_share = 0.0
+    if has_last_season and last_receiving is not None:
+        prior_rec = min(last_receiving, prior)
+    else:
+        prior_rec = prior * own_share
+    base_rec = _blend(recent_rec, n, prior_rec, prior_games)
+    base_rush = _blend(recent_rush, n, prior - prior_rec, prior_games)
+    return base_rush + base_rec, (
+        f"; rushing {base_rush:.1f} and receiving {base_rec:.1f} averaged apart"
+    )
+
+
+def _carry_volume(
+    config: ModelConfig,
+    extras: Extras | None,
+    target: dict[Any, Any],
+    ctx: Context,
+    games: pd.DataFrame,
+    team_avg_carries: dict[str, float],
+    fit: rushing.CarryFit | None,
+    opp: Any,
+) -> tuple[float, str] | None:
+    """E-36: his recent share of team carries against his season share, times the carries his
+    team is expected to get this week (from the spread) against its average. Applies to the
+    rushing part of his points only."""
+    shares = games["carry_share"].dropna().to_numpy()
+    if len(shares) < 3 or shares.mean() <= 0:
+        return None
+    window = config.role_window
+    trend = float(shares[-window:].mean() / shares.mean())
+    team = str(target.get("team"))
+    volume, volume_note = 1.0, ""
+    game = extras.game(team, ctx.season, ctx.week) if extras is not None else None
+    spread = game.get("spread") if game else None
+    avg = team_avg_carries.get(team)
+    if fit is not None and avg and spread is not None and not np.isnan(spread):
+        volume = (avg + fit.per_point * float(spread)) / avg
+        volume_note = f"; {team} expected {avg * volume:.0f} carries (average {avg:.0f})"
+    rec_share = float(rushing.receiving_share(games).mean())  # NaN if he never produced
+    rush_frac = 1.0 - (DEFAULT_RECEIVING_SHARE if np.isnan(rec_share) else rec_share)
+    combined = (trend * volume) ** config.carry_volume
+    mult = float(np.clip(1.0 + rush_frac * (combined - 1.0), *CARRY_LIMITS))
+    return mult, (
+        f"Share of team carries last {window} games {shares[-window:].mean():.0%} "
+        f"vs season {shares.mean():.0%}{volume_note}"
+    )
 
 
 DEPTH_LIMITS = (0.6, 1.5)  # a depth-chart change moves a projection by at most this much
@@ -309,6 +392,15 @@ def _project(
             )
         if config.xfp_weight:
             hist = hist.assign(xfp=opportunity.expected_points(hist, fits))
+    if config.ypc_regression:  # E-35: rushing yards at the league's typical yards per carry
+        ypc = _cached(extras, ("ypc", ctx.season), lambda: rushing.fit_ypc(history, ctx.season))
+        hist = hist.assign(points=rushing.regress_ypc(hist, ypc, config.ypc_regression))
+    if config.receiving_half_life is not None:  # E-34
+        hist = hist.assign(rec_share=rushing.receiving_share(hist))
+    if config.carry_volume:  # E-36
+        hist = hist.assign(
+            carry_share=hist["carries"] / rushing.team_carries(hist).where(lambda c: c > 0)
+        )
     if config.nfl_xfp_weight:  # E-04; a game nflverse has no row for counts at face value
         nflverse_xfp = hist["xfp_nflverse"] if "xfp_nflverse" in hist.columns else np.nan
         hist = hist.assign(nxfp=pd.Series(nflverse_xfp, index=hist.index).fillna(hist["points"]))
@@ -345,6 +437,30 @@ def _project(
             str(k): float(v) for k, v in last.groupby("gsis_id")["depth_tier"].median().items()
         }
     mates = _teammates(raw_cur) if config.teammate_out and extras is not None else {}
+    last_split: dict[str, float] = {}
+    if config.receiving_half_life is not None:
+        last_split = {
+            str(k): float(v)
+            for k, v in last.assign(rec_pts=last["points"] * last["rec_share"].fillna(0.0))
+            .groupby("gsis_id")["rec_pts"]
+            .mean()
+            .items()
+        }
+    team_avg_carries: dict[str, float] = {}
+    carry_fit: rushing.CarryFit | None = None
+    if config.carry_volume:
+        per_team_game = raw_cur.groupby(["team", "week"])["carries"].sum()
+        keys: list[Any] = per_team_game.index.tolist()
+        totals: dict[str, list[float]] = {}
+        for (team, _week), carries in zip(keys, per_team_game, strict=True):
+            totals.setdefault(str(team), []).append(float(carries))
+        team_avg_carries = {t: float(np.mean(v)) for t, v in totals.items()}
+        if extras is not None:
+            carry_fit = _cached(
+                extras,
+                ("carries", ctx.season),
+                lambda: rushing.fit_carries_vs_spread(history, extras.games, ctx.season),
+            )
     league_implied = (
         extras.league_implied.get((ctx.season, ctx.week), LEAGUE_POINTS) if extras else 0.0
     )
@@ -376,6 +492,12 @@ def _project(
             recent = _ewm(games["points"].to_numpy(), half_life) if games is not None else 0.0
             prior = prev[0] if prev else float(priors.get(pos, recent))
             base = _blend(recent, n, prior, prior_games)
+            split_note = ""
+            if config.receiving_half_life is not None and pos in ROLE_POSITIONS:
+                base, split_note = _split_baseline(
+                    games, n, prior, prev is not None, last_split.get(str(gid)), half_life,
+                    config.receiving_half_life, prior_games,
+                )  # fmt: skip
             parts = []
             if n:
                 parts.append(f"{n} game{'s' * (n != 1)} this season (recent-weighted {recent:.1f})")
@@ -384,7 +506,7 @@ def _project(
                 if prev
                 else f"typical {pos} value {prior:.1f} (no {ctx.season - 1} games)"
             )
-            note = "Blend of " + " and ".join(parts)
+            note = "Blend of " + " and ".join(parts) + split_note
             if config.xfp_weight and pos in fits and (n or gid in last_xfp):
                 xs = games["xfp"].to_numpy() if games is not None else np.array([])
                 recent_x = _ewm(xs, half_life) if n else 0.0
@@ -434,6 +556,13 @@ def _project(
             mult, note = role
             factors.append(_factor("role", mult, pts * (mult - 1), note))
             pts *= mult
+
+        if config.carry_volume and pos in ROLE_POSITIONS and games is not None and n >= 3:
+            step = _carry_volume(config, extras, t, ctx, games, team_avg_carries, carry_fit, opp)
+            if step is not None:
+                mult, note = step
+                factors.append(_factor("carry volume", mult, pts * (mult - 1), note))
+                pts *= mult
 
         # -- P4 round 2: depth chart, teammates out, first game back -----------------
         for name, mult, note in _availability(

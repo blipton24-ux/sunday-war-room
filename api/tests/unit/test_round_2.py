@@ -387,3 +387,109 @@ def test_a_later_sweep_of_new_settings_joins_the_earlier_one() -> None:
     assert len(again["rows"]) == 1 + 4  # a re-swept setting replaces its old rows
     with pytest.raises(SystemExit, match="re-run it whole"):
         tune.merge_sweep({**both, "shipped_miss": 99.0}, first, GRID)
+
+
+# --------------------------------------------------------------------------- RB ideas (E-34..36)
+def back(rows: list[tuple[int, float, float, float, float]], season: int = 2025) -> pd.DataFrame:
+    """rows: (week, carries, rushing_yards, receptions, receiving_yards) for rb1; points are the
+    full-PPR sum of those."""
+    return games(
+        [
+            {"gsis_id": "rb1", "season": season, "week": w, "position": "RB", "carries": c,
+             "rushing_yards": ry, "receptions": rec, "receiving_yards": recy,
+             "points": 0.1 * ry + rec + 0.1 * recy}
+            for w, c, ry, rec, recy in rows
+        ]
+    )  # fmt: skip
+
+
+def rb_target(team: str = "AAA") -> pd.DataFrame:
+    return target("rb1", "RB", "NOPE", team)
+
+
+def test_split_rushing_and_receiving_equals_the_shipped_baseline_with_one_memory() -> None:
+    hist = pd.concat(
+        [back([(w, 15, 60, 2, 15) for w in range(1, 17)], 2024),
+         back([(1, 20, 120, 1, 5), (2, 10, 30, 6, 60), (3, 18, 90, 3, 20)])]
+    )  # fmt: skip
+    shipped = one(hist, rb_target(), SHIPPED, week=4)
+    same = one(hist, rb_target(), ModelConfig(receiving_half_life=4.0), week=4)
+    assert same["points"] == pytest.approx(shipped["points"])
+    assert "averaged apart" in factor(same, "baseline")["note"]
+    longer = one(hist, rb_target(), ModelConfig(receiving_half_life=14.0), week=4)
+    assert longer["points"] != pytest.approx(shipped["points"])
+
+
+def test_receiving_share_and_yards_per_carry_luck() -> None:
+    from app.model.features import rushing
+
+    df = back([(1, 10, 100, 2, 20), (2, 0, 0, 0, 0)])
+    share = rushing.receiving_share(df)
+    assert share.iloc[0] == pytest.approx((1 + 2) / (1 + 2 + 10))  # half-PPR reference weights
+    assert np.isnan(share.iloc[1])
+    league = back([(w, 20, 80, 0, 0) for w in range(1, 30)], 2024)  # 4.0 a carry
+    ypc = rushing.fit_ypc(pd.concat([league, df]), 2025)
+    assert ypc == {"RB": pytest.approx(4.0)}
+    assert rushing.fit_ypc(df, 2025) == {}  # too few earlier carries to fit
+    # 10 carries for 100 yards: 60 yards above the norm, 6 points; half of it removed
+    assert rushing.regress_ypc(df, ypc, 0.5).iloc[0] == pytest.approx(df["points"].iloc[0] - 3)
+
+
+def test_yards_per_carry_luck_lowers_a_back_running_hot() -> None:
+    league = back([(w, 20, 80, 0, 0) for w in range(1, 30)], 2024).assign(gsis_id="lg")
+    hot = back([(w, 12, 90, 1, 5) for w in (1, 2, 3)])
+    hist = pd.concat([league, hot])
+    shipped = one(hist, rb_target(), SHIPPED, week=4)["points"]
+    assert one(hist, rb_target(), ModelConfig(ypc_regression=0.5), week=4)["points"] < shipped
+
+
+def test_carry_volume_follows_his_share_and_the_teams_expected_carries() -> None:
+    from app.model.features import rushing
+
+    rows = [(w, c, 4 * c, 1, 5) for w, c in ((1, 10), (2, 10), (3, 18), (4, 18))]
+    hist = back(rows)
+    other = games(
+        [{"gsis_id": "rb2", "week": w, "position": "RB", "carries": 20 - c}
+         for w, c in ((1, 10), (2, 10), (3, 18), (4, 18))]
+    )  # fmt: skip
+    hist = pd.concat([hist, other])
+    cfg = ModelConfig(carry_volume=1.0)
+    row = one(hist, rb_target(), cfg, week=5)
+    step = factor(row, "carry volume")
+    assert step["value"] > 1.0 and "Share of team carries last 2 games 90%" in step["note"]
+    assert not has(one(hist, rb_target(), SHIPPED, week=5), "carry volume")
+    # the betting line adds the team's expected carries when a fit and a game exist
+    past = []
+    for s in (2023, 2024):
+        for w in range(1, 18):
+            for team, carries in (("AAA", 30.0), ("KC", 20.0)):
+                past.append({"gsis_id": f"{team}{s}", "season": s, "week": w,
+                             "position": "RB", "team": team, "carries": carries})  # fmt: skip
+    lines = {(t, s, w): {"spread": 5.0 if t == "AAA" else -5.0}
+             for s in (2023, 2024) for w in range(1, 18) for t in ("AAA", "KC")}  # fmt: skip
+    fit = rushing.fit_carries_vs_spread(games(past), lines, 2025)
+    assert fit is not None and fit.per_point == pytest.approx(1.0)
+    assert fit.intercept == pytest.approx(25.0)
+    assert rushing.fit_carries_vs_spread(games(past), {}, 2025) is None
+    assert rushing.fit_carries_vs_spread(games(past), lines, 2023) is None
+    extras = build_extras(schedule())
+    extras.cache[("carries", 2025)] = fit
+    favoured = factor(one(hist, rb_target(), cfg, extras, week=4), "carry volume")
+    assert "expected" in favoured["note"]
+
+
+def test_no_round_2_idea_reads_the_week_being_projected_or_later() -> None:
+    cfg = ModelConfig(
+        nfl_xfp_weight=0.5, depth_rank=0.5, teammate_out=0.1, return_discount=0.1,
+        receiving_half_life=9.0, ypc_regression=0.5, carry_volume=0.5,
+    )  # fmt: skip
+    league = back([(w, 20, 80, 0, 0) for w in range(1, 30)], 2024).assign(gsis_id="lg")
+    past = pd.concat(
+        [league, depth_history(), back([(w, 12, 50, 2, 15) for w in (1, 2, 3)]), room()]
+    ).assign(xfp_nflverse=9.0)
+    future = back([(w, 30, 300, 9, 150) for w in (4, 5, 6)]).assign(xfp_nflverse=40.0, depth_tier=1)
+    extras = build_extras(schedule(), injuries=injuries([("star", 2025, 4, "Out", None)]))
+    for tgt in (rb_target(), depth_target(1), target()):
+        a = one(past, tgt, cfg, extras, week=4)
+        b = one(pd.concat([past, future]), tgt, cfg, extras, week=4)
+        assert a["points"] == b["points"] and a["factors"] == b["factors"]

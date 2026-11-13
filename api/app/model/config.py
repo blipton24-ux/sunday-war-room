@@ -32,6 +32,10 @@ class ModelConfig:
     nfl_xfp_weight: float = 0.0  # E-04: share built from nflverse's own expected points
     td_regression: float = 0.0  # E-03: share of touchdown points replaced by the expected amount
     usage_trend: bool = False  # E-05: target / carry share trend replaces the snap-share role
+    # -- round 2, running backs (ADR-058) -------------------------------------------------------
+    receiving_half_life: float | None = None  # E-34: receiving points get their own memory
+    ypc_regression: float = 0.0  # E-35: share of yards-per-carry luck removed
+    carry_volume: float = 0.0  # E-36: weight on carry share trend x team's expected carries
 
     # -- B. defense against each position -----------------------------------------------------
     def_pass: bool = False  # E-06: passing game allowed to the position, not total points
@@ -91,7 +95,8 @@ class ModelConfig:
     def needs_raw_stats(self) -> bool:
         return bool(
             self.xfp_weight or self.nfl_xfp_weight or self.td_regression or self.usage_trend
-            or self.depth_rank or self.def_pass
+            or self.depth_rank or self.def_pass or self.receiving_half_life is not None
+            or self.ypc_regression or self.carry_volume
             or self.def_run or self.def_sack_int or self.def_schedule_adjust
         )  # fmt: skip
 
