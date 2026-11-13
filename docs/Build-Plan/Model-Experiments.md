@@ -131,6 +131,10 @@ Every idea below becomes a switch in `ModelConfig`. All switches are built first
 | E-31 | `ranges-by-format` | Ranges fitted per scoring format | backtest | I  **second batch: ranges are refit after the point projection settles** |
 | E-32 | `player-type-ranges` | Wider ranges for boom-or-bust players | backtest | I  **second batch** |
 | E-33 | `correlated-sim` | A quarterback and his receivers move together in the simulation | backtest | I  **second batch** |
+| E-34 | `receiving_half_life` | RBs: rushing and receiving points averaged apart, receiving with its own memory length (round 2) | player stats | A |
+| E-35 | `ypc_regression` | RBs: pull yards per carry partway back toward the league's typical rate, fit on earlier seasons (round 2) | player stats | A |
+| E-36 | `carry_volume` | RBs: recent share of team carries against the season share, times the team's expected carries from the spread (fit on earlier seasons), applied to the rushing part (round 2) | player stats, schedules | C |
+| E-37 | goal-line carries | RBs: share of team carries inside the 5 | play-by-play | A  **deferred by the owner (2026-11-13): backlog M-24** |
 
 Not planned: quarterback-change effects (covered by E-11 and E-12), routes run and pressure rates (no free per-game source found).
 

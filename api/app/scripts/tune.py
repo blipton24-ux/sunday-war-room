@@ -79,12 +79,19 @@ ROLE: dict[str, list[Any]] = {
     "usage_trend": [False, True],
     "role_window": [1, 2, 3],
     "role_clamp": [0.0, 0.15, 0.3],
-    "depth_rank": [0.0, 0.5, 1.0],
+    "depth_rank": [0.0, 0.1, 0.25, 0.5, 1.0],
     "teammate_out": [0.0, 0.05, 0.1, 0.2],
 }
 GRIDS: dict[str, dict[str, list[Any]]] = {
     "QB": {**COMMON, **SKILL, "def_sack_int": [0.0, 0.15, 0.3]},
-    "RB": {**COMMON, **SKILL, **ROLE},
+    "RB": {
+        **COMMON,
+        **SKILL,
+        **ROLE,
+        "receiving_half_life": [None, 2.0, 4.0, 6.0, 9.0, 14.0],
+        "ypc_regression": [0.0, 0.25, 0.5, 0.75, 1.0],
+        "carry_volume": [0.0, 0.25, 0.5, 1.0],
+    },
     "WR": {**COMMON, **SKILL, **ROLE},
     "TE": {**COMMON, **SKILL, **ROLE},
     "K": {
