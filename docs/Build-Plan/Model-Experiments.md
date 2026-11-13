@@ -20,7 +20,7 @@ Groups follow the [P4 Build Plan](P4-Build-Plan.md): A opportunity · B defense 
 
 **E-01** (2026-11-12, full PPR, startable players, weeks 5+, injury games left out): the idea was that a 2-point game caused by an injury should not drag down a player's later projections. On the tuning seasons (2022-2024) the change was +0.016 points, an interval of +0.001 to +0.031, so slightly worse; on 2025 it was -0.002 (-0.020 to +0.016), noise; no position moved by more than 0.02. A plausible reason: games where a player was hurt are honest evidence that he gets hurt, and dropping them loses information. Not retried unless the injury rule changes.
 
-## First pass: each idea alone (2026-11-12)
+## Round 1, 2026-11-12: each idea alone
 
 Every built switch at one or two hand-picked strengths, each against the shipped model: `python -m app.scripts.backtest --sweep all --scoring full`. Change in average miss in points (negative is better) with its 95% interval, startable players, injury games left out, best first. **Keep rule** is ADR-055 applied to the idea at that one strength for all positions together.
 
@@ -64,44 +64,11 @@ What it shows:
 - **Opportunity ideas carry the gain.** A quarter of the projection from volume (`xfp-blend-25`) and half of touchdown luck removed (`td-regression`) pass the keep rule on their own. Stronger doses help more in weeks 1-4 and on 2025 but cost quarterbacks up to 0.17 points, which is why strength is tuned per position below.
 - **Team-level multipliers hurt at these strengths** (`team-offense`, `implied-total`, `def-schedule-adjust`, `usage-trend`): a plausible reason is that a player's own recent points already contain most of what his team's scoring says, so multiplying again counts it twice.
 - **Zero rows are expected, not broken:** `kicker-model` and `defense-model` only touch K and DEF, which are outside the startable slice (they are judged in their own tuners below); `rookie-prior` only touches players with no history, who are almost never among a week's startable picks by season average; `opener-weights` only touches weeks 1-4.
-- These rows are a first look at single strengths. The verdict per idea and position comes from the tuners.
+- These rows are a first look at single strengths, all positions graded together. The verdict per idea and position comes from the tuners below, and from round 2.
 
-## Per-position tuners
+## Round 1, 2026-11-12: per-position tuners (full PPR, injury games left out)
 
-How they work: [P4 Build Plan](P4-Build-Plan.md#how-the-tuners-work). Tuned on 2022-2024 only; 2025 opened once at the end. Kickers and defenses are judged on every game (they are not in the startable slice), all weeks.
-
-| Position       | Settings the tuner chose                                                                      | Tuning 2022-2024                                | Check 2025                                      | Verdict                                                                                                                          |
-| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| K              | `half_life` 14, `prior_games` 8, opponent factor off, `kicker_model` 0.3, `wind_penalty` 0.06 | 3.863 → 3.751, -0.112 (-0.157 to -0.066) better | 3.915 → 3.885, -0.030 (-0.095 to +0.037) noise  | **not kept**: the 2025 gain is inside the noise                                                                                  |
-| DEF            | `prior_games` 8, `opp_clamp` 0.4                                                              | 4.412 → 4.370, -0.042 (-0.079 to -0.003) better | 4.633 → 4.551, -0.082 (-0.149 to -0.011) better | **passes** on all weeks together; weeks 5+ alone (-0.037, -0.084) and weeks 1-4 alone (-0.056, -0.075) are each inside the noise |
-| QB, RB, WR, TE | running                                                                                       |                                                 |                                                 |                                                                                                                                  |
-
-**K** (2026-11-12): five settings moved and the tuning seasons improved by 0.11 points, but 2025 kept only 0.03 of it. This is the pattern the check season exists to catch: five dials turned on 1,631 kicker games fit those games. The direction is the same in both sets (longer memory, no opponent factor, a little of the team's expected score), so it is worth retrying with fewer dials or more seasons.
-
-**DEF** (2026-11-12): two changes, both in the direction of trusting a defense's longer record more (last season counts like 8 games instead of 3) and letting the opponent move the number further (up to 40%). `defense_model` (the opposing team's expected score) was tried at every strength and never beat the 0.004 threshold.
-
-## Results, 2026-11-12 (full PPR, injury games left out)
-
-**Each idea alone against 1.0.0** (startable players, weeks 5+; change in average miss, tuning 2022–2024 / check 2025):
-
-| Idea | Tuning | Check | Verdict |
-|---|---|---|---|
-| E-03 touchdown regression 50% | -0.031 better | -0.059 better | passes |
-| E-02 volume blend 25% | -0.028 better | -0.055 better | passes |
-| E-02 volume blend 50% / 75% | -0.028 / +0.001 noise | -0.081 / -0.083 better | hurts QB (+0.06 / +0.17): per-position |
-| E-10 softer opponent limits | -0.007 noise | -0.020 better | noise on tuning |
-| E-06 pass defense by position | +0.002 | -0.021 | noise |
-| E-07 run defense by position | +0.010 | +0.027 worse | dropped as a blanket rule |
-| E-09 schedule-adjusted defense | +0.110 worse | +0.048 | dropped |
-| E-08 sack and interception rate | +0.017 worse | +0.015 | dropped |
-| E-11 team offense 25% / 50% | +0.038 / +0.122 worse | +0.061 / +0.154 worse | dropped as a blanket rule |
-| E-12 implied total 30% / 60% | +0.011 / +0.078 | +0.032 / +0.115 worse | dropped as a blanket rule |
-| E-13 game script | +0.021 worse | +0.004 | dropped as a blanket rule |
-| E-05 usage trend | +0.059 worse | +0.094 worse | dropped |
-| E-21 home/away, E-22 wind, E-23 rest | about 0 | about 0 | noise |
-| E-26 half-life 6 / 10 | -0.013 / -0.017 better | -0.005 / -0.001 | noise on check |
-| E-26 half-life 2 / 3, E-27 last season weight 1 / 2 | worse | worse | dropped |
-| E-16 rookie prior, E-17 opener weights | 0 on this slice | 0 | rookies are never in the startable slice; opener weights worse in weeks 1–4 |
+Six tuners ran side by side, one per position; how they work: [P4 Build Plan](P4-Build-Plan.md#how-the-tuners-work).
 
 **Per-position tuning** (`app/scripts/tune.py`; all weeks; startable players, every game for K and DEF). Change in average miss with the 95% interval:
 
@@ -115,6 +82,10 @@ How they work: [P4 Build Plan](P4-Build-Plan.md#how-the-tuners-work). Tuned on 2
 | K | half-life 14, last season 8 games, no opponent factor, team implied score 30%, wind | -0.112 (-0.157 to -0.066) | -0.030 (-0.095 to +0.037) | no: check is noise |
 
 RB + WR + TE + DEF together (QB and K left on 1.0.0): startable players, weeks 5+, **6.163 → 6.033** on the tuning seasons and **6.315 → 6.166** on 2025; weeks 1–4, 6.353 → 6.192 and 5.814 → 5.611. The combined run reproduces each tuner's per-position numbers exactly.
+
+**K** (2026-11-12): five settings moved and the tuning seasons improved by 0.11 points, but 2025 kept only 0.03 of it. This is the pattern the check season exists to catch: five dials turned on 1,631 kicker games fit those games. The direction is the same in both sets (longer memory, no opponent factor, a little of the team's expected score), so it is worth retrying with fewer dials or more seasons.
+
+**DEF** (2026-11-12): two changes, both in the direction of trusting a defense's longer record more (last season counts like 8 games instead of 3) and letting the opponent move the number further (up to 40%). `defense_model` (the opposing team's expected score) was tried at every strength and never beat the 0.004 threshold.
 
 Notes:
 - Ideas that failed as a blanket rule (implied total, team offense, game script, pass defense) were picked by some position tuners at a lower strength alongside the volume blend. They are judged as part of that position's package, on the check season.
