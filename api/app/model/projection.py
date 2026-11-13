@@ -152,6 +152,97 @@ def _opportunity_fits(
     return fits
 
 
+DEPTH_LIMITS = (0.6, 1.5)  # a depth-chart change moves a projection by at most this much
+TEAMMATE_RECENT_WEEKS = 2  # a teammate counts as newly out if he played in this many weeks
+TIER_NAMES = {1: "starter", 2: "next in line", 3: "deeper on the chart"}
+
+
+def _depth_table(
+    history: pd.DataFrame, season: int, extras: Extras | None
+) -> dict[tuple[str, int], float]:
+    """(position, depth tier) -> average points per game, from seasons before `season` only."""
+    key = ("depth", season)
+    if extras is not None and key in extras.cache:
+        cached: dict[tuple[str, int], float] = extras.cache[key]
+        return cached
+    earlier = history[(history["season"] < season) & history["depth_tier"].notna()]
+    means = earlier.groupby(["position", "depth_tier"])["points"].mean()
+    keys: list[Any] = means.index.tolist()
+    table = {(str(p), int(t)): float(v) for (p, t), v in zip(keys, means, strict=True)}
+    if extras is not None:
+        extras.cache[key] = table
+    return table
+
+
+def _teammates(cur: pd.DataFrame) -> dict[tuple[str, str], list[tuple[str, float, int]]]:
+    """(team, position) -> (player, points per game, last week played) for players with 2+
+    games for that team this season (before the projected week)."""
+    if cur.empty:
+        return {}
+    g = cur.groupby(["team", "position", "gsis_id"])
+    stats = g["points"].agg(["mean", "count"]).join(g["week"].max().rename("last"))
+    stats = stats[stats["count"] >= 2]
+    out: dict[tuple[str, str], list[tuple[str, float, int]]] = {}
+    keys: list[Any] = stats.index.tolist()
+    for (team, pos, gid), mean, last in zip(keys, stats["mean"], stats["last"], strict=True):
+        out.setdefault((str(team), str(pos)), []).append((str(gid), float(mean), int(last)))
+    return out
+
+
+def _availability(
+    config: ModelConfig,
+    extras: Extras | None,
+    target: dict[Any, Any],
+    gid: str,
+    pos: str,
+    ctx: Context,
+    games: pd.DataFrame | None,
+    depth_table: dict[tuple[str, int], float],
+    last_tier: dict[str, float],
+    mates: dict[tuple[str, str], list[tuple[str, float, int]]],
+) -> list[tuple[str, float, str]]:
+    """Round 2 ideas (ADR-058): a depth-chart change this week (E-14), a better teammate at his
+    position newly out (E-15), the first game back from a reserve-list stay (E-20)."""
+    steps: list[tuple[str, float, str]] = []
+    if config.depth_rank and depth_table and pos in ROLE_POSITIONS:
+        now = target.get("depth_tier")
+        seen = games["depth_tier"].dropna() if games is not None else pd.Series(dtype=float)
+        usual = float(seen.median()) if len(seen) else last_tier.get(str(gid))
+        if now is not None and not pd.isna(now) and usual is not None and not np.isnan(usual):
+            now_t, usual_t = int(now), round(usual)
+            typical_now = depth_table.get((pos, now_t))
+            typical_usual = depth_table.get((pos, usual_t))
+            if now_t != usual_t and typical_now and typical_usual:
+                ratio = typical_now / typical_usual
+                mult = float(np.clip(1.0 + config.depth_rank * (ratio - 1.0), *DEPTH_LIMITS))
+                note = f"{TIER_NAMES[now_t].capitalize()} this week, usually {TIER_NAMES[usual_t]}"
+                steps.append(("depth chart", mult, note))
+    if extras is None:
+        return steps
+    if config.teammate_out and pos in ROLE_POSITIONS:
+        own = float(games["points"].mean()) if games is not None and len(games) else 0.0
+        out = [
+            m
+            for m, avg, last in mates.get((str(target.get("team")), pos), [])
+            if m != str(gid)
+            and avg > own
+            and last >= ctx.week - TEAMMATE_RECENT_WEEKS
+            and (m, ctx.season, ctx.week) in extras.unavailable
+        ]
+        if out:
+            note = f"A {pos} teammate who outscores him is out this week"
+            steps.append(("teammate out", 1.0 + config.teammate_out, note))
+    if config.return_discount:
+        last_game = int(games["week"].max()) if games is not None and len(games) else 0
+        away = [
+            w for w in range(last_game + 1, ctx.week) if (str(gid), ctx.season, w) in extras.reserve
+        ]
+        if away:
+            note = f"Back from a reserve list (weeks {away[0]}-{away[-1]})"
+            steps.append(("first game back", 1.0 - config.return_discount, note))
+    return steps
+
+
 def _blend(recent: float, n: int, prior: float, prior_games: float) -> float:
     return (n * recent + prior_games * prior) / (n + prior_games)
 
@@ -218,6 +309,9 @@ def _project(
             )
         if config.xfp_weight:
             hist = hist.assign(xfp=opportunity.expected_points(hist, fits))
+    if config.nfl_xfp_weight:  # E-04; a game nflverse has no row for counts at face value
+        nflverse_xfp = hist["xfp_nflverse"] if "xfp_nflverse" in hist.columns else np.nan
+        hist = hist.assign(nxfp=pd.Series(nflverse_xfp, index=hist.index).fillna(hist["points"]))
     if config.usage_trend:
         hist = hist.assign(share=opportunity.usage_share(hist))
 
@@ -240,6 +334,17 @@ def _project(
     last_xfp: dict[str, float] = {}
     if config.xfp_weight:
         last_xfp = {str(k): float(v) for k, v in last.groupby("gsis_id")["xfp"].mean().items()}
+    last_nxfp: dict[str, float] = {}
+    if config.nfl_xfp_weight:
+        last_nxfp = {str(k): float(v) for k, v in last.groupby("gsis_id")["nxfp"].mean().items()}
+    depth_table: dict[tuple[str, int], float] = {}
+    last_tier: dict[str, float] = {}
+    if config.depth_rank and "depth_tier" in hist.columns:
+        depth_table = _depth_table(history, ctx.season, extras)
+        last_tier = {
+            str(k): float(v) for k, v in last.groupby("gsis_id")["depth_tier"].median().items()
+        }
+    mates = _teammates(raw_cur) if config.teammate_out and extras is not None else {}
     league_implied = (
         extras.league_implied.get((ctx.season, ctx.week), LEAGUE_POINTS) if extras else 0.0
     )
@@ -287,6 +392,13 @@ def _project(
                 base_x = _blend(recent_x, n, prior_x, prior_games)
                 base = (1 - config.xfp_weight) * base + config.xfp_weight * base_x
                 note += f"; {config.xfp_weight:.0%} from volume (expected points {base_x:.1f})"
+            if config.nfl_xfp_weight and pos in SKILL and (n or gid in last_nxfp):
+                xs = games["nxfp"].to_numpy() if games is not None else np.array([])
+                recent_x = _ewm(xs, half_life) if n else 0.0
+                prior_x = last_nxfp.get(gid, float(priors.get(pos, recent_x)))
+                base_n = _blend(recent_x, n, prior_x, prior_games)
+                base = (1 - config.nfl_xfp_weight) * base + config.nfl_xfp_weight * base_n
+                note += f"; {config.nfl_xfp_weight:.0%} from nflverse expected points {base_n:.1f}"
         pts = base
         factors.append(_factor("baseline", base, base, note))
 
@@ -321,6 +433,13 @@ def _project(
         if role is not None:
             mult, note = role
             factors.append(_factor("role", mult, pts * (mult - 1), note))
+            pts *= mult
+
+        # -- P4 round 2: depth chart, teammates out, first game back -----------------
+        for name, mult, note in _availability(
+            config, extras, t, gid, pos, ctx, games, depth_table, last_tier, mates
+        ):
+            factors.append(_factor(name, mult, pts * (mult - 1), note))
             pts *= mult
 
         # -- P4 game context: betting lines, weather, rest ---------------------------

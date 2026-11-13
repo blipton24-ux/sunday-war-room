@@ -29,6 +29,7 @@ class ModelConfig:
 
     # -- A. opportunity -----------------------------------------------------------------------
     xfp_weight: float = 0.0  # E-02: share of the baseline built from expected points (volume)
+    nfl_xfp_weight: float = 0.0  # E-04: share built from nflverse's own expected points
     td_regression: float = 0.0  # E-03: share of touchdown points replaced by the expected amount
     usage_trend: bool = False  # E-05: target / carry share trend replaces the snap-share role
 
@@ -45,9 +46,12 @@ class ModelConfig:
 
     # -- D. role and depth --------------------------------------------------------------------
     rookie_prior: bool = False  # E-16: no-history starting value from draft round
+    depth_rank: float = 0.0  # E-14: weight on a change of depth-chart level this week
+    teammate_out: float = 0.0  # E-15: +x when a teammate at his position who outscores him is out
 
     # -- E. injuries --------------------------------------------------------------------------
     skip_injury_games_in_history: bool = False  # E-01 (dropped)
+    return_discount: float = 0.0  # E-20: -x in the first game back from a reserve-list stay
 
     # -- F. game conditions -------------------------------------------------------------------
     home_boost: float = 0.0  # E-21: +x at home, -x away
@@ -79,13 +83,15 @@ class ModelConfig:
         return bool(
             self.team_offense or self.implied_total or self.game_script or self.rookie_prior
             or self.home_boost or self.wind_penalty or self.rest_effect
-            or self.kicker_model or self.defense_model
+            or self.kicker_model or self.defense_model or self.teammate_out
+            or self.return_discount
         )  # fmt: skip
 
     @property
     def needs_raw_stats(self) -> bool:
         return bool(
-            self.xfp_weight or self.td_regression or self.usage_trend or self.def_pass
+            self.xfp_weight or self.nfl_xfp_weight or self.td_regression or self.usage_trend
+            or self.depth_rank or self.def_pass
             or self.def_run or self.def_sack_int or self.def_schedule_adjust
         )  # fmt: skip
 
