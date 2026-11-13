@@ -39,7 +39,7 @@ from app.model.features.context import Extras, build_extras
 from app.model.features.injury_games import excluded, mark_injury_games
 from app.model.projection import MODEL_VERSION, RAW_COLUMNS, Context, project_week
 from app.model.rest_of_season import Horizon, project_rest_of_season
-from app.model.scoring import REFERENCE_RULES
+from app.model.scoring import REFERENCE_RULES, score
 from app.services.history import load_injury_rows, load_stat_rows, scored_history
 from app.sources import nflverse
 
@@ -69,7 +69,11 @@ def walk_forward(
                 actual = actual[actual["position"].isin(positions)]
                 if actual.empty:
                     continue
-            targets = actual[["gsis_id", "position", "team", "opponent"]]
+            # depth_tier (round 2) is read only by the depth idea; shipped settings ignore it
+            targets = actual[
+                ["gsis_id", "position", "team", "opponent"]
+                + (["depth_tier"] if "depth_tier" in actual.columns else [])
+            ]
             proj = project_week(
                 history,
                 targets,
@@ -274,9 +278,27 @@ async def load(seasons: list[int], scoring: str = "half") -> tuple[pd.DataFrame,
         raise SystemExit("No nflverse rows in the database: run the ingest_nflverse job first.")
     history = scored_history(rows, SCORING[scoring], keep=RAW_COLUMNS)
     history["injury_game"] = mark_injury_games(history, injuries)
+    history = with_round_2_columns(history, seasons, SCORING[scoring])
     context = nflverse.load_game_context(seasons).to_pandas()
     draft = nflverse.load_draft_capital(list(range(seasons[0] - 4, seasons[-1] + 1))).to_pandas()
-    return history, build_extras(context, draft)
+    return history, build_extras(context, draft, injuries)
+
+
+KEY_COLUMNS = ["gsis_id", "season", "week"]
+
+
+def with_round_2_columns(
+    history: pd.DataFrame, seasons: list[int], rules: dict[str, float]
+) -> pd.DataFrame:
+    """Backtest-only columns for round 2 ideas (ADR-058): `xfp_nflverse`, nflverse's expected
+    stats scored with these rules (E-04), and `depth_tier`, the depth-chart tier that week (E-14).
+    Both are known before each game's kickoff. Missing values stay empty."""
+    expected = nflverse.load_expected_stats(seasons).to_pandas()
+    expected = expected.merge(history[[*KEY_COLUMNS, "position"]], on=KEY_COLUMNS, how="inner")
+    expected["xfp_nflverse"] = score(expected, rules)
+    depth = nflverse.load_depth_tiers(seasons).to_pandas()
+    out = history.merge(expected[[*KEY_COLUMNS, "xfp_nflverse"]], on=KEY_COLUMNS, how="left")
+    return out.merge(depth, on=KEY_COLUMNS, how="left")
 
 
 def injury_section(df_test: pd.DataFrame, test: int) -> list[str]:

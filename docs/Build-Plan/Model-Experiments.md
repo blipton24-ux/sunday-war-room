@@ -101,7 +101,7 @@ Every idea below becomes a switch in `ModelConfig`. All switches are built first
 |---|---|---|---|---|
 | E-02 | `xfp-blend` | Blend recent points with expected points from opportunity (targets, carries, air yards, red-zone) at league-average efficiency, fit on earlier seasons only | player stats | A |
 | E-03 | `td-regression` | Pull touchdown scoring toward the typical rate for the player's volume | player stats | A |
-| E-04 | `ff-opportunity` | Use nflverse's own expected fantasy points per game instead of ours | `load_ff_opportunity` | A  **deferred: second batch (needs nflverse expected-points data stored and joined)** |
+| E-04 | `ff-opportunity` | Use nflverse's own expected fantasy points per game instead of ours | `load_ff_opportunity` | A  **built for round 2** as `nfl_xfp_weight` (its own share, alongside ours); nflverse's expected stats are scored with the league's rules. Caveat: nflverse fits its expected-value models on many seasons, possibly including later ones, so this idea may look slightly better in a backtest than it can be live |
 | E-05 | `usage-trend` | Target share and carry share trend (last 2 games vs season) replaces the snap-share role factor | player stats | A |
 | E-06 | `def-pass-position` | Opponent factor for QB, WR, TE and receiving RB from passing and receiving yards and touchdowns allowed to that position | player stats by opponent | B |
 | E-07 | `def-run-position` | Opponent factor for RB and QB runs from rushing yards and touchdowns allowed | player stats by opponent | B |
@@ -111,13 +111,13 @@ Every idea below becomes a switch in `ModelConfig`. All switches are built first
 | E-11 | `team-offense` | Team points and plays per game (trailing) scales every player on the team | team stats | C |
 | E-12 | `implied-total` | Team's implied score from the betting spread and total | schedules | C |
 | E-13 | `game-script` | Favourites run more and underdogs pass more, from the spread | schedules | C |
-| E-14 | `depth-rank` | Depth-chart rank adjustment for RB, WR, TE | `load_depth_charts` | D  **deferred: the 2025 depth chart has a new snapshot-based shape with no week column, so the check season needs a snapshot-to-week mapping first** |
-| E-15 | `teammate-out` | Raise a player when a higher-ranked teammate at his position is Out | injuries, depth charts | D  **deferred: needs E-14's depth data** |
+| E-14 | `depth-rank` | Depth-chart rank adjustment for RB, WR, TE | `load_depth_charts` | D  **built for round 2** as `depth_rank`: tiers 1 starter / 2 next in line / 3 deeper (2025+ snapshots: the last one taken before the day of the week's first kickoff; WR1-3 starters, WR4-5 next); the effect is the change against his usual tier, sized from earlier seasons' points per tier |
+| E-15 | `teammate-out` | Raise a player when a higher-ranked teammate at his position is Out | injuries, depth charts | D  **built for round 2** as `teammate_out`, without depth data: a teammate at his position who outscores him, played in the last 2 weeks, and is Out, Doubtful or on a reserve list this week |
 | E-16 | `rookie-prior` | Starting value for players with no history from draft round and pick | `load_draft_picks` | D |
 | E-17 | `opener-weights` | Last-season blend weight tuned for weeks 1-4 | none | D |
 | E-18 | `role-window` | Role factor window and clamp tuned per position | none | D |
 | E-19 | `injury-discount-fit` | Replace the guessed Questionable and Doubtful multipliers with ones fit on past seasons | injury reports | E  **deferred: a backtest only contains players who played, so the discount for players who did not play cannot be measured fairly; needs a different test (projected-and-played versus projected-and-sat)** |
-| E-20 | `return-from-injury` | Reduced workload in the first games back from a reserve-list stay | rosters, injuries | E  **deferred: second batch (rosters and injuries, after the first results)** |
+| E-20 | `return-from-injury` | Reduced workload in the first games back from a reserve-list stay | rosters, injuries | E  **built for round 2** as `return_discount`: the first game after reserve-list weeks |
 | E-21 | `home-away` | Home or away | schedules | F |
 | E-22 | `roof-weather` | Dome, wind and temperature | schedules | F |
 | E-23 | `rest-days` | Short weeks and extra rest | schedules | F |

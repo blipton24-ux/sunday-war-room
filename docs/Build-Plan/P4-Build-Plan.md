@@ -58,6 +58,8 @@ Decided in [ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md).
 
 Data the new ideas need (depth charts, nflverse expected points, air yards, weekly rosters) is loaded straight from nflverse inside the backtest only; the live app is untouched until something is kept (backlog M-22). Before a version ships, the 2026 weeks played so far get their one look.
 
+**Built 2026-11-13:** the staged tuner (`--stage sweep|tune|check`, `--jobs`, `--settings` to add newly built ideas to an earlier sweep; a re-tune after the check keeps the earlier look on record) and the four deferred ideas as settings (`nfl_xfp_weight`, `depth_rank`, `teammate_out`, `return_discount`), tested in `api/tests/unit/test_round_2.py`. On real data, nflverse expected points cover about 90% of QB/RB/WR/TE games and depth tiers 86-96% in every season. Per-position pages: [Tuning](Tuning/README.md).
+
 ## How the tuners work
 
 Built 2026-11-12 after the owner asked for ideas to be kept per position and tuned as far as they will go. Code: `api/app/scripts/tune.py`, settings in `api/app/model/config.py`.
