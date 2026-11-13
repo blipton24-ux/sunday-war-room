@@ -58,12 +58,19 @@ async def load_injury_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataF
     )
 
 
-def scored_history(stat_rows: pd.DataFrame, rules: Mapping[str, float]) -> pd.DataFrame:
-    """History in the model's shape: key columns + `points` under these scoring rules."""
+def scored_history(
+    stat_rows: pd.DataFrame, rules: Mapping[str, float], keep: Sequence[str] = ()
+) -> pd.DataFrame:
+    """History in the model's shape: key columns + `points` under these scoring rules.
+
+    `keep` names extra raw stat columns (targets, carries, ...) to carry along for the P4
+    experiments; live code passes none, so its frame is unchanged."""
     if stat_rows.empty:
         return pd.DataFrame(
             columns=["gsis_id", "season", "week", "position", "team", "opponent", "points", "snap"]
         )
     out = stat_rows[["gsis_id", "season", "week", "position", "team", "opponent", "snap"]].copy()
     out["points"] = score(stat_rows, rules)
+    for column in keep:
+        out[column] = stat_rows[column].fillna(0.0) if column in stat_rows else 0.0
     return out

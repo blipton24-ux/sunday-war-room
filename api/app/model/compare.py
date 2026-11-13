@@ -207,3 +207,65 @@ def render(base: str, cand: str, tuning: pd.DataFrame, check: pd.DataFrame, titl
                 "(could be kept for those positions only)."
             )
     return "\n".join(lines) + "\n"
+
+
+@dataclass(frozen=True)
+class SweepRow:
+    name: str
+    tuning: Diff
+    check: Diff
+    tuning_opener: Diff
+    check_opener: Diff
+    worst_position: tuple[str, float]  # the position that moved most the wrong way (either set)
+    verdict: Verdict
+
+
+def summarize(name: str, tuning: pd.DataFrame, check: pd.DataFrame) -> SweepRow:
+    """One idea against the baseline: the headline slices and the keep-rule verdict."""
+    worst = ("-", float("-inf"))
+    for pos in sorted(metrics.STARTABLE_TOP):
+        for frame in (tuning, check):
+            d = slice_diff(frame, startable=True, weeks="5+", position=pos)
+            if d.n and d.change > worst[1]:
+                worst = (pos, d.change)
+    return SweepRow(
+        name,
+        slice_diff(tuning, startable=True, weeks="5+"),
+        slice_diff(check, startable=True, weeks="5+"),
+        slice_diff(tuning, startable=True, weeks="1-4"),
+        slice_diff(check, startable=True, weeks="1-4"),
+        worst,
+        verdict(tuning, check),
+    )
+
+
+def _cell(d: Diff) -> str:
+    return f"{d.change:+.3f} ({d.low:+.3f} to {d.high:+.3f}) {_flag(d)}"
+
+
+def render_sweep(baseline: str, rows: list[SweepRow], title: str) -> str:
+    """One table for many ideas; startable players, weeks 5+ unless the column says otherwise."""
+    lines = [
+        f"# {title}",
+        "",
+        f"Each idea against `{baseline}`. Change in average miss (points, negative is better) "
+        "with the 95% interval; startable players, injury games left out.",
+        "",
+        "| Idea | Tuning 5+ | Check 5+ | Tuning wk 1-4 | Check wk 1-4 | Worst position "
+        "| Keep rule |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for r in sorted(rows, key=lambda r: r.tuning.change + r.check.change):
+        verdict_text = (
+            "**kept**"
+            if r.verdict.kept
+            else "for " + "/".join(r.verdict.positions_kept)
+            if r.verdict.positions_kept
+            else "no"
+        )
+        lines.append(
+            f"| `{r.name}` | {_cell(r.tuning)} | {_cell(r.check)} | {_cell(r.tuning_opener)} "
+            f"| {_cell(r.check_opener)} | {r.worst_position[0]} {r.worst_position[1]:+.3f} "
+            f"| {verdict_text} |"
+        )
+    return "\n".join(lines) + "\n"

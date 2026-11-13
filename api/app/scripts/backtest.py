@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import sys
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -32,13 +33,15 @@ import pandas as pd
 
 from app.db.session import get_engine, get_sessionmaker
 from app.model import compare, metrics
-from app.model.config import SHIPPED, ModelConfig, by_name
+from app.model.config import CANDIDATES, SHIPPED, ModelConfig, by_name
 from app.model.distribution import CALIBRATION_FILE, apply_range, fit_calibration
+from app.model.features.context import Extras, build_extras
 from app.model.features.injury_games import excluded, mark_injury_games
-from app.model.projection import MODEL_VERSION, Context, project_week
+from app.model.projection import MODEL_VERSION, RAW_COLUMNS, Context, project_week
 from app.model.rest_of_season import Horizon, project_rest_of_season
 from app.model.scoring import REFERENCE_RULES
 from app.services.history import load_injury_rows, load_stat_rows, scored_history
+from app.sources import nflverse
 
 SCORING = {  # the reference rules are Sleeper's half-PPR; ranges are only fit in half-PPR
     "half": REFERENCE_RULES,
@@ -48,7 +51,11 @@ SCORING = {  # the reference rules are Sleeper's half-PPR; ranges are only fit i
 
 
 def walk_forward(
-    history: pd.DataFrame, seasons: list[int], config: ModelConfig = SHIPPED
+    history: pd.DataFrame,
+    seasons: list[int],
+    config: ModelConfig = SHIPPED,
+    extras: Extras | None = None,
+    positions: tuple[str, ...] | None = None,
 ) -> pd.DataFrame:
     """Projection vs actual for every player-game in `seasons`, plus a naive baseline.
 
@@ -58,9 +65,18 @@ def walk_forward(
     for season in seasons:
         for week in sorted(history.loc[history["season"] == season, "week"].unique()):
             actual = history[(history["season"] == season) & (history["week"] == week)]
+            if positions is not None:
+                actual = actual[actual["position"].isin(positions)]
+                if actual.empty:
+                    continue
             targets = actual[["gsis_id", "position", "team", "opponent"]]
             proj = project_week(
-                history, targets, Context(season, int(week)), calibration=None, config=config
+                history,
+                targets,
+                Context(season, int(week)),
+                calibration=None,
+                config=config,
+                extras=extras,
             )
             flag = "injury_game" if "injury_game" in actual.columns else None
             merged = proj[["gsis_id", "position", "points"]].merge(
@@ -246,7 +262,7 @@ def report(
     return "\n".join(lines) + "\n"
 
 
-async def load(seasons: list[int], scoring: str = "half") -> pd.DataFrame:
+async def load(seasons: list[int], scoring: str = "half") -> tuple[pd.DataFrame, Extras]:
     """Scored history with an `injury_game` mark on every row (features/injury_games.py): used to
     pick which games are fair to judge and, as an experiment, to leave out of a player's own
     history."""
@@ -256,9 +272,11 @@ async def load(seasons: list[int], scoring: str = "half") -> pd.DataFrame:
     await get_engine().dispose()
     if rows.empty:
         raise SystemExit("No nflverse rows in the database: run the ingest_nflverse job first.")
-    history = scored_history(rows, SCORING[scoring])
+    history = scored_history(rows, SCORING[scoring], keep=RAW_COLUMNS)
     history["injury_game"] = mark_injury_games(history, injuries)
-    return history
+    context = nflverse.load_game_context(seasons).to_pandas()
+    draft = nflverse.load_draft_capital(list(range(seasons[0] - 4, seasons[-1] + 1))).to_pandas()
+    return history, build_extras(context, draft)
 
 
 def injury_section(df_test: pd.DataFrame, test: int) -> list[str]:
@@ -324,18 +342,49 @@ def main() -> None:
     parser.add_argument(
         "--compare", metavar="BASE,CANDIDATE", help="two names from app/model/config.py"
     )
+    parser.add_argument(
+        "--sweep",
+        metavar="IDEAS",
+        help="comma-separated names (or 'all'), each compared with --baseline in one table",
+    )
+    parser.add_argument("--baseline", default="shipped", help="what --sweep compares against")
     parser.add_argument("--write-calibration", action="store_true")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
 
-    history = asyncio.run(load(list(range(args.first, args.test + 1)), args.scoring))
+    history, extras = asyncio.run(load(list(range(args.first, args.test + 1)), args.scoring))
     fit_seasons = list(range(args.first + 1, args.test))  # first season is history only
+    if args.sweep:
+        names = (
+            [n for n in CANDIDATES if n not in ("shipped", "skip-injury-history")]
+            if args.sweep == "all"
+            else args.sweep.split(",")
+        )
+        graded_seasons = [*fit_seasons, args.test]
+        base_frame = walk_forward(history, graded_seasons, by_name(args.baseline), extras)
+        rows = []
+        for name in names:
+            cand_frame = walk_forward(history, graded_seasons, by_name(name), extras)
+            paired = compare.pair(base_frame, cand_frame)
+            rows.append(
+                compare.summarize(
+                    name,
+                    paired[paired["season"].isin(fit_seasons)],
+                    paired[paired["season"] == args.test],
+                )
+            )
+            print(f"done {name}", file=sys.stderr, flush=True)
+        text = compare.render_sweep(args.baseline, rows, f"Idea sweep ({args.scoring} PPR)")
+        print(text)
+        if args.report:
+            args.report.write_text(text, encoding="utf-8")
+        return
     if args.compare:
         base_name, cand_name = args.compare.split(",")
         graded_seasons = [*fit_seasons, args.test]
         paired = compare.pair(
-            walk_forward(history, graded_seasons, by_name(base_name)),
-            walk_forward(history, graded_seasons, by_name(cand_name)),
+            walk_forward(history, graded_seasons, by_name(base_name), extras),
+            walk_forward(history, graded_seasons, by_name(cand_name), extras),
         )
         text = compare.render(
             base_name,
@@ -348,7 +397,7 @@ def main() -> None:
         if args.report:
             args.report.write_text(text, encoding="utf-8")
         return
-    df = walk_forward(history, [*fit_seasons, args.test])
+    df = walk_forward(history, [*fit_seasons, args.test], extras=extras)
     df_fit, df_test = df[df["season"].isin(fit_seasons)], df[df["season"] == args.test]
 
     ros = rest_of_season_backtest(history, args.test)

@@ -20,15 +20,117 @@ Groups follow the [P4 Build Plan](P4-Build-Plan.md): A opportunity · B defense 
 
 **E-01** (2026-11-12, full PPR, startable players, weeks 5+, injury games left out): the idea was that a 2-point game caused by an injury should not drag down a player's later projections. On the tuning seasons (2022-2024) the change was +0.016 points, an interval of +0.001 to +0.031, so slightly worse; on 2025 it was -0.002 (-0.020 to +0.016), noise; no position moved by more than 0.02. A plausible reason: games where a player was hurt are honest evidence that he gets hurt, and dropping them loses information. Not retried unless the injury rule changes.
 
+## First pass: each idea alone (2026-11-12)
+
+Every built switch at one or two hand-picked strengths, each against the shipped model: `python -m app.scripts.backtest --sweep all --scoring full`. Change in average miss in points (negative is better) with its 95% interval, startable players, injury games left out, best first. **Keep rule** is ADR-055 applied to the idea at that one strength for all positions together.
+
+| Idea | Tuning 5+ | Check 5+ | Tuning wk 1-4 | Check wk 1-4 | Worst position | Keep rule |
+|---|---|---|---|---|---|---|
+| `xfp-blend` | -0.028 (-0.067 to +0.012) noise | -0.081 (-0.129 to -0.032) better | -0.081 (-0.142 to -0.018) better | -0.196 (-0.237 to -0.152) better | QB +0.059 | no |
+| `td-regression` | -0.031 (-0.056 to -0.008) better | -0.059 (-0.087 to -0.025) better | -0.076 (-0.119 to -0.033) better | -0.144 (-0.175 to -0.113) better | QB +0.024 | **kept** |
+| `td-regression-full` | -0.013 (-0.060 to +0.033) noise | -0.073 (-0.127 to -0.007) better | -0.100 (-0.178 to -0.022) better | -0.212 (-0.248 to -0.172) better | QB +0.169 | no |
+| `xfp-blend-25` | -0.028 (-0.048 to -0.008) better | -0.055 (-0.079 to -0.029) better | -0.051 (-0.083 to -0.018) better | -0.119 (-0.150 to -0.091) better | QB -0.002 | **kept** |
+| `xfp-blend-75` | +0.001 (-0.057 to +0.061) noise | -0.083 (-0.152 to -0.012) better | -0.084 (-0.171 to +0.004) noise | -0.251 (-0.300 to -0.202) better | QB +0.168 | no |
+| `opp-shrink-soft` | -0.007 (-0.019 to +0.006) noise | -0.020 (-0.039 to -0.001) better | -0.007 (-0.027 to +0.011) noise | -0.043 (-0.068 to -0.016) better | TE +0.003 | no |
+| `def-pass-position` | +0.002 (-0.011 to +0.015) noise | -0.021 (-0.045 to +0.004) noise | +0.002 (-0.014 to +0.018) noise | -0.002 (-0.017 to +0.010) noise | QB +0.042 | no |
+| `halflife-10` | -0.017 (-0.033 to -0.001) better | -0.001 (-0.028 to +0.027) noise | -0.004 (-0.010 to +0.001) noise | -0.009 (-0.022 to +0.000) noise | WR +0.023 | no |
+| `halflife-6` | -0.013 (-0.023 to -0.004) better | -0.005 (-0.019 to +0.010) noise | -0.002 (-0.005 to +0.001) noise | -0.005 (-0.013 to +0.000) noise | WR +0.006 | no |
+| `roof-weather` | -0.002 (-0.007 to +0.003) noise | -0.011 (-0.026 to +0.000) noise | -0.005 (-0.013 to +0.000) noise | +0.000 (+0.000 to +0.001) noise | WR +0.001 | no |
+| `opp-shrink` | -0.002 (-0.010 to +0.007) noise | -0.011 (-0.023 to +0.001) noise | -0.005 (-0.017 to +0.006) noise | -0.029 (-0.045 to -0.010) better | TE +0.011 | no |
+| `home-away` | -0.007 (-0.020 to +0.006) noise | -0.000 (-0.028 to +0.027) noise | -0.001 (-0.028 to +0.024) noise | +0.008 (-0.010 to +0.038) noise | TE +0.032 | no |
+| `rookie-prior` | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | QB +0.000 | no |
+| `opener-weights` | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.012 (-0.032 to +0.054) noise | +0.082 (+0.007 to +0.176) worse | QB +0.000 | no |
+| `opener-weights-low` | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.073 (+0.026 to +0.134) worse | +0.003 (-0.086 to +0.089) noise | QB +0.000 | no |
+| `kicker-model` | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | QB +0.000 | no |
+| `defense-model` | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | +0.000 (+0.000 to +0.000) noise | QB +0.000 | no |
+| `prior-games-5` | +0.011 (-0.006 to +0.028) noise | -0.004 (-0.027 to +0.022) noise | +0.003 (-0.032 to +0.033) noise | +0.055 (-0.001 to +0.125) noise | QB +0.080 | no |
+| `role-window` | +0.009 (-0.012 to +0.031) noise | +0.008 (-0.025 to +0.041) noise | +0.012 (-0.007 to +0.040) noise | -0.018 (-0.056 to +0.000) noise | RB +0.084 | no |
+| `rest-days` | +0.008 (+0.003 to +0.013) worse | +0.011 (-0.000 to +0.022) noise | +0.004 (-0.004 to +0.013) noise | +0.002 (-0.005 to +0.008) noise | QB +0.030 | no |
+| `game-script` | +0.021 (+0.005 to +0.037) worse | +0.004 (-0.025 to +0.033) noise | -0.018 (-0.053 to +0.021) noise | +0.032 (+0.017 to +0.048) worse | QB +0.045 | no |
+| `def-sack-int` | +0.017 (+0.004 to +0.030) worse | +0.015 (-0.002 to +0.030) noise | -0.003 (-0.024 to +0.021) noise | +0.045 (+0.008 to +0.081) worse | QB +0.115 | no |
+| `halflife-3` | +0.022 (+0.013 to +0.032) worse | +0.014 (+0.000 to +0.028) worse | +0.002 (-0.001 to +0.006) noise | +0.006 (+0.000 to +0.015) noise | TE +0.034 | no |
+| `def-run-position` | +0.010 (-0.012 to +0.032) noise | +0.027 (+0.006 to +0.047) worse | +0.015 (+0.001 to +0.035) worse | +0.016 (-0.018 to +0.049) noise | QB +0.100 | no |
+| `implied-total-30` | +0.011 (-0.012 to +0.034) noise | +0.032 (-0.010 to +0.074) noise | -0.026 (-0.069 to +0.017) noise | +0.110 (+0.086 to +0.136) worse | QB +0.104 | no |
+| `prior-games-2` | +0.018 (+0.006 to +0.030) worse | +0.025 (+0.007 to +0.042) worse | +0.031 (+0.007 to +0.068) worse | -0.008 (-0.060 to +0.037) noise | TE +0.053 | no |
+| `team-offense-25` | +0.038 (+0.017 to +0.061) worse | +0.061 (+0.036 to +0.088) worse | +0.040 (+0.008 to +0.073) worse | +0.132 (+0.079 to +0.190) worse | QB +0.116 | no |
+| `halflife-2` | +0.077 (+0.050 to +0.106) worse | +0.068 (+0.031 to +0.104) worse | +0.007 (-0.002 to +0.018) noise | +0.018 (+0.000 to +0.044) noise | TE +0.110 | no |
+| `usage-trend` | +0.059 (+0.021 to +0.099) worse | +0.094 (+0.028 to +0.165) worse | +0.037 (-0.004 to +0.097) noise | +0.005 (+0.000 to +0.014) noise | RB +0.125 | no |
+| `prior-games-1` | +0.076 (+0.049 to +0.105) worse | +0.079 (+0.040 to +0.115) worse | +0.160 (+0.075 to +0.256) worse | +0.054 (-0.090 to +0.217) noise | TE +0.158 | no |
+| `def-schedule-adjust` | +0.110 (+0.068 to +0.152) worse | +0.048 (-0.025 to +0.121) noise | +0.033 (+0.012 to +0.057) worse | -0.027 (-0.087 to +0.012) noise | WR +0.165 | no |
+| `implied-total` | +0.078 (+0.031 to +0.125) worse | +0.115 (+0.028 to +0.200) worse | -0.017 (-0.105 to +0.070) noise | +0.273 (+0.233 to +0.326) worse | QB +0.315 | no |
+| `team-offense` | +0.122 (+0.079 to +0.167) worse | +0.154 (+0.099 to +0.211) worse | +0.123 (+0.053 to +0.191) worse | +0.307 (+0.207 to +0.432) worse | QB +0.282 | no |
+
+What it shows:
+- **Opportunity ideas carry the gain.** A quarter of the projection from volume (`xfp-blend-25`) and half of touchdown luck removed (`td-regression`) pass the keep rule on their own. Stronger doses help more in weeks 1-4 and on 2025 but cost quarterbacks up to 0.17 points, which is why strength is tuned per position below.
+- **Team-level multipliers hurt at these strengths** (`team-offense`, `implied-total`, `def-schedule-adjust`, `usage-trend`): a plausible reason is that a player's own recent points already contain most of what his team's scoring says, so multiplying again counts it twice.
+- **Zero rows are expected, not broken:** `kicker-model` and `defense-model` only touch K and DEF, which are outside the startable slice (they are judged in their own tuners below); `rookie-prior` only touches players with no history, who are almost never among a week's startable picks by season average; `opener-weights` only touches weeks 1-4.
+- These rows are a first look at single strengths. The verdict per idea and position comes from the tuners.
+
+## Per-position tuners
+
+How they work: [P4 Build Plan](P4-Build-Plan.md#how-the-tuners-work). Tuned on 2022-2024 only; 2025 opened once at the end. Kickers and defenses are judged on every game (they are not in the startable slice), all weeks.
+
+| Position       | Settings the tuner chose                                                                      | Tuning 2022-2024                                | Check 2025                                      | Verdict                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| K              | `half_life` 14, `prior_games` 8, opponent factor off, `kicker_model` 0.3, `wind_penalty` 0.06 | 3.863 → 3.751, -0.112 (-0.157 to -0.066) better | 3.915 → 3.885, -0.030 (-0.095 to +0.037) noise  | **not kept**: the 2025 gain is inside the noise                                                                                  |
+| DEF            | `prior_games` 8, `opp_clamp` 0.4                                                              | 4.412 → 4.370, -0.042 (-0.079 to -0.003) better | 4.633 → 4.551, -0.082 (-0.149 to -0.011) better | **passes** on all weeks together; weeks 5+ alone (-0.037, -0.084) and weeks 1-4 alone (-0.056, -0.075) are each inside the noise |
+| QB, RB, WR, TE | running                                                                                       |                                                 |                                                 |                                                                                                                                  |
+
+**K** (2026-11-12): five settings moved and the tuning seasons improved by 0.11 points, but 2025 kept only 0.03 of it. This is the pattern the check season exists to catch: five dials turned on 1,631 kicker games fit those games. The direction is the same in both sets (longer memory, no opponent factor, a little of the team's expected score), so it is worth retrying with fewer dials or more seasons.
+
+**DEF** (2026-11-12): two changes, both in the direction of trusting a defense's longer record more (last season counts like 8 games instead of 3) and letting the opponent move the number further (up to 40%). `defense_model` (the opposing team's expected score) was tried at every strength and never beat the 0.004 threshold.
+
+## Results, 2026-11-12 (full PPR, injury games left out)
+
+**Each idea alone against 1.0.0** (startable players, weeks 5+; change in average miss, tuning 2022–2024 / check 2025):
+
+| Idea | Tuning | Check | Verdict |
+|---|---|---|---|
+| E-03 touchdown regression 50% | -0.031 better | -0.059 better | passes |
+| E-02 volume blend 25% | -0.028 better | -0.055 better | passes |
+| E-02 volume blend 50% / 75% | -0.028 / +0.001 noise | -0.081 / -0.083 better | hurts QB (+0.06 / +0.17): per-position |
+| E-10 softer opponent limits | -0.007 noise | -0.020 better | noise on tuning |
+| E-06 pass defense by position | +0.002 | -0.021 | noise |
+| E-07 run defense by position | +0.010 | +0.027 worse | dropped as a blanket rule |
+| E-09 schedule-adjusted defense | +0.110 worse | +0.048 | dropped |
+| E-08 sack and interception rate | +0.017 worse | +0.015 | dropped |
+| E-11 team offense 25% / 50% | +0.038 / +0.122 worse | +0.061 / +0.154 worse | dropped as a blanket rule |
+| E-12 implied total 30% / 60% | +0.011 / +0.078 | +0.032 / +0.115 worse | dropped as a blanket rule |
+| E-13 game script | +0.021 worse | +0.004 | dropped as a blanket rule |
+| E-05 usage trend | +0.059 worse | +0.094 worse | dropped |
+| E-21 home/away, E-22 wind, E-23 rest | about 0 | about 0 | noise |
+| E-26 half-life 6 / 10 | -0.013 / -0.017 better | -0.005 / -0.001 | noise on check |
+| E-26 half-life 2 / 3, E-27 last season weight 1 / 2 | worse | worse | dropped |
+| E-16 rookie prior, E-17 opener weights | 0 on this slice | 0 | rookies are never in the startable slice; opener weights worse in weeks 1–4 |
+
+**Per-position tuning** (`app/scripts/tune.py`; all weeks; startable players, every game for K and DEF). Change in average miss with the 95% interval:
+
+| Position | Tuned settings | Tuning | Check 2025 | Both beyond chance? |
+|---|---|---|---|---|
+| TE | half-life 14, no opponent factor, volume 75%, implied total 30%, role window 3, wind | -0.228 (-0.322 to -0.131) | -0.286 (-0.522 to -0.034) | **yes** (also on weeks 5+; and without wind: -0.203 / -0.293 on weeks 5+) |
+| WR | half-life 14, opponent fade 16 and limit 15%, volume 50%, touchdown regression 100%, team offense 25%, implied total 30%, game script, home 4%, no role factor | -0.215 (-0.293 to -0.138) | -0.167 (-0.324 to -0.011) | **yes** on all weeks; weeks 5+ check is -0.107, noise |
+| RB | opponent fade 8, volume 25%, touchdown regression 50%, pass defense, implied total 60% | -0.080 (-0.143 to -0.012) | -0.169 (-0.257 to -0.072) | **yes** on all weeks; weeks 5+ tuning is -0.075, noise |
+| DEF | last season counts like 8 games, opponent limit 40% | -0.042 (-0.079 to -0.003) | -0.082 (-0.149 to -0.011) | **yes** on all weeks; weeks 5+ noise on both |
+| QB | half-life 14, last season 1 game, opponent fade 16, volume 50%, run defense, implied total 30%, home 2%, wind | -0.219 (-0.357 to -0.084) | -0.122 (-0.287 to +0.034) | no: check is noise (266 games) |
+| K | half-life 14, last season 8 games, no opponent factor, team implied score 30%, wind | -0.112 (-0.157 to -0.066) | -0.030 (-0.095 to +0.037) | no: check is noise |
+
+RB + WR + TE + DEF together (QB and K left on 1.0.0): startable players, weeks 5+, **6.163 → 6.033** on the tuning seasons and **6.315 → 6.166** on 2025; weeks 1–4, 6.353 → 6.192 and 5.814 → 5.611. The combined run reproduces each tuner's per-position numbers exactly.
+
+Notes:
+- Ideas that failed as a blanket rule (implied total, team offense, game script, pass defense) were picked by some position tuners at a lower strength alongside the volume blend. They are judged as part of that position's package, on the check season.
+- Wind is the wind recorded for the game, not a forecast (backlog M-21), so it should not ship as tuned. TE holds without it; QB and K did not pass anyway.
+- Every setting that reads betting lines, venue or team strength needs the live compute to load that data first (backlog M-22). Nothing here is shipped; `SHIPPED` is unchanged and the model is still 1.0.0.
+- The fresh 2026 weeks have not been looked at.
+
 ## Candidate list (planned, 2026-11-12)
 
-Every idea below becomes a switch in `ModelConfig`. All switches are built first, then each is backtested one at a time against the best-so-far (ADR-054), then the code tests run once. Status: **planned** until a row moves into the table above. Data is free nflverse unless noted.
+Every idea below becomes a switch in `ModelConfig`. All switches are built first, then each is backtested one at a time against the best-so-far (ADR-054), then the code tests run once. Status: **built** means the switch exists and is in the sweep; **deferred** has a reason. A row moves into the results table above once it has been judged. Data is free nflverse unless noted.
 
 | ID | Switch | Idea | Data | Group |
 |---|---|---|---|---|
 | E-02 | `xfp-blend` | Blend recent points with expected points from opportunity (targets, carries, air yards, red-zone) at league-average efficiency, fit on earlier seasons only | player stats | A |
 | E-03 | `td-regression` | Pull touchdown scoring toward the typical rate for the player's volume | player stats | A |
-| E-04 | `ff-opportunity` | Use nflverse's own expected fantasy points per game instead of ours | `load_ff_opportunity` | A |
+| E-04 | `ff-opportunity` | Use nflverse's own expected fantasy points per game instead of ours | `load_ff_opportunity` | A  **deferred: second batch (needs nflverse expected-points data stored and joined)** |
 | E-05 | `usage-trend` | Target share and carry share trend (last 2 games vs season) replaces the snap-share role factor | player stats | A |
 | E-06 | `def-pass-position` | Opponent factor for QB, WR, TE and receiving RB from passing and receiving yards and touchdowns allowed to that position | player stats by opponent | B |
 | E-07 | `def-run-position` | Opponent factor for RB and QB runs from rushing yards and touchdowns allowed | player stats by opponent | B |
@@ -38,13 +140,13 @@ Every idea below becomes a switch in `ModelConfig`. All switches are built first
 | E-11 | `team-offense` | Team points and plays per game (trailing) scales every player on the team | team stats | C |
 | E-12 | `implied-total` | Team's implied score from the betting spread and total | schedules | C |
 | E-13 | `game-script` | Favourites run more and underdogs pass more, from the spread | schedules | C |
-| E-14 | `depth-rank` | Depth-chart rank adjustment for RB, WR, TE | `load_depth_charts` | D |
-| E-15 | `teammate-out` | Raise a player when a higher-ranked teammate at his position is Out | injuries, depth charts | D |
+| E-14 | `depth-rank` | Depth-chart rank adjustment for RB, WR, TE | `load_depth_charts` | D  **deferred: the 2025 depth chart has a new snapshot-based shape with no week column, so the check season needs a snapshot-to-week mapping first** |
+| E-15 | `teammate-out` | Raise a player when a higher-ranked teammate at his position is Out | injuries, depth charts | D  **deferred: needs E-14's depth data** |
 | E-16 | `rookie-prior` | Starting value for players with no history from draft round and pick | `load_draft_picks` | D |
 | E-17 | `opener-weights` | Last-season blend weight tuned for weeks 1-4 | none | D |
 | E-18 | `role-window` | Role factor window and clamp tuned per position | none | D |
-| E-19 | `injury-discount-fit` | Replace the guessed Questionable and Doubtful multipliers with ones fit on past seasons | injury reports | E |
-| E-20 | `return-from-injury` | Reduced workload in the first games back from a reserve-list stay | rosters, injuries | E |
+| E-19 | `injury-discount-fit` | Replace the guessed Questionable and Doubtful multipliers with ones fit on past seasons | injury reports | E  **deferred: a backtest only contains players who played, so the discount for players who did not play cannot be measured fairly; needs a different test (projected-and-played versus projected-and-sat)** |
+| E-20 | `return-from-injury` | Reduced workload in the first games back from a reserve-list stay | rosters, injuries | E  **deferred: second batch (rosters and injuries, after the first results)** |
 | E-21 | `home-away` | Home or away | schedules | F |
 | E-22 | `roof-weather` | Dome, wind and temperature | schedules | F |
 | E-23 | `rest-days` | Short weeks and extra rest | schedules | F |
@@ -52,12 +154,12 @@ Every idea below becomes a switch in `ModelConfig`. All switches are built first
 | E-25 | `defense-model` | Defenses from the opponent's implied total and sack and turnover rates | schedules, team stats | G |
 | E-26 | `halflife-by-position` | Recency half-life tuned per position | none | H |
 | E-27 | `prior-games-by-position` | Last-season weight tuned per position | none | H |
-| E-28 | `learned-weights` | A ridge regression combines the features instead of hand-set multipliers | all of the above | H |
-| E-29 | `tree-model` | A gradient-boosted model on the same features, compared for accuracy and explainability | all of the above | H |
-| E-30 | `blend-best` | A blend of the best hand-set and the best learned model | winners | H |
-| E-31 | `ranges-by-format` | Ranges fitted per scoring format | backtest | I |
-| E-32 | `player-type-ranges` | Wider ranges for boom-or-bust players | backtest | I |
-| E-33 | `correlated-sim` | A quarterback and his receivers move together in the simulation | backtest | I |
+| E-28 | `learned-weights` | A ridge regression combines the features instead of hand-set multipliers | all of the above | H  **second batch: built after the hand-set ideas, from the winners' features** |
+| E-29 | `tree-model` | A gradient-boosted model on the same features, compared for accuracy and explainability | all of the above | H  **second batch** |
+| E-30 | `blend-best` | A blend of the best hand-set and the best learned model | winners | H  **second batch** |
+| E-31 | `ranges-by-format` | Ranges fitted per scoring format | backtest | I  **second batch: ranges are refit after the point projection settles** |
+| E-32 | `player-type-ranges` | Wider ranges for boom-or-bust players | backtest | I  **second batch** |
+| E-33 | `correlated-sim` | A quarterback and his receivers move together in the simulation | backtest | I  **second batch** |
 
 Not planned: quarterback-change effects (covered by E-11 and E-12), routes run and pressure rates (no free per-game source found).
 

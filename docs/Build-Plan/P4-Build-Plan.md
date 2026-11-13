@@ -14,7 +14,7 @@ Decisions: [ADR-054](../Decisions/ADR-054-P4-Test-Every-Idea-One-At-A-Time.md) (
 - Injury rule hand-checked on 14 + 8 + 12 named 2025 games; the first version was wrong and was fixed (see 5a).
 - First experiment run through the machinery: E-01 in the [ledger](Model-Experiments.md), dropped.
 - 449 backend tests at 99% coverage, 91 web tests, strict mypy clean (run in a Linux container; see backlog P-18).
-Stage 2 (the experiments) is next.
+**Stage 2 in progress:** every idea is built as a setting, each was run alone against the shipped model, and per-position tuners are running (see How the tuners work). The single-idea sweep and the finished kicker and defense tuners are in the [ledger](Model-Experiments.md); QB, RB, WR and TE are still tuning. The idea code has its unit tests (`api/tests/unit/test_model_ideas.py`, including one that turns every switch on and fails if a game at or after the projected week moves the number); 354 unit tests pass, strict mypy clean.
 
 ## Why
 Model 1.0.0 misses by 6.45 points per startable player (held-out 2025, full PPR), against 6.50 for a plain season average and 5.83 for the earlier project's model ([ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)). Today it looks only at **points** (`api/app/model/projection.py`): a recent-weighted average, times one opponent factor and a snap-share factor. It never sees targets, carries, yards or touchdowns separately.
@@ -44,6 +44,44 @@ Loop per idea: write it in the ledger → build behind a switch → compare on t
 - **G. Kickers and defenses:** from expected team score, dome, stalled drives; defenses from the opponent's expected score and the opposing QB's sack and turnover rates (M-04).
 - **H. How the pieces combine:** per-position half-life and last-season weight; hand-set multipliers against learned weights against a tree model (a learned model ships only if every number is still explainable on the Player screen); a blend of the best two.
 - **I. Ranges and win chance:** ranges per scoring format (M-08); wider or narrower ranges by player type; QB and his receivers moving together in the simulation (M-07); weekly auto-refit with the same keep rule (M-14).
+
+## How the tuners work
+
+Built 2026-11-12 after the owner asked for ideas to be kept per position and tuned as far as they will go. Code: `api/app/scripts/tune.py`, settings in `api/app/model/config.py`.
+
+**What a tuner is.** Every idea is a setting with a dial: how much of the projection comes from volume (0%, 25%, 50%...), how many games of memory the average has, how far an opponent can move a number. A tuner is a program that turns each dial for **one position** and keeps the position that gives the smallest average miss. There are six, one each for QB, RB, WR, TE, K and DEF, run side by side.
+
+**One tuner, step by step** (the WR tuner as the example):
+1. Start from the shipped model and measure its average miss on startable WRs in the tuning seasons (2022–2024), injury games left out.
+2. Take the first setting, say `xfp_weight` (share of the projection from volume). Re-run the three seasons at 0, 0.25, 0.5, 0.75 and 1.0. If the best value beats the current miss by more than **0.004 points**, keep it; otherwise leave the setting alone (a smaller gain is treated as noise).
+3. Move to the next setting and do the same, with the earlier winners left in place.
+4. After the last setting, start again from the first: a dial's best position can change once the others have moved. Stop when a whole pass changes nothing, or after three passes.
+5. Only then open the check season (2025), once. Compare the tuned WR settings with the shipped model on games the tuner never saw.
+
+**What gets shipped.** A position's tuned settings ship only if they beat the shipped model on the tuning seasons **and** on 2025 by more than chance ([ADR-055](../Decisions/ADR-055-P4-Keep-Rule.md)). Each position is judged alone, so WRs can take an idea that QBs reject. Before the version ships, the fresh 2026 weeks get their one look.
+
+| | Tuning seasons 2022–2024 | Check season 2025 | Fresh weeks 2026 |
+|---|---|---|---|
+| Used to pick a dial position | yes | never | never |
+| Used to decide keep or drop | yes | yes | yes, once per version |
+
+**Why it is built this way.** A tuner that tries hundreds of combinations will always find one that looks good on the games it tried them on. The 2025 season is the guard: settings that only memorised 2022–2024 fall apart there. For the same reason a tuner never goes back to adjust a dial after seeing 2025.
+
+**Settings each tuner may turn**
+
+| Setting | What it does | Positions |
+|---|---|---|
+| `half_life`, `prior_games`, `prior_games_opener` | How fast old games fade; how much last season counts; the same for weeks 1–4 | all |
+| `opp_fade_games`, `opp_clamp` | How quickly and how far the opponent moves a projection | all |
+| `xfp_weight`, `td_regression` | Share from volume (targets, carries); how much touchdown luck is removed | QB RB WR TE |
+| `def_pass`, `def_run`, `def_schedule_adjust` | Opponent rated on its pass defense, its run defense, and adjusted for who it has faced | QB RB WR TE |
+| `team_offense`, `implied_total`, `game_script` | Team scoring strength, the betting market's expected score, favourite or underdog | QB RB WR TE |
+| `home_boost`, `wind_penalty`, `rest_effect`, `rookie_prior` | Venue, wind, rest days, rookies by draft round | QB RB WR TE (K: venue, wind) |
+| `usage_trend`, `role_window`, `role_clamp` | Recent share of targets and carries, or of snaps, against the season | RB WR TE |
+| `def_sack_int` | Opponent's sack and interception rate | QB |
+| `kicker_model` / `defense_model` | Team's (or the opponent's) expected score | K / DEF |
+
+Kickers and defenses are not part of the startable slice, so their tuners are judged on every game. Tuning uses full-PPR scoring. A per-position setting is written `xfp_weight=0.5@WR`; several are joined with `+`, and `python -m app.scripts.backtest --compare shipped,<settings>` re-checks any combination.
 
 Not in P4 ([ADR-057](../Decisions/ADR-057-P4-Scope-Weekly-Accuracy.md)): smarter rest-of-season (M-15), IDP (M-18), keeper and dynasty value.
 
