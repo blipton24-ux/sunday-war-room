@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Response
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 
 from app.auth.deps import DB, CurrentUser, Membership
@@ -214,7 +214,8 @@ async def refresh_league(
 ) -> JobAccepted:
     """Queue a sync now. Returns the running job if one is already in flight.
 
-    Rate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS).
+    Rate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS), counted from when the
+    user's last refresh finished, so a slow sync does not shorten the wait.
     """
     window = datetime.now(UTC) - timedelta(seconds=settings.refresh_min_interval_seconds)
     recent = await db.scalar(
@@ -223,7 +224,7 @@ async def refresh_league(
             SyncRun.kind == "sync_league",
             SyncRun.requested_by == user.id,
             SyncRun.status.not_in(ACTIVE),
-            SyncRun.created_at > window,
+            func.coalesce(SyncRun.finished_at, SyncRun.created_at) > window,
         )
     )
     if recent is not None:
