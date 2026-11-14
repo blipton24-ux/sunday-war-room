@@ -8,8 +8,8 @@ tags: [spec, model, data-science]
 Own model from nflverse data ([ADR-008](../Decisions/ADR-008-Own-Projection-Model.md)), a cleaner rebuild of the old project's lessons. Approved reuses (method only, rewritten, numbers refit): range method and grading definitions ([ADR-031](../Decisions/ADR-031-Approved-Reuses.md)).
 
 ## Inputs
-- nflverse weekly player stats, schedules, depth charts, snap counts, player id crosswalk (via `nflreadpy`, through one source module with **schema contracts**).
-- Sleeper: rosters, injury status, league scoring rules.
+- nflverse weekly player stats, schedules with betting lines (spread and total), weekly injury reports and reserve lists, depth charts, snap counts, player id crosswalk (via `nflreadpy`, through one source module with **schema contracts**); draft picks from P4.
+- Sleeper and ESPN: rosters, injury status, league scoring rules.
 
 ## Output per player-week (per scoring setup)
 `points` (median-ish point estimate), **range** `p10 / p50 / p90`, **factors** list, `model_version`, `computed_at`.
@@ -36,7 +36,7 @@ Each step adds a `factor` entry: `{name, value, effect, note}`, shown in Player 
 - **Fail loudly** if an nflverse file or column disappears; never silently fall back to an older season.
 
 ## Evaluation
-Backtest on past seasons (walk-forward: only data available before each week). Metrics: MAE by position, range coverage (80% interval should contain ~80%). A model change ships only if it beats the current one on held-out weeks without making any position notably worse.
+Backtest on past seasons (walk-forward: only data available before each week); explained in [Backtesting and measuring](../Concepts/Backtesting-and-Measuring.md). Metrics: MAE by position, range coverage (80% interval should contain ~80%). A model change ships only by the rule in [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md): better beyond chance on startable players over four walk-forward test seasons (2022-2025), better in at least three of them, no position worse by more than 0.05, and not worse on the current season's weeks. Rank accuracy and range coverage are reported beside it.
 
 ## v1 as built (1.0.0)
 Constants live in `api/app/model/projection.py`; fitted ranges in `api/app/model/calibration.json`. Results: [Backtest Report](../Build-Plan/Backtest-Report.md).
@@ -46,25 +46,20 @@ Constants live in `api/app/model/projection.py`; fitted ranges in `api/app/model
 - Ranges are fit in Sleeper default half-PPR and applied to every league's scoring (a v1 simplification).
 - Lineup: exact assignment (Hungarian algorithm), so overlapping flex slots are handled. Win probability: 10,000 seeded draws from a split normal through p10/p50/p90.
 
-## 1.1.0: running backs (2026-11-13)
-Running backs take the settings tuned in P4 round 2 ([ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md), shipped per [ADR-059](../Decisions/ADR-059-P4-Ship-Each-Position-When-It-Passes.md); numbers in [Tuning: RB](../Build-Plan/Tuning/RB.md)). Every other position is unchanged from 1.0.0.
-- **Touchdown luck 50%:** before averaging, half of each game's touchdown points above or below what his targets and carries usually produce is taken out (the rate per opportunity is fit on earlier seasons).
-- **Betting market 30%:** x(1 + 0.3 x (team's implied score / league average implied score so far - 1)); the implied score comes from the stored spread and total (`nfl_games.spread_line`, `total_line`, refreshed by the daily nflverse ingest).
-- **Opponent limit ±15%** (was ±25%); **snap-share role limit ±7.5%** (was ±15%).
-- **First game back -20%:** his first game after weeks on a reserve list (stored injury reports and reserve lists).
-- **Carry volume 12.5%:** a light factor from his recent share of team carries against his season share, times the team's expected carries this week (team carries against the spread, fit on earlier seasons), applied to the rushing part of his points.
-- The live compute loads this season and the five before it, with raw stat columns, for those fits. Rest-of-season value uses the same history but no lines (later weeks have none yet), so the betting-market and carry-volume factors only apply to weekly projections.
-- Results: 2025 held out, all running backs MAE 4.07 (1.0.0: 4.12; season average 4.08); startable running backs, weeks 5+: -0.172 on 2025 and -0.190 on the 2026 weeks 1-9.
+## 1.1.0: running backs (2026-11-13, being removed)
+The first P4 approach shipped tuned settings for running backs only (touchdown luck 50%, betting market 30%, tighter opponent and role limits, first game back -20%, a light carry-volume factor). That approach was replaced on 2026-11-14 ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)); step 1 of the [P4 Build Plan](../Build-Plan/P4-Build-Plan.md) returns the live model to the 1.0.0 method until 2.0.0 ships. Its result is kept as a benchmark: held-out 2025, all running backs MAE 4.07 (1.0.0: 4.12; season average 4.08); startable running backs, weeks 5+: -0.172 on 2025 and -0.190 on the 2026 weeks 1-9. Week 10's frozen 1.1.0 rows stay visible on the screens.
 
-## Ideas under test (P4)
-Each idea is a switch in `api/app/model/config.py` (`ModelConfig`); live code runs `SHIPPED`, which changes only in the commit that bumps `MODEL_VERSION`. An idea is kept by the rule in [ADR-055](../Decisions/ADR-055-P4-Keep-Rule.md) after testing on past seasons ([ADR-054](../Decisions/ADR-054-P4-Test-Every-Idea-One-At-A-Time.md)); results are in the [experiment ledger](../Build-Plan/Model-Experiments.md). `python -m app.scripts.backtest --compare shipped,<idea>` runs the comparison. Games spoiled by an injury are left out of the numbers (`app/model/features/injury_games.py`).
-
-## Later upgrades (P2+)
-Decided to come after the P1 deploy, with the comparison that motivated them: [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md).
-
-Per-position models on expected points/opportunity, player-level correlations in simulation, rookie priors, weekly auto-refit with a promotion gate, news as a measured factor.
+## 2.0.0: machine-learning model (planned, P4)
+Decided in [ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md), tested and shipped by [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md), built per the [P4 Build Plan](../Build-Plan/P4-Build-Plan.md). Explainer: [Machine learning and XGBoost](../Concepts/Machine-Learning-and-XGBoost.md).
+1. **Feature table:** one row per player-week, every value known before kickoff: role (target, carry and snap share), efficiency so far, background (age, draft capital), team volume, betting market, opponent allowed by position, availability and depth, game conditions. One function serves the backtest and the live compute.
+2. **Stats, then score:** per position, XGBoost predicts volume (targets, carries, pass attempts; count mode) and efficiency per opportunity (catch rate, yards per catch or carry, touchdowns per opportunity, completion rate, yards and interceptions per attempt). Volume × efficiency gives expected stats, scored with each league's own rules.
+3. **Training:** only on games before the week projected; retrained weekly; model settings chosen on training seasons only.
+4. **Availability:** Out, IR, PUP and Suspended → 0; backup QB discounted; own injury status is a feature.
+5. **Ranges:** the residual-quantile method refit on the new model's misses, per position and scoring family.
+6. **Factors:** XGBoost's per-signal contributions grouped into plain categories and converted to points.
+7. **K and DEF** keep the 1.0.0 method in 2.0.0; their own models follow as 2.1.0.
 
 ## Rest of season (P2)
-Waivers and trades need a season-long number. `app/model/rest_of_season.py` runs the weekly model for every remaining week of the league's fantasy season, using only what is known now, each week's real opponent, byes as 0, short injuries (Out, Doubtful, Questionable) for the next game only and injured reserve for four weeks. Fantasy playoff weeks count 1.5x (owner decision); far-off weeks are not faded. Stored per scoring rules and season shape in `ros_projections`; measured in the [Backtest Report](../Build-Plan/Backtest-Report.md). Smarter long-range projections are P4 ([ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md)).
+Waivers and trades need a season-long number. `app/model/rest_of_season.py` runs the weekly model for every remaining week of the league's fantasy season, using only what is known now, each week's real opponent, byes as 0, short injuries (Out, Doubtful, Questionable) for the next game only and injured reserve for four weeks. Fantasy playoff weeks count 1.5x (owner decision); far-off weeks are not faded. Stored per scoring rules and season shape in `ros_projections`; measured in the [Backtest Report](../Build-Plan/Backtest-Report.md). Smarter long-range projections are out of P4 (backlog M-15, [ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)).
 
 Related: [Lessons from Old Projects](../Lessons-from-Old-Projects.md) · [Data Model](Data-Model.md) · [Testing Levels](../Concepts/Testing-Levels.md)

@@ -22,4 +22,6 @@ Each one encodes something that was learned by measurement: rules that were sile
 ## Not reused
 Everything else: no other modules, fitted tables or configuration from the earlier projects.
 
+Amended by [ADR-053](ADR-053-ESPN-Client-Own-Code.md) (ESPN lessons) and [ADR-060](ADR-060-P4-Machine-Learning-Stats-Then-Score.md): modelling techniques listed in the vault may be used as ideas in the P4 model, written fresh and refit on our own data.
+
 Related: [ADR-002 Fresh build](ADR-002-Fresh-Build.md) · [Lessons from Old Projects](../Lessons-from-Old-Projects.md) · [Projection Model](../Specs/Projection-Model.md)

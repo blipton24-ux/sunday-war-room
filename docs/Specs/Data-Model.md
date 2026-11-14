@@ -3,7 +3,7 @@ title: "Data Model"
 date: 2026-11-08
 tags: [spec, database]
 ---
-# Data Model (P1, initial)
+# Data Model
 
 PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](../Decisions/ADR-015-Database-PostgreSQL.md)). Field lists are a starting point for the build, not final.
 
@@ -32,14 +32,25 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 | Table | Key fields | Notes |
 |---|---|---|
 | `players` | id, gsis_id, sleeper_id, espn_id, yahoo_id, name, position, nfl_team, status, injury_status | Crosswalk of platform ids |
-| `nfl_games` | id, season, week, home, away, kickoff_at, status | Kickoff drives the freeze rule |
+| `nfl_games` | id, game_id, season, week, game_type, home, away, kickoff_at, home_score, away_score, spread_line, total_line | Kickoff drives the freeze rule; betting lines refreshed by the daily nflverse ingest |
+| `live_games` | espn_id, season, week, state, period, clock, scores, possession, remaining_fraction | Game-day state from the ESPN scoreboard (P2) |
 | `player_week_stats` | player_id, season, week, stat columns… | Bulk-loaded from nflverse, idempotent per week ([ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md)) |
+| `injury_reports` | gsis_id, season, week, report_status, roster_status, practice_status, injury | nflverse weekly injury reports and reserve lists; used for injury-game marking and model features |
+| `player_status_snapshots` | player_id, season, week, captured_at, injury_status, depth_chart_order | A row whenever a player's injury status or depth slot changed at a compute, so the model can learn from what was known then |
+| P4 (planned) | depth charts, draft picks, trained model files | Stored so the live compute reads the same facts the backtest trained on ([P4 Build Plan](../Build-Plan/P4-Build-Plan.md) steps 2 and 9; where model files live is still to decide) |
 
 ## Projections
 | Table | Key fields | Notes |
 |---|---|---|
 | `projections` | id, player_id, season, week, **scoring_key**, points, p10, p50, p90, factors (JSONB), **model_version**, computed_at, **frozen** | `scoring_key` = hash of scoring rules, so leagues with identical scoring share rows. Never overwritten after the player's kickoff. |
+| `ros_projections` | player_id, season, from_week, scoring_key, horizon_key, points, games, weekly, model_version | Rest-of-season value for waivers and trades (P2) |
 | `projection_grades` | projection_id, actual_points, genuine (computed_at < kickoff_at) | Feeds the accuracy page |
+
+## League activity
+| Table | Key fields | Notes |
+|---|---|---|
+| `matchups` | league_id, week, home/away team, scores, per-player points | Synced from the platform |
+| `league_transactions` | league_id, external_id, kind, status, week, adds, drops, waiver_bid | Feeds waiver and trade context (P2) |
 
 ## Operations
 | Table | Key fields | Notes |
@@ -47,6 +58,6 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 | `sync_runs` | id, kind, league_id?, status, started_at, finished_at, error | Shown as "updated N min ago"; debugging |
 
 ## Later phases
-P3 encrypted ESPN cookies on `platform_accounts` (P7: Yahoo OAuth tokens) · P5 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P8 `push_subscriptions`, `alerts` ([ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)).
+P3 (built) encrypted ESPN cookies on `platform_accounts` (P7: Yahoo OAuth tokens) · P5 `chat_conversations`, `chat_messages`, `news_articles`, `news_chunks` (embedding `vector`), `ai_usage` (daily counts) · P8 `push_subscriptions`, `alerts` ([ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)).
 
 Related: [Multi-Tenancy](../Concepts/Multi-Tenancy.md) · [Architecture](Architecture.md) · [Projection Model](Projection-Model.md)

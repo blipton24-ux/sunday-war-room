@@ -17,6 +17,7 @@ The **backend** is a program on a server that users never see. The frontend asks
 ## The Python pieces
 - **Python:** the language. Its data-science ecosystem is why Sunday War Room's backend uses it.
 - **pandas:** a library for tables of data (filter, average, join), used by the model.
+- **XGBoost:** a machine-learning library (gradient-boosted trees) that the P4 model uses to predict each player's stats ([Machine learning and XGBoost](Machine-Learning-and-XGBoost.md)).
 - **nflreadpy:** downloads nflverse NFL stats.
 - **FastAPI:** a web framework. You write a normal function, and it becomes reachable at a URL:
 ```python
@@ -35,7 +36,7 @@ You tap "Week 10 matchup" on your phone
   → React redraws the matchup table
 
 Separately, on a schedule:
-  Worker (Python) → Sleeper API + nflverse → model (pandas) → saves projections to PostgreSQL
+  Worker (Python) → Sleeper API + nflverse → model (pandas, XGBoost from P4) → saves projections to PostgreSQL
 ```
 
 ## Why one codebase, two modes

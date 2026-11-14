@@ -1,114 +1,128 @@
 ---
 title: "P4 Build Plan"
-date: 2026-11-12
-tags: [build-plan, p4, model]
+date: 2026-11-14
+tags: [build-plan, p4, model, machine-learning]
 ---
-# Phase 4 Build Plan: improved projections
+# Phase 4 Build Plan: a machine-learning projection model
 
-Decisions: [ADR-054](../Decisions/ADR-054-P4-Test-Every-Idea-One-At-A-Time.md) (test one idea at a time) · [ADR-055](../Decisions/ADR-055-P4-Keep-Rule.md) (the keep rule) · [ADR-056](../Decisions/ADR-056-P4-Earlier-Techniques-Ideas-Only.md) (earlier techniques, ideas only) · [ADR-057](../Decisions/ADR-057-P4-Scope-Weekly-Accuracy.md) (scope). Results go in the [Model Experiments](Model-Experiments.md) ledger.
+Decisions: [ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md) (predict the stats with XGBoost, then score them) · [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md) (how it is tested and shipped). Concept explainer: [Machine learning and XGBoost](../Concepts/Machine-Learning-and-XGBoost.md).
 
-## Progress
-**Stage 1 built 2026-11-12** (model still 1.0.0). Results of the checks that gate everything else:
-- The upgraded backtest reproduces ADR-034: full PPR, 2025, weeks 5-18, startable players picked by the model's own projection, every game counted: **6.45** (season average 6.50). Half-PPR overall 4.03 matches the committed report.
-- `--compare shipped,shipped` shows exactly 0.000 change on every slice.
-- Injury rule hand-checked on 14 + 8 + 12 named 2025 games; the first version was wrong and was fixed (see 5a).
-- First experiment run through the machinery: E-01 in the [ledger](Model-Experiments.md), dropped.
-- 449 backend tests at 99% coverage, 91 web tests, strict mypy clean (run in a Linux container; see backlog P-18).
-**Stage 2, round 1 done (2026-11-12):** every idea built as a setting, each run alone, then six per-position tuners side by side. RB, WR, TE and DEF beat the shipped model on both sets of seasons (all weeks); QB and K did not hold up on 2025. Results in the [ledger](Model-Experiments.md). The idea code has its unit tests (`api/tests/unit/test_model_ideas.py`, including one that turns every switch on and fails if a game at or after the projected week moves the number).
-**Stage 2, round 2 next** ([ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md)): one position at a time (RB, WR, TE, QB, DEF, K), every idea at every strength, the five deferred ideas and ideas specific to each position, a finer tuner, and a review with the owner after each position. See Round 2 below.
+## Status
+**Restarted 2026-11-14, not built yet.** The first P4 approach (hand-set multipliers tuned position by position, ADR-054 to ADR-059) is replaced. Its measuring tools stay; its model work is removed in step 1. Until step 1 runs, the code on branch `p4-model` still holds that approach and live model 1.1.0.
+
+The branch `p4-model` also carries P3 (ESPN), which is not merged to `main` yet. Removing the first approach must touch only P4 files.
 
 ## Why
-Model 1.0.0 misses by 6.45 points per startable player (held-out 2025, full PPR), against 6.50 for a plain season average and 5.83 for the earlier project's model ([ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md)). Today it looks only at **points** (`api/app/model/projection.py`): a recent-weighted average, times one opponent factor and a snap-share factor. It never sees targets, carries, yards or touchdowns separately.
+Every recommendation in the app (start/sit, waivers, trades, win chance) rests on the projection. Model 1.0.0 misses startable players by 6.45 points on average (held-out 2025, full PPR), a plain season average by 6.50, and the earlier project's model by 5.83. The first P4 approach shipped one position (running backs, about 0.17 better) after two rounds of dial-tuning and hit three limits: it only saw points, its multipliers double counted, and it tuned dials one at a time ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)).
 
-## Stage 1: measuring tools (model stays 1.0.0)
-1. **Backtest upgrades (M-09)**: startable-player slice, weeks 1–4 apart from 5+, choice of scoring (half PPR, full PPR, standard).
-2. **`--compare`**: two model versions over the same weeks in one table, with a paired bootstrap so noise is labelled noise.
-3. **`ModelConfig`**: a frozen dataclass of switches passed into `project_week`. Live code runs the shipped config; only the backtest turns extra switches on.
-4. **Raw stats reach the model**: extend the history frame with targets, carries, yards, touchdowns, receptions and attempts. Feature code lives in `api/app/model/features/` as pure functions (history before the week in, one row per player or team out).
-5. **Three sets of seasons**: tuning 2022–2024, check 2025, fresh 2026 weeks looked at once per version. (2021 is loaded too, as history for 2022's projections.)
-   - **5a. Injury-affected games don't count.** Implemented in `api/app/model/features/injury_games.py`. A game is marked *hurt during* when the player's snap share falls under half his own recent normal (the mean of up to 4 earlier games, normal at least 30%, at least 2 earlier games) **and** there is direct evidence of an injury at his team's next game: an injury-report designation (Out, Doubtful, Questionable) or a reserve-list listing (injured reserve; nflverse weekly rosters, `RES`). *Hurt before* means listed Out or Doubtful and played anyway (a player who did not play has no stat row and is already absent). Questionable players who played are kept and reported as their own line. The report prints "injury games left out" (headline) and "everything counted", with the counts. Both pieces of evidence are known before the next kickoff, so the same marking also serves the experiment of leaving those games out of a player's own history, with no look at anything later.
-   - *Hand check, 2025 (before any experiment):* the first version used "missed his next game" as evidence. It flagged two quarterbacks who were benched when the starter returned (Browning, Rattler), because absence cannot tell injury from demotion. Roster status separates them (injured players show `RES`, benched ones stay `ACT`), so the rule now needs the report or reserve evidence. Re-check: Burrow, Skattebo, Wilson, Tracy, Ridley and Harris are marked; Browning, Rattler, Moore (cut) and Campbell (practice squad) are not; 14 more random marks, none clearly wrong. The rule is strict on purpose (backlog M-20). It is now fixed and is not tuned against model results.
-   - *Startable picks:* the slice is picked by the plain season average, so two models are graded on the same players; the report also shows it picked by the model's own projection (how ADR-034's table was built).
-6. **Past weeks stay visible across versions (M-01)** (done): screens show the frozen row from whichever version froze it, else the current version's (`api/app/services/versions.py`); Accuracy stays per version with `?model_version=` and `available_versions` (UI picker is backlog U-17).
-7. **Experiment ledger** ([Model Experiments](Model-Experiments.md)).
-8. **Injury and depth-chart snapshots (M-11)** (done): `player_status_snapshots` keeps a row whenever a computed player's injury status or depth-chart slot changed; nflverse's weekly injury reports and reserve lists are stored in `injury_reports` (2021–2026).
+## How the new model works
 
-## Stage 2: experiments
-Loop per idea: write it in the ledger → build behind a switch → compare on tuning seasons → confirm on 2025 → record → keep or drop. Kept ideas are grouped into a numbered version with the fresh-weeks check, refitted ranges (`--write-calibration`), a spec update and a `MODEL_VERSION` bump in the same commit.
+```
+history before the week ─► feature table ─► XGBoost: volume      ─┐
+ (stats, snaps, lines,      one row per       (targets, carries,   ├─► expected stats ─► league scoring ─► points
+  injuries, depth, ...)     player-week        pass attempts)       │   (volume × rate)    (each league's       + range
+                                            ─► XGBoost: efficiency ─┘                       own rules)         + "why" factors
+                                               (catch rate, yards per
+                                                catch, TDs per touch, ...)
+```
 
-- **A. Opportunity (M-02):** target share and carry share; air-yards share and WOPR; red-zone and goal-line share; routes and snap share; expected points per opportunity (nflverse `ff_opportunity`) against our own; touchdown regression; **project the stats, then score them** with the league's own rules (also addresses M-08).
-- **B. Defense against each position, run and pass apart:** pass defense (yards and touchdowns allowed to WR, TE, RB receiving, QB), run defense (rushing yards and touchdowns allowed to RB and QB), sacks, interceptions and pressure, adjusted for who each defense has played, last season blended in early, small samples shrunk toward average instead of the hard ±25% limit.
-- **C. How good the offense is:** team points, yards, plays, pass rate, pace; the betting market's expected team score (spread and total in the nflverse schedule); game script; QB quality and QB changes; offensive-line pressure and sack rate.
-- **D. Role and depth:** depth-chart rank for RB/WR/TE (M-03); teammate out; rookies and no-history players from draft round (M-05); season opener (M-06); trend in snap and target share.
-- **E. Injuries:** test the current discounts on past seasons; fresher status near kickoff (M-10, needs a source and timing decision); first games back.
-- **F. Game conditions:** home or away, dome, wind and temperature, short weeks, travel.
-- **G. Kickers and defenses:** from expected team score, dome, stalled drives; defenses from the opponent's expected score and the opposing QB's sack and turnover rates (M-04).
-- **H. How the pieces combine:** per-position half-life and last-season weight; hand-set multipliers against learned weights against a tree model (a learned model ships only if every number is still explainable on the Player screen); a blend of the best two.
-- **I. Ranges and win chance:** ranges per scoring format (M-08); wider or narrower ranges by player type; QB and his receivers moving together in the simulation (M-07); weekly auto-refit with the same keep rule (M-14).
+**The same example all the way through:** a wide receiver, Week 11, full PPR.
+1. **Feature row:** recent target share 24%, season 21%, team's expected pass attempts 36, implied team score 25.5, opponent allows +8% targets to receivers, home, healthy, depth tier 1.
+2. **Volume model:** 8.1 targets.
+3. **Efficiency models:** 66% caught, 12.4 yards a catch, 0.055 touchdowns per target.
+4. **Expected stats:** 5.4 catches, 66 yards, 0.45 touchdowns.
+5. **Scored with his league's rules:** 5.4 + 6.6 + 2.7 = **16.3 in full PPR** (13.6 in half PPR). Any custom rule is scored the same way.
+6. **Range and factors:** the 80% range comes from the backtest's misses; the "why" list reads "his role +3.1, team volume +1.2, opponent +0.6, betting market +0.4…" in points.
 
-## Round 2: one position at a time
+## The feature table (one row per player-week)
 
-Decided in [ADR-058](../Decisions/ADR-058-P4-Round-2-One-Position-At-A-Time.md). Round 1's tuners were already per position, but searched shallowly. Round 2, for each position in turn:
+Every value is known **before that week's kickoff**. One function builds this table for both the backtest and the live compute, so training and live projections never differ in how a signal is computed.
 
-1. **Ideas list:** round 1's settings for the position, the deferred ideas (E-04 nflverse expected points, E-14 depth-chart rank, E-15 teammate out, E-20 first games back; E-19 fitted injury discounts gets its own test), and new ideas specific to the position. The owner sees the list before the ideas are built.
-2. **Sweep** (`tune.py --stage sweep`): every idea at every strength, alone against the shipped model, tuning seasons only.
-3. **Tune** (`--stage tune`): round 1's method, started from the sweep's best values, then a refine step between grid points.
-4. **Check** (`--stage check`): 2025 opened once; kept if better beyond chance on all weeks together, on both sets of seasons.
-5. **Stop:** results to the ledger and `api/backtest/tuning/<POS>.md`, then a review with the owner before the next position.
-
-Data the new ideas need (depth charts, nflverse expected points, air yards, weekly rosters) is loaded straight from nflverse inside the backtest only; the live app is untouched until something is kept (backlog M-22). Before a version ships, the 2026 weeks played so far get their one look.
-
-**Built 2026-11-13:** the staged tuner (`--stage sweep|tune|check`, `--jobs`, `--settings` to add newly built ideas to an earlier sweep; a re-tune after the check keeps the earlier look on record) and the four deferred ideas as settings (`nfl_xfp_weight`, `depth_rank`, `teammate_out`, `return_discount`), tested in `api/tests/unit/test_round_2.py`. On real data, nflverse expected points cover about 90% of QB/RB/WR/TE games and depth tiers 86-96% in every season. Per-position pages: [Tuning](Tuning/README.md).
-
-**RB shipped as model 1.1.0 (2026-11-13)**, per [ADR-059](../Decisions/ADR-059-P4-Ship-Each-Position-When-It-Passes.md): passed on 2022-2024, 2025 and the 2026 weeks 1-9. Betting lines are now stored (`nfl_games.spread_line`, `total_line`, migration `c5e8a2f71b36`) and the live compute reads them with the stored reserve lists and five earlier seasons of raw stats. Next: WR (ideas list for the owner first).
-
-## How the tuners work
-
-Built 2026-11-12 after the owner asked for ideas to be kept per position and tuned as far as they will go. Code: `api/app/scripts/tune.py`, settings in `api/app/model/config.py`.
-
-**What a tuner is.** Every idea is a setting with a dial: how much of the projection comes from volume (0%, 25%, 50%...), how many games of memory the average has, how far an opponent can move a number. A tuner is a program that turns each dial for **one position** and keeps the position that gives the smallest average miss. There are six, one each for QB, RB, WR, TE, K and DEF, run side by side.
-
-**One tuner, step by step** (the WR tuner as the example):
-1. Start from the shipped model and measure its average miss on startable WRs in the tuning seasons (2022–2024), injury games left out.
-2. Take the first setting, say `xfp_weight` (share of the projection from volume). Re-run the three seasons at 0, 0.25, 0.5, 0.75 and 1.0. If the best value beats the current miss by more than **0.004 points**, keep it; otherwise leave the setting alone (a smaller gain is treated as noise).
-3. Move to the next setting and do the same, with the earlier winners left in place.
-4. After the last setting, start again from the first: a dial's best position can change once the others have moved. Stop when a whole pass changes nothing, or after three passes.
-5. Only then open the check season (2025), once. Compare the tuned WR settings with the shipped model on games the tuner never saw.
-
-**What gets shipped.** A position's tuned settings ship only if they beat the shipped model on the tuning seasons **and** on 2025 by more than chance ([ADR-055](../Decisions/ADR-055-P4-Keep-Rule.md)). Each position is judged alone, so WRs can take an idea that QBs reject. Before the version ships, the fresh 2026 weeks get their one look.
-
-| | Tuning seasons 2022–2024 | Check season 2025 | Fresh weeks 2026 |
-|---|---|---|---|
-| Used to pick a dial position | yes | never | never |
-| Used to decide keep or drop | yes | yes | yes, once per version |
-
-**Why it is built this way.** A tuner that tries hundreds of combinations will always find one that looks good on the games it tried them on. The 2025 season is the guard: settings that only memorised 2022–2024 fall apart there. For the same reason a tuner never goes back to adjust a dial after seeing 2025.
-
-**Settings each tuner may turn**
-
-| Setting | What it does | Positions |
+| Group | Columns (first version) | Source (stored today?) |
 |---|---|---|
-| `half_life`, `prior_games`, `prior_games_opener` | How fast old games fade; how much last season counts; the same for weeks 1–4 | all |
-| `opp_fade_games`, `opp_clamp` | How quickly and how far the opponent moves a projection | all |
-| `xfp_weight`, `td_regression` | Share from volume (targets, carries); how much touchdown luck is removed | QB RB WR TE |
-| `def_pass`, `def_run`, `def_schedule_adjust` | Opponent rated on its pass defense, its run defense, and adjusted for who it has faced | QB RB WR TE |
-| `team_offense`, `implied_total`, `game_script` | Team scoring strength, the betting market's expected score, favourite or underdog | QB RB WR TE |
-| `home_boost`, `wind_penalty`, `rest_effect`, `rookie_prior` | Venue, wind, rest days, rookies by draft round | QB RB WR TE (K: venue, wind) |
-| `usage_trend`, `role_window`, `role_clamp` | Recent share of targets and carries, or of snaps, against the season | RB WR TE |
-| `def_sack_int` | Opponent's sack and interception rate | QB |
-| `kicker_model` / `defense_model` | Team's (or the opponent's) expected score | K / DEF |
+| Player role | target share, carry share, snap share, air-yards share, recent (last 3) and season, plus trend; pass-attempt share for QBs | nflverse weekly stats, snap counts (yes; air yards backtest-only) |
+| Player efficiency so far | catch rate, yards per target, yards per carry, touchdowns per opportunity, completion rate, yards per attempt, interception rate, each recent and season with the number of opportunities behind it | nflverse weekly stats (yes) |
+| Player background | age, years in the league, draft round and pick, games played this season and last, last season's per-game volume | rosters, draft picks (draft picks backtest-only) |
+| Team | team plays per game, pass rate, points per game, recent and season | derived from weekly stats (yes) |
+| Betting market | spread, total, implied team score, implied opponent score | `nfl_games.spread_line`, `total_line` (yes) |
+| Opponent | targets, receiving yards, rushing yards and touchdowns allowed to the position (recent and season, adjusted for games played), sack and interception rate | derived from weekly stats (yes) |
+| Availability and depth | own injury status (Questionable, Doubtful), first game back from a reserve list, depth-chart tier, a higher-ranked teammate at his position out | `injury_reports`, `player_status_snapshots`, depth charts (depth backtest-only) |
+| Game | home or away, dome, rest days, week of season, weeks 1-4 flag | schedules (yes) |
 
-Kickers and defenses are not part of the startable slice, so their tuners are judged on every game. Tuning uses full-PPR scoring. A per-position setting is written `xfp_weight=0.5@WR`; several are joined with `+`, and `python -m app.scripts.backtest --compare shipped,<settings>` re-checks any combination.
+**Left out on purpose:** wind (the free data records it after the game, not as a forecast; backlog M-21), nflverse's own expected fantasy points (fit on many seasons that may include later ones, so it can leak the future), and red-zone / goal-line usage until play-by-play loading is decided (backlog M-24). Missing values (a rookie with no history) are left empty; XGBoost handles empty values natively.
 
-Not in P4 ([ADR-057](../Decisions/ADR-057-P4-Scope-Weekly-Accuracy.md)): smarter rest-of-season (M-15), IDP (M-18), keeper and dynasty value.
+## What each position's models predict
+
+| Position | Volume (count models) | Efficiency (rate models, weighted by opportunities) |
+|---|---|---|
+| QB | pass attempts, carries | completion rate, yards per attempt, passing TDs per attempt, interceptions per attempt, yards per carry, rushing TDs per carry |
+| RB | carries, targets | yards per carry, rushing TDs per carry, catch rate, yards per catch, receiving TDs per target |
+| WR, TE | targets, carries | catch rate, yards per catch, receiving TDs per target, yards per carry |
+| All | | fumbles lost and two-point conversions from league-average rates per opportunity (too rare to model) |
+| K, DEF | step 11 | step 11 |
+
+Volume models use XGBoost's count mode (Poisson); rate models use the ordinary mode with each game weighted by its opportunities, so a 1-target game counts little.
+
+## Steps
+
+### 1. Remove the first approach (keep the tools)
+- **Delete:** `api/app/model/config.py` (`ModelConfig`, `SHIPPED`, `CANDIDATES`), the idea branches in `api/app/model/projection.py` (back to the 1.0.0 method), `api/app/scripts/tune.py`, `api/backtest/tuning/`, the `--sweep` and idea paths in `api/app/scripts/backtest.py` (`with_round_2_columns`, `Extras` plumbing), and the tests for them (`test_model_ideas.py`, `test_round_2.py`, `test_config.py`).
+- **Review `api/app/model/features/`:** code that computes a signal (target and carry share in `opportunity.py`, team carries in `rushing.py`, defense allowed by position in `defense.py`, game context in `context.py`) moves into the feature table in step 3; code that only applied a multiplier is deleted.
+- **Keep:** `compare.py`, `metrics.py`, `features/injury_games.py`, `services/versions.py`, the walk-forward backtest core, scoring (`scoring.py`, `scoring_espn.py`), ranges (`distribution.py`), lineup, win probability, the stored betting lines and their daily refresh, `injury_reports`, `player_status_snapshots`.
+- **Live model:** `MODEL_VERSION` returns to `"1.0.0"` (the same method as the earlier 1.0.0 rows). Week 10's frozen 1.1.0 rows stay visible through `versions.py`.
+- **Check:** the backtest reproduces 1.0.0's numbers (startable 6.45 on 2025, full PPR; half PPR overall 4.03); `--compare shipped,shipped` shows 0.000; pytest, strict mypy and CI green.
+
+### 2. Data for training
+More seasons mean better trees. Load raw stats, snap counts, schedules with lines, rosters and reserve lists, injury reports, depth charts and draft picks for every season used ("how far back" is a decision below). Training data stays in PostgreSQL per [ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md); depth charts and draft picks get stored tables so the live compute can read them (backlog M-22). Depth charts changed shape in 2025; the tier mapping handles both.
+
+### 3. The feature table
+`api/app/model/ml/features.py`: `build_features(history, season, week) -> DataFrame`, pure, one row per player-week, columns as in the table above. Unit tests per column, plus the **leak test**: change every game at or after the projected week and the row must not move.
+
+### 4. Training
+`api/app/model/ml/train.py`: one XGBoost model per position and target. Training for season S uses only games before S (and, live, the earlier weeks of S). Settings (tree depth, learning rate, number of trees, minimum games per leaf, column sampling) are chosen with the last training season held back and early stopping, never on a test season ([ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md)). A signal or setting is kept only if its gain beats that position's bootstrap noise. Models save as XGBoost JSON with the training seasons, settings and feature list beside them. Add `xgboost` (CPU build) with uv for Windows and Linux; check strict mypy against its type hints.
+
+### 5. Stats, then score
+`api/app/model/ml/project.py`: volume × rates → expected stats → each league's scoring (the existing scoring code, Sleeper and ESPN maps) → points. The availability rules that hold now stay: Out, IR, PUP and Suspended → 0; backup QB on the depth chart discounted. Questionable and Doubtful players are handled by the injury-status feature (learned from players who played) plus the existing discount for the chance he sits, until that discount is fitted (needs a projected-and-sat test).
+
+### 6. Evaluation upgrades
+- `compare.py` and `backtest.py` run the four test seasons (2022-2025) walk-forward and apply the ship rule from ADR-061: pooled gain beyond chance, better in at least 3 of 4 seasons, no position worse by more than 0.05, 2026 not worse.
+- New report lines: **rank accuracy** (Spearman per week and position), **range coverage** per position and scoring format, **everything counted** beside the injury-left-out number, weeks 1-4 and 5+ apart, rest-of-season accuracy.
+- Benchmarks in every report: season average, 1.0.0, the removed 1.1.0's published numbers.
+- **Outside benchmark:** check whether Sleeper's past weekly projections can be fetched for 2024-2026. If so, propose it as a data source (ADR) and add it as a benchmark column (never a model input).
+
+### 7. Ranges
+Refit the residual-quantile method ([ADR-031](../Decisions/ADR-031-Approved-Reuses.md) reuse 2) on the new model's backtest misses, per position and per scoring family (backlog M-08). XGBoost's percentile mode is tried only if coverage misses 80% by more than a few points.
+
+### 8. Explanations on the Player screen
+XGBoost's per-signal contributions (`pred_contribs`) for each stat, grouped into plain categories (his role, team volume, opponent, betting market, injury and depth, history and background), multiplied through the league's scoring into points. The factor shape `{name, value, effect, note}` stays, so the API and screens change little. Check in the browser on a real league.
+
+### 9. Live compute and weekly retraining
+- The weekly compute builds the same feature table from stored data before kickoff and loads the current model files.
+- A worker job retrains every Tuesday after the stats ingest, on everything played so far, and replaces the live files only if the retrained model is not worse on the latest weeks (backlog M-14). Each projection row records which training produced it.
+
+### 10. Model 2.0.0: owner review and ship
+Full report on the four test seasons, the one look at the 2026 weeks played so far, example projections for players the owner knows, and the owner's ship decision. Then, in one commit: `MODEL_VERSION = "2.0.0"`, refit ranges, spec update ([Projection Model](../Specs/Projection-Model.md)), Backtest Report regenerated, CI green.
+
+### 11. Kickers and defenses
+K: field-goal attempts by distance band and extra points (volume) from the team's implied score, dome and drive data; made rate by distance. DEF: sacks, interceptions, fumble recoveries, touchdowns and points allowed from the opponent's implied score and the opposing QB's sack and turnover rates (backlog M-04). Same pipeline, same ship rule; ships as 2.1.0 when it passes. Until then K and DEF keep the 1.0.0 method inside 2.0.0.
+
+## Rough time
+About 4½ to 5½ working sessions, plus the owner's review time: steps 1-3, steps 4-5, steps 6-7, steps 8-9, steps 10-11.
 
 ## Decisions still to make
-Each follows [ADR-003](../Decisions/ADR-003-Documentation-Standard.md): injury source and timing (before group E); learned weights against hand-set, if a learned model wins (before shipping group H).
+Each follows [ADR-003](../Decisions/ADR-003-Documentation-Standard.md), before the step that needs it:
+- **How far back to load history** (step 2): every season from 2016, or from 2012 when snap counts begin. More rows help the trees; older seasons played a slightly different game.
+- **Where model files live, and what a weekly retrain means for `model_version`** (step 9): for example, files in the database with "2.0.0" as the method and a training date per row.
+- **Sleeper's past projections as a benchmark source** (step 6), if they can be fetched.
+- **Play-by-play for red-zone and goal-line usage** (backlog M-24): about 100 MB a season, for a strong touchdown signal.
 
 ## Verification
-- Stage 1: the upgraded backtest reproduces the 1.0.0 numbers (4.03 overall; startable 6.35 / 6.45); `--compare` of a model against itself shows zero difference.
-- Injury marking is spot-checked by hand on about 20 known games (real in-game injuries, plus benchings and blowouts that must not be marked) before any experiment uses it. If nflverse injury reports have gaps for a season, marking falls back to "missed the next game" and the report says so.
-- Every feature function has unit tests, including one that fails if it reads a game at or after the week being projected.
-- Each version: pytest, the fresh-weeks check, the Accuracy page still showing earlier weeks, and the app run locally on a real league to read the new "why this number" factors. CI green before each merge.
+- Step 1 reproduces 1.0.0 exactly; `--compare shipped,shipped` is 0.000.
+- Every feature column has a unit test, plus the leak test across the whole table.
+- Training is repeatable: the same seasons and settings give the same model (fixed seed).
+- The ship rule and new report lines are unit-tested on a small hand-made frame with known answers.
+- Each version: pytest, strict mypy, web tests, the 2026 one-look check, the Accuracy page still showing earlier weeks, and the Player screen's factors read in the browser on a real league. CI green before each merge.
 
-Related: [Projection Model](../Specs/Projection-Model.md) · [Backtest Report](Backtest-Report.md) · [Improvement Backlog](Improvement-Backlog.md) · [Later Phases Outline](P2-P8-Outline.md)
+Out of P4 ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)): smarter rest-of-season (M-15), IDP (M-18), keeper and dynasty value.
+
+Related: [ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md) · [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md) · [Projection Model](../Specs/Projection-Model.md) · [Backtest Report](Backtest-Report.md) · [Improvement Backlog](Improvement-Backlog.md) · [Later Phases Outline](P2-P8-Outline.md)

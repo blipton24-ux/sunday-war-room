@@ -61,12 +61,8 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-051 ESPN access](ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md): league link first, guided cookie paste for private leagues, own cookies only (closes open question #12)
 - [ADR-052 Credential encryption](ADR-052-Credential-Encryption.md): app-level Fernet key from the environment; cookies never in job args, logs or responses
 - [ADR-053 ESPN client](ADR-053-ESPN-Client-Own-Code.md): our own client; approved rewrites of earlier ESPN lessons (amends ADR-031)
-- [ADR-054 P4 tests every idea one at a time](ADR-054-P4-Test-Every-Idea-One-At-A-Time.md): tuning, check and fresh-week seasons; injury-affected games left out of backtests
-- [ADR-055 P4 keep rule](ADR-055-P4-Keep-Rule.md): startable-player gain on tuning and check seasons, beyond chance, no position worse by more than 0.05
-- [ADR-056 Earlier-project techniques](ADR-056-P4-Earlier-Techniques-Ideas-Only.md): ideas only, written fresh, all listed techniques approved to test (amends ADR-031)
-- [ADR-057 P4 scope](ADR-057-P4-Scope-Weekly-Accuracy.md): weekly accuracy only; rest-of-season, IDP and keeper/dynasty move out
-- [ADR-058 P4 round 2](ADR-058-P4-Round-2-One-Position-At-A-Time.md): one position at a time, every idea, deeper search; kept judged on all weeks; 2026 weeks are the final check (amends ADR-055)
-- [ADR-059 P4 ships each position when it passes](ADR-059-P4-Ship-Each-Position-When-It-Passes.md): a position's settings ship as their own minor version once they pass, RB first as 1.1.0
+- [ADR-060 P4 machine-learning model](ADR-060-P4-Machine-Learning-Stats-Then-Score.md): predict each stat with XGBoost, then score with the league's rules; the first P4 approach (ADR-054..059) removed, its measuring tools kept
+- [ADR-061 How the ML model is tested and shipped](ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md): season-by-season walk-forward on 2022-2025, settings chosen inside training seasons, ship rule, rank accuracy and outside benchmark reported
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
 - [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in
