@@ -37,7 +37,7 @@ PostgreSQL via SQLAlchemy, with schema changes only through Alembic ([ADR-015](.
 | `player_week_stats` | player_id, season, week, stat columns… | Bulk-loaded from nflverse, idempotent per week ([ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md)) |
 | `injury_reports` | gsis_id, season, week, report_status, roster_status, practice_status, injury | nflverse weekly injury reports and reserve lists; used for injury-game marking and model features |
 | `player_status_snapshots` | player_id, season, week, captured_at, injury_status, depth_chart_order | A row whenever a player's injury status or depth slot changed at a compute, so the model can learn from what was known then |
-| P4 (planned) | depth charts, draft picks, trained model files | Stored so the live compute reads the same facts the backtest trained on ([P4 Build Plan](../Build-Plan/P4-Build-Plan.md) steps 2 and 9; where model files live is still to decide) |
+| P4 (planned) | depth charts, draft picks, trained model files | Stored so the live compute reads the same facts the backtest trained on ([P4 Build Plan](../Build-Plan/P4-Build-Plan.md) steps 3 and 10; where model files live is still to decide) |
 
 ## Projections
 | Table | Key fields | Notes |

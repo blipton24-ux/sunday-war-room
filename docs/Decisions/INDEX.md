@@ -63,6 +63,7 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-053 ESPN client](ADR-053-ESPN-Client-Own-Code.md): our own client; approved rewrites of earlier ESPN lessons (amends ADR-031)
 - [ADR-060 P4 machine-learning model](ADR-060-P4-Machine-Learning-Stats-Then-Score.md): predict each stat with XGBoost, then score with the league's rules; the first P4 approach (ADR-054..059) removed, its measuring tools kept
 - [ADR-061 How the ML model is tested and shipped](ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md): season-by-season walk-forward on 2022-2025, settings chosen inside training seasons, ship rule, rank accuracy and outside benchmark reported
+- [ADR-062 Training history from 2016](ADR-062-P4-Training-History-From-2016.md): the ML model loads and trains on every season from 2016
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
 - [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in

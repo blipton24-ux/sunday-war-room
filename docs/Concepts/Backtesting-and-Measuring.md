@@ -62,7 +62,7 @@ A new version ships only if it is better beyond chance over the four test season
 The backtest measures the past; the Accuracy page measures the real thing. Every projection is **frozen at kickoff** and graded only if it was made before kickoff (**genuine-only grading**), and every row carries the `model_version` that made it, so versions are never mixed.
 
 ## Where it lives
-`api/app/scripts/backtest.py` (the walk-forward run and the report), `api/app/model/compare.py` (paired comparison, bootstrap, ship rule), `api/app/model/metrics.py` (startable slice), `api/app/model/features/injury_games.py` (injury-game marking). `python -m app.scripts.backtest` writes the [Backtest Report](../Build-Plan/Backtest-Report.md); P4 steps 1 and 6 rework it for the machine-learning model ([P4 Build Plan](../Build-Plan/P4-Build-Plan.md)).
+`api/app/scripts/backtest.py` (the walk-forward run and the report), `api/app/model/compare.py` (paired comparison, bootstrap, ship rule), `api/app/model/metrics.py` (startable slice), `api/app/model/features/injury_games.py` (injury-game marking). `python -m app.scripts.backtest` writes the [Backtest Report](../Build-Plan/Backtest-Report.md); P4 steps 2 and 7 rework it for the machine-learning model ([P4 Build Plan](../Build-Plan/P4-Build-Plan.md)).
 
 ## Words you'll see
 - **Held-out / out-of-sample:** games the model never saw while being built.

@@ -5,12 +5,12 @@ tags: [build-plan, p4, model, machine-learning]
 ---
 # Phase 4 Build Plan: a machine-learning projection model
 
-Decisions: [ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md) (predict the stats with XGBoost, then score them) · [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md) (how it is tested and shipped). Concept explainer: [Machine learning and XGBoost](../Concepts/Machine-Learning-and-XGBoost.md).
+Decisions: [ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md) (predict the stats with XGBoost, then score them) · [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md) (how it is tested and shipped) · [ADR-062](../Decisions/ADR-062-P4-Training-History-From-2016.md) (training history from 2016). Concept explainer: [Machine learning and XGBoost](../Concepts/Machine-Learning-and-XGBoost.md).
 
 ## Status
-**Restarted 2026-11-14, not built yet.** The first P4 approach (hand-set multipliers tuned position by position, ADR-054 to ADR-059) is replaced. Its measuring tools stay; its model work is removed in step 1. Until step 1 runs, the code on branch `p4-model` still holds that approach and live model 1.1.0.
+**Restarted 2026-11-14, not built yet.** The first P4 approach (hand-set multipliers tuned position by position, ADR-054 to ADR-059) is replaced. Its measuring tools stay; its model work is removed in step 2. Until step 2 runs, the code on branch `p4-model` still holds that approach and live model 1.1.0.
 
-The branch `p4-model` also carries P3 (ESPN), which is not merged to `main` yet. Removing the first approach must touch only P4 files.
+The branch `p4-model` also carries P3 (ESPN), which is not merged to `main` yet, so step 1 merges it first. Live model 1.1.0 is **not** kept during the build (owner, 2026-11-14): from step 2 until 2.0.0 ships, the app projects with the 1.0.0 method.
 
 ## Why
 Every recommendation in the app (start/sit, waivers, trades, win chance) rests on the projection. Model 1.0.0 misses startable players by 6.45 points on average (held-out 2025, full PPR), a plain season average by 6.50, and the earlier project's model by 5.83. The first P4 approach shipped one position (running backs, about 0.17 better) after two rounds of dial-tuning and hit three limits: it only saw points, its multipliers double counted, and it tuned dials one at a time ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)).
@@ -59,65 +59,75 @@ Every value is known **before that week's kickoff**. One function builds this ta
 | RB | carries, targets | yards per carry, rushing TDs per carry, catch rate, yards per catch, receiving TDs per target |
 | WR, TE | targets, carries | catch rate, yards per catch, receiving TDs per target, yards per carry |
 | All | | fumbles lost and two-point conversions from league-average rates per opportunity (too rare to model) |
-| K, DEF | step 11 | step 11 |
+| K, DEF | step 12 | step 12 |
 
 Volume models use XGBoost's count mode (Poisson); rate models use the ordinary mode with each game weighted by its opportunities, so a 1-target game counts little.
 
 ## Steps
 
-### 1. Remove the first approach (keep the tools)
+### 1. Merge P3 into `main` first (if not merged yet)
+`p4-model` was branched from `p3-espn` before P3's pull request (#1) was merged, so it holds every P3 commit plus the P4 work.
+- If PR #1 is still open: confirm CI is green, merge it into `main`, then rebase `p4-model` onto the new `main` (or start a fresh `p4-ml` branch from `main` and bring over the P4 commits), so the P4 pull request shows only P4 changes.
+- P3's open real-league checks (Verification Gaps V-36..V-42) stay open; they do not block P4.
+- **Check:** `git log main..p4-model` lists only P4 commits; CI green on the rebased branch.
+
+### 2. Remove the first approach (keep the tools)
 - **Delete:** `api/app/model/config.py` (`ModelConfig`, `SHIPPED`, `CANDIDATES`), the idea branches in `api/app/model/projection.py` (back to the 1.0.0 method), `api/app/scripts/tune.py`, `api/backtest/tuning/`, the `--sweep` and idea paths in `api/app/scripts/backtest.py` (`with_round_2_columns`, `Extras` plumbing), and the tests for them (`test_model_ideas.py`, `test_round_2.py`, `test_config.py`).
-- **Review `api/app/model/features/`:** code that computes a signal (target and carry share in `opportunity.py`, team carries in `rushing.py`, defense allowed by position in `defense.py`, game context in `context.py`) moves into the feature table in step 3; code that only applied a multiplier is deleted.
+- **Review `api/app/model/features/`:** code that computes a signal (target and carry share in `opportunity.py`, team carries in `rushing.py`, defense allowed by position in `defense.py`, game context in `context.py`) moves into the feature table in step 4; code that only applied a multiplier is deleted.
 - **Keep:** `compare.py`, `metrics.py`, `features/injury_games.py`, `services/versions.py`, the walk-forward backtest core, scoring (`scoring.py`, `scoring_espn.py`), ranges (`distribution.py`), lineup, win probability, the stored betting lines and their daily refresh, `injury_reports`, `player_status_snapshots`.
 - **Live model:** `MODEL_VERSION` returns to `"1.0.0"` (the same method as the earlier 1.0.0 rows). Week 10's frozen 1.1.0 rows stay visible through `versions.py`.
 - **Check:** the backtest reproduces 1.0.0's numbers (startable 6.45 on 2025, full PPR; half PPR overall 4.03); `--compare shipped,shipped` shows 0.000; pytest, strict mypy and CI green.
 
-### 2. Data for training
-More seasons mean better trees. Load raw stats, snap counts, schedules with lines, rosters and reserve lists, injury reports, depth charts and draft picks for every season used ("how far back" is a decision below). Training data stays in PostgreSQL per [ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md); depth charts and draft picks get stored tables so the live compute can read them (backlog M-22). Depth charts changed shape in 2025; the tier mapping handles both.
+### 3. Data for training
+More seasons mean better trees. Load raw stats, snap counts, schedules with lines, rosters and reserve lists, injury reports, depth charts and draft picks for **every season from 2016** ([ADR-062](../Decisions/ADR-062-P4-Training-History-From-2016.md); 2021 onward is loaded today, so 2016-2020 are new). Training data stays in PostgreSQL per [ADR-030](../Decisions/ADR-030-Stats-In-PostgreSQL.md); depth charts and draft picks get stored tables so the live compute can read them (backlog M-22). Depth charts changed shape in 2025; the tier mapping handles both.
 
-### 3. The feature table
+### 4. The feature table
 `api/app/model/ml/features.py`: `build_features(history, season, week) -> DataFrame`, pure, one row per player-week, columns as in the table above. Unit tests per column, plus the **leak test**: change every game at or after the projected week and the row must not move.
 
-### 4. Training
+### 5. Training
 `api/app/model/ml/train.py`: one XGBoost model per position and target. Training for season S uses only games before S (and, live, the earlier weeks of S). Settings (tree depth, learning rate, number of trees, minimum games per leaf, column sampling) are chosen with the last training season held back and early stopping, never on a test season ([ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md)). A signal or setting is kept only if its gain beats that position's bootstrap noise. Models save as XGBoost JSON with the training seasons, settings and feature list beside them. Add `xgboost` (CPU build) with uv for Windows and Linux; check strict mypy against its type hints.
 
-### 5. Stats, then score
+### 6. Stats, then score
 `api/app/model/ml/project.py`: volume × rates → expected stats → each league's scoring (the existing scoring code, Sleeper and ESPN maps) → points. The availability rules that hold now stay: Out, IR, PUP and Suspended → 0; backup QB on the depth chart discounted. Questionable and Doubtful players are handled by the injury-status feature (learned from players who played) plus the existing discount for the chance he sits, until that discount is fitted (needs a projected-and-sat test).
 
-### 6. Evaluation upgrades
+### 7. Evaluation upgrades
 - `compare.py` and `backtest.py` run the four test seasons (2022-2025) walk-forward and apply the ship rule from ADR-061: pooled gain beyond chance, better in at least 3 of 4 seasons, no position worse by more than 0.05, 2026 not worse.
 - New report lines: **rank accuracy** (Spearman per week and position), **range coverage** per position and scoring format, **everything counted** beside the injury-left-out number, weeks 1-4 and 5+ apart, rest-of-season accuracy.
 - Benchmarks in every report: season average, 1.0.0, the removed 1.1.0's published numbers.
 - **Outside benchmark:** check whether Sleeper's past weekly projections can be fetched for 2024-2026. If so, propose it as a data source (ADR) and add it as a benchmark column (never a model input).
 
-### 7. Ranges
+### 8. Ranges
 Refit the residual-quantile method ([ADR-031](../Decisions/ADR-031-Approved-Reuses.md) reuse 2) on the new model's backtest misses, per position and per scoring family (backlog M-08). XGBoost's percentile mode is tried only if coverage misses 80% by more than a few points.
 
-### 8. Explanations on the Player screen
+### 9. Explanations on the Player screen
 XGBoost's per-signal contributions (`pred_contribs`) for each stat, grouped into plain categories (his role, team volume, opponent, betting market, injury and depth, history and background), multiplied through the league's scoring into points. The factor shape `{name, value, effect, note}` stays, so the API and screens change little. Check in the browser on a real league.
 
-### 9. Live compute and weekly retraining
+### 10. Live compute and weekly retraining
 - The weekly compute builds the same feature table from stored data before kickoff and loads the current model files.
 - A worker job retrains every Tuesday after the stats ingest, on everything played so far, and replaces the live files only if the retrained model is not worse on the latest weeks (backlog M-14). Each projection row records which training produced it.
 
-### 10. Model 2.0.0: owner review and ship
+### 11. Model 2.0.0: owner review and ship
 Full report on the four test seasons, the one look at the 2026 weeks played so far, example projections for players the owner knows, and the owner's ship decision. Then, in one commit: `MODEL_VERSION = "2.0.0"`, refit ranges, spec update ([Projection Model](../Specs/Projection-Model.md)), Backtest Report regenerated, CI green.
 
-### 11. Kickers and defenses
+### 12. Kickers and defenses
 K: field-goal attempts by distance band and extra points (volume) from the team's implied score, dome and drive data; made rate by distance. DEF: sacks, interceptions, fumble recoveries, touchdowns and points allowed from the opponent's implied score and the opposing QB's sack and turnover rates (backlog M-04). Same pipeline, same ship rule; ships as 2.1.0 when it passes. Until then K and DEF keep the 1.0.0 method inside 2.0.0.
 
 ## Rough time
-About 4½ to 5½ working sessions, plus the owner's review time: steps 1-3, steps 4-5, steps 6-7, steps 8-9, steps 10-11.
+About 4½ to 5½ working sessions, plus the owner's review time: steps 1-4, steps 5-6, steps 7-8, steps 9-10, steps 11-12.
+
+## Decided before the build (2026-11-14)
+- **Training history from 2016** ([ADR-062](../Decisions/ADR-062-P4-Training-History-From-2016.md)).
+- **P3 merged first**, as step 1.
+- **1.1.0 not kept live** during the build ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)).
 
 ## Decisions still to make
 Each follows [ADR-003](../Decisions/ADR-003-Documentation-Standard.md), before the step that needs it:
-- **How far back to load history** (step 2): every season from 2016, or from 2012 when snap counts begin. More rows help the trees; older seasons played a slightly different game.
-- **Where model files live, and what a weekly retrain means for `model_version`** (step 9): for example, files in the database with "2.0.0" as the method and a training date per row.
-- **Sleeper's past projections as a benchmark source** (step 6), if they can be fetched.
+- **Where model files live, and what a weekly retrain means for `model_version`** (step 10): for example, files in the database with "2.0.0" as the method and a training date per row.
+- **Sleeper's past projections as a benchmark source** (step 7), if they can be fetched.
 - **Play-by-play for red-zone and goal-line usage** (backlog M-24): about 100 MB a season, for a strong touchdown signal.
 
 ## Verification
-- Step 1 reproduces 1.0.0 exactly; `--compare shipped,shipped` is 0.000.
+- Step 2 reproduces 1.0.0 exactly; `--compare shipped,shipped` is 0.000.
 - Every feature column has a unit test, plus the leak test across the whole table.
 - Training is repeatable: the same seasons and settings give the same model (fixed seed).
 - The ship rule and new report lines are unit-tested on a small hand-made frame with known answers.
