@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 class Schema(BaseModel):
@@ -26,6 +26,15 @@ class MembershipOut(Schema):
     last_synced_at: datetime | None
 
 
+class PlatformOut(Schema):
+    """A connected platform account. Never carries the stored credentials."""
+
+    platform: str  # sleeper / espn / yahoo
+    display_name: str | None
+    # ok / pending (just saved, not yet checked) / needs_reconnect (the platform refused them)
+    status: str
+
+
 class MeOut(Schema):
     id: int
     email: str | None
@@ -33,6 +42,7 @@ class MeOut(Schema):
     image: str | None
     plan: str
     sleeper_username: str | None
+    platforms: list[PlatformOut]
     memberships: list[MembershipOut]
 
 
@@ -56,8 +66,21 @@ class SleeperConnectIn(BaseModel):
     username: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.\-]+$")
 
 
+class EspnProbeIn(BaseModel):
+    """A pasted league link (or just the league id): is the league public?"""
+
+    link: str = Field(min_length=1, max_length=500)
+
+
+class EspnCredentialsIn(BaseModel):
+    """The two ESPN cookies (ADR-051). SecretStr keeps them out of validation-error echoes."""
+
+    espn_s2: SecretStr = Field(min_length=20, max_length=2000)
+    swid: SecretStr = Field(min_length=36, max_length=60)
+
+
 class FollowLeagueIn(BaseModel):
-    platform: Literal["sleeper"]
+    platform: Literal["sleeper", "espn"]
     external_id: str = Field(pattern=r"^\d{1,32}$")
 
 
@@ -72,6 +95,8 @@ class LeagueOut(Schema):
     my_team_id: int | None
     last_synced_at: datetime | None
     sync_status: str | None  # status of the newest sync run
+    # True when this user's own platform cookies were refused: reconnect to see the league.
+    needs_reconnect: bool = False
 
 
 class FollowLeagueOut(Schema):
@@ -85,6 +110,9 @@ class SetMyTeamIn(BaseModel):
 
 class TeamOut(Schema):
     id: int
+    # The platform's own id for the team (ESPN's team id): lets onboarding preselect the team ESPN
+    # says is the user's.
+    external_id: str
     name: str
     owner_name: str | None
     # The platform's user id of the owner: lets onboarding pre-select the user's own team.

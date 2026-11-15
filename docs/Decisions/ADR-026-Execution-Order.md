@@ -20,7 +20,7 @@ The original idea was to build "in one shot" once all decisions were made. With 
 ## Decision
 1. **Step 1:** create `FFCC/`, git, and the complete vault. **Stop for the owner's review.**
 2. **Step 2:** build Phase 1 in one go from [P1 Build Plan](../Build-Plan/P1-Build-Plan.md).
-3. Phases 2–4 each get their own plan and build ([P2–P4 Outline](../Build-Plan/P2-P4-Outline.md)).
+3. Phases 2–4 each get their own plan and build ([P2–P4 Outline](../Build-Plan/P2-P8-Outline.md)).
 
 ## Why
 It keeps "build from a finished spec" while letting the owner check the spec first, and gets a deployed P1 live soonest.

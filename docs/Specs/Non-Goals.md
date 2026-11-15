@@ -12,7 +12,7 @@ Things Sunday War Room deliberately does **not** do. Each keeps scope, risk or l
 - **No native app-store apps** in v1 ([ADR-010](../Decisions/ADR-010-PWA.md)).
 - **No payments** in v1 ([ADR-011](../Decisions/ADR-011-Monetization.md)).
 - **No passwords stored**: Google and magic links only ([ADR-017](../Decisions/ADR-017-Auth-AuthJS.md)).
-- **No scraping behind logins** other than the user-authorized ESPN cookie flow in P4.
+- **No scraping behind logins** other than the user-authorized ESPN cookie flow in P3.
 - **The AI never takes actions**: read-only tools only ([ADR-018](../Decisions/ADR-018-AI-Agent-With-RAG.md)).
 - **No black-box numbers**: anything shown must be explainable from its factors.
 - **No copying another app's look or branding**: an original design ([ADR-023](../Decisions/ADR-023-Visual-Broadcast-Style.md)).

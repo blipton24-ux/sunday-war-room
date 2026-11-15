@@ -13,7 +13,14 @@ import structlog
 from arq import Retry
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.adapters.base import AdapterError, AdapterSchemaError, NotFoundOnPlatform
+from app.adapters.base import (
+    AdapterError,
+    AdapterSchemaError,
+    AuthRequired,
+    CredentialsInvalid,
+    NotFoundOnPlatform,
+    UnsupportedLeague,
+)
 from app.db.models import SyncRun
 from app.logging import get_logger
 
@@ -48,9 +55,18 @@ MAX_TRIES = 3
 
 
 def is_transient(exc: BaseException) -> bool:
-    """Worth retrying: the platform was down or slow. Not: bad input or a changed format."""
+    """Worth retrying: the platform was down or slow.
+
+    Not: bad input, a changed format, or a refusal (private league, expired cookies, a league
+    type we don't support): retrying those only repeats the same answer.
+    """
     return isinstance(exc, AdapterError) and not isinstance(
-        exc, AdapterSchemaError | NotFoundOnPlatform
+        exc,
+        AdapterSchemaError
+        | NotFoundOnPlatform
+        | AuthRequired
+        | CredentialsInvalid
+        | UnsupportedLeague,
     )
 
 

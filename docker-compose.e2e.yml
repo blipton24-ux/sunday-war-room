@@ -1,6 +1,7 @@
 # End-to-end test stack: the real services (db, redis, migrate, api, worker, web) with two
 # changes, layered on docker-compose.yml:
 #   - Sleeper is replaced by a local stand-in serving recorded responses (web/e2e/mock_sleeper.py)
+#   - ESPN likewise, serving a synthetic league (web/e2e/mock_espn.py)
 #   - NFL data is seeded (api/tests/e2e_seed.py) and the worker's own loads are switched off,
 #     so the data the tests rely on is never replaced by something from the internet.
 #
@@ -20,6 +21,23 @@ services:
       - ./web/e2e/mock_sleeper.py:/srv/mock_sleeper.py:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:4010/v1/state/nfl', timeout=3).status == 200 else 1)"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # ESPN's fantasy API, as a synthetic league served by a stand-in (P3): a public league, a private
+  # one that answers only the right two cookies, and a category league we refuse.
+  espn-mock:
+    image: python:3.12-slim-bookworm
+    command: ["python", "/srv/mock_espn.py"]
+    environment:
+      FIXTURES_DIR: /fixtures
+      PORT: "4020"
+    volumes:
+      - ./api/tests/fixtures/espn_league:/fixtures:ro
+      - ./web/e2e/mock_espn.py:/srv/mock_espn.py:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:4020/health', timeout=3).status == 200 else 1)"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -49,10 +67,14 @@ services:
   worker:
     environment:
       SLEEPER_BASE_URL: http://sleeper-mock:4010/v1
+      ESPN_BASE_URL: http://espn-mock:4020/apis/v3/games/ffl
+      ESPN_FAN_URL: http://espn-mock:4020/apis/v2/fans
       INITIAL_INGEST: "false"
       CRON_ENABLED: "false"
     depends_on:
       sleeper-mock:
+        condition: service_healthy
+      espn-mock:
         condition: service_healthy
       e2e-seed:
         condition: service_completed_successfully

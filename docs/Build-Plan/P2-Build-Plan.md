@@ -5,13 +5,13 @@ tags: [build-plan, p2]
 ---
 # Phase 2 Build Plan: waivers, trades, live game day
 
-Decisions: [ADR-043](../Decisions/ADR-043-Phases-Renumbered.md) (phases) · [ADR-044](../Decisions/ADR-044-Live-Data-Sources.md) (live data) · [ADR-045](../Decisions/ADR-045-Live-Delivery-Polling.md) (polling) · [ADR-046](../Decisions/ADR-046-Any-League-Settings.md) (any league) · [ADR-047](../Decisions/ADR-047-Waivers-Value-Added.md) (waivers) · [ADR-048](../Decisions/ADR-048-Trades-Lineup-Impact.md) (trades). Not in P2: push alerts and deploy (P6), model upgrades, IDP and dynasty value (P5).
+Decisions: [ADR-043](../Decisions/ADR-043-Phases-Renumbered.md) (phases) · [ADR-044](../Decisions/ADR-044-Live-Data-Sources.md) (live data) · [ADR-045](../Decisions/ADR-045-Live-Delivery-Polling.md) (polling) · [ADR-046](../Decisions/ADR-046-Any-League-Settings.md) (any league) · [ADR-047](../Decisions/ADR-047-Waivers-Value-Added.md) (waivers) · [ADR-048](../Decisions/ADR-048-Trades-Lineup-Impact.md) (trades). Not in P2: push alerts and deploy (P8), model upgrades, IDP and dynasty value (P4); phase order per [ADR-049](../Decisions/ADR-049-Phases-Reordered-ESPN-First.md).
 
 ## Build order
 Each step ends runnable, tested, committed and green in CI.
 
 1. **Adapter additions** (done 2026-11-09): league waiver, trade and roster settings; transactions (to tell which dropped players are still on waivers); live matchup points. Recorded Sleeper fixtures for a FAAB and a priority league.
-2. **Rest-of-season projections** (done 2026-11-09; through the fantasy playoffs, playoff weeks x1.5, no fading; 2.66 pts/week vs 2.77 naive on held-out 2025): this week's projection method carried across the remaining weeks with byes and opponents, per league scoring. Simple on purpose (smarter in P5). Backtest its error.
+2. **Rest-of-season projections** (done 2026-11-09; through the fantasy playoffs, playoff weeks x1.5, no fading; 2.66 pts/week vs 2.77 naive on held-out 2025): this week's projection method carried across the remaining weeks with byes and opponents, per league scoring. Simple on purpose (smarter in P4). Backtest its error.
 3. **Value engine** (done 2026-11-09; `app/model/value.py`, exact for any slot mix, cross-checked against the lineup optimizer; 12-team league: waivers 0.24 s, trade ideas 2.6 s): best lineup over a set of players, summed over the remaining weeks: value added (waivers) and lineup impact (trades). Pure functions, tested on superflex, 2QB, IR, taxi and K/DEF-off rosters.
 4. **Waivers** (done 2026-11-10): status per waiver type, ranking with the this-week / rest-of-season toggle, suggested drop, FAAB bid range; `GET /leagues/{id}/waivers?horizon=`; Waivers screen.
 5. **Trade analyzer** (done 2026-11-10): `POST /leagues/{id}/trades/evaluate` (any two teams); `GET /leagues/{id}/trades/suggestions?max_loss=`; Trades screen with team pickers, before/after lineups and the "acceptable" slider.
@@ -29,4 +29,4 @@ Each step ends runnable, tested, committed and green in CI.
 - [x] Rest-of-season backtest numbers recorded in the [Backtest Report](Backtest-Report.md).
 - [x] pytest, Vitest and Playwright pass locally and in GitHub Actions. (260 / 73 / 81; CI green on "P2 step 8", 2026-11-10)
 
-Related: [P1 Build Plan](P1-Build-Plan.md) · [P2–P4 Outline](P2-P4-Outline.md) · [Features by Phase](../Specs/Features-by-Phase.md)
+Related: [P1 Build Plan](P1-Build-Plan.md) · [Later Phases Outline](P2-P8-Outline.md) · [Features by Phase](../Specs/Features-by-Phase.md)

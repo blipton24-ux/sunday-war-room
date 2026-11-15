@@ -65,7 +65,7 @@ def has_kicked_off(game: GameInfo | None, now: datetime) -> bool:
 
 def history_id(p: Player) -> str:
     """The id used to look up a player's history. No nflverse link = no history (prior)."""
-    return p.gsis_id or f"sleeper:{p.sleeper_id}"
+    return p.gsis_id or f"player:{p.id}"
 
 
 async def league_player_ids(db: AsyncSession, league_id: int, week: int) -> set[int]:

@@ -57,9 +57,9 @@ export function LineupCheck({ lineup }: { lineup: Lineup }) {
         ))}
         <p className="mt-2 text-xs text-ink-lo">
           {n > 0 && now != null && best != null
-            ? `Win chance ${pct(now)} → ${pct(best)}. Make the change in Sleeper.`
+            ? `Win chance ${pct(now)} → ${pct(best)}. Make the change in your fantasy app.`
             : n > 0
-              ? "Make the change in Sleeper."
+              ? "Make the change in your fantasy app."
               : `Projected ${f1(lineup.current_points)} points from your starters.`}
         </p>
       </div>

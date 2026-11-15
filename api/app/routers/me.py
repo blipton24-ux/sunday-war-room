@@ -4,7 +4,7 @@ from sqlalchemy import delete, select
 from app.auth.deps import DB, CurrentUser
 from app.db.models import League, LeagueMembership, PlatformAccount, User
 from app.errors import error_responses
-from app.schemas import MembershipOut, MeOut
+from app.schemas import MembershipOut, MeOut, PlatformOut
 
 router = APIRouter(prefix="/api/v1/me", tags=["me"], responses=error_responses())
 
@@ -20,11 +20,14 @@ async def get_me(user: CurrentUser, db: DB) -> MeOut:
             .order_by(League.name)
         )
     ).all()
-    sleeper = await db.scalar(
-        select(PlatformAccount.display_name).where(
-            PlatformAccount.user_id == user.id, PlatformAccount.platform == "sleeper"
+    accounts = (
+        await db.scalars(
+            select(PlatformAccount)
+            .where(PlatformAccount.user_id == user.id)
+            .order_by(PlatformAccount.platform)
         )
-    )
+    ).all()
+    sleeper = next((a.display_name for a in accounts if a.platform == "sleeper"), None)
     return MeOut(
         id=user.id,
         email=user.email,
@@ -32,6 +35,11 @@ async def get_me(user: CurrentUser, db: DB) -> MeOut:
         image=user.image,
         plan=user.plan,
         sleeper_username=sleeper,
+        # status only: the stored credentials never leave the database
+        platforms=[
+            PlatformOut(platform=a.platform, display_name=a.display_name, status=a.status)
+            for a in accounts
+        ],
         memberships=[
             MembershipOut(
                 league_id=lg.id,

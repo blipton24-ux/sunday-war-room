@@ -18,6 +18,6 @@ How updated scores reach an open screen during games. Closes Open Question #7 (o
 | Complexity | Lowest (a TanStack Query setting) | Redis pub/sub, streaming through the web server, reconnect catch-up | Highest |
 
 ## Decision
-**Polling.** Sunday War Room is a strategy tool; people follow play-by-play in their fantasy platform's app. Live scope in P2: scores, each player's game status (yet to play / playing, with quarter and clock / done), live projected finals and win chance. No scoring-play ticker. A background job fetches each source once per league and game for everyone; screens re-fetch every 30–60 s **only while a relevant game is live**. Server-Sent Events are kept for streaming AI answers in P3.
+**Polling.** Sunday War Room is a strategy tool; people follow play-by-play in their fantasy platform's app. Live scope in P2: scores, each player's game status (yet to play / playing, with quarter and clock / done), live projected finals and win chance. No scoring-play ticker. A background job fetches each source once per league and game for everyone; screens re-fetch every 30–60 s **only while a relevant game is live**. Server-Sent Events are kept for streaming AI answers in the AI phase (P5, [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)).
 
 Related: [ADR-044 Live data](ADR-044-Live-Data-Sources.md) · [ADR-036 API through the web server](ADR-036-API-Access-Through-Web-Server.md) · [P2 Build Plan](../Build-Plan/P2-Build-Plan.md)

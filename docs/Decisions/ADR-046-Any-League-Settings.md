@@ -14,7 +14,7 @@ Nothing assumes a league format. Every feature reads the league's settings from 
 - **Waivers:** type (rolling priority, reverse standings, FAAB budget with a minimum bid) and claim window (days a dropped player stays on waivers, weekly waiver day, daily waivers), so each player shows "on waivers until …" or "free agent, add now".
 - **Rosters:** any slot list (superflex, 2QB, extra flex, K or DEF on or off); IR/reserve and taxi slots are not counted as starters or bench depth.
 - **Scoring:** the league's own rules; rules we can't score yet stay visible, never silently dropped (P1 behaviour).
-- **Not yet:** individual defensive players (IDP) show "not projected yet" until P5 ([ADR-043](ADR-043-Phases-Renumbered.md)).
+- **Not yet:** individual defensive players (IDP) show "not projected yet" until the model phase (P4 since [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)).
 
 Tests cover several formats (superflex, 2QB, FAAB and priority waivers, IR/taxi, K/DEF off) rather than one example league.
 

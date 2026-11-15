@@ -51,7 +51,7 @@ export default defineConfig({
     // 4. Things that change data or sign people out, each with its own throwaway user.
     {
       name: "actions",
-      testMatch: /(actions|isolation|pwa)\.spec\.ts/,
+      testMatch: /(actions|isolation|pwa|espn)\.spec\.ts/,
       dependencies: ["desktop", "mobile"],
       use: { ...devices["Desktop Chrome"], channel },
     },

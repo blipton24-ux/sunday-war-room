@@ -4,12 +4,25 @@ import { Logo, Wordmark } from "@/components/shell/logo";
 import { requireSession } from "@/lib/server/session";
 
 import { OnboardingFlow } from "./onboarding-flow";
+import type { Stage } from "./types";
 
 export const metadata = { title: "Connect your league" };
 export const dynamic = "force-dynamic";
 
-export default async function OnboardingPage() {
+/** `?platform=espn&cookies=1` (the emailed link) opens the cookie step directly. */
+function initialStage(params: { platform?: string; cookies?: string }): Stage {
+  if (params.platform === "espn") return params.cookies ? "espn-cookies" : "espn-link";
+  if (params.platform === "sleeper") return "sleeper";
+  return "platform";
+}
+
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ platform?: string; cookies?: string }>;
+}) {
   await requireSession();
+  const stage = initialStage(await searchParams);
   return (
     <div className="min-h-dvh">
       <header className="border-b border-accent/20">
@@ -21,7 +34,7 @@ export default async function OnboardingPage() {
         </div>
       </header>
       <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 pb-16 pt-6">
-        <OnboardingFlow />
+        <OnboardingFlow initialStage={stage} />
       </main>
     </div>
   );

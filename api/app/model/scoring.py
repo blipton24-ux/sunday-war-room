@@ -1,14 +1,21 @@
 """Fantasy points from raw stats with a league's OWN rules (Projection Model step 1).
 
-Never trusts a generic "PPR points" column. Each Sleeper rule maps to one of three shapes
-(ADR-031):
+Never trusts a generic "PPR points" column. Each rule maps to one of four shapes
+(ADR-031, ADR-053):
 
 * per-unit    points x quantity            ("rec_yd": 0.1 per receiving yard)
 * tier        points if quantity >= N      ("bonus_rec_yd_100": 3 if 100+ yards)
 * range-count points if lo <= quantity <= hi ("pts_allow_14_20": 1 if 14-20 allowed)
+* step        points x whole steps of size N, per game, cut toward zero
+              (ESPN "RY10": 1 point per 10 rushing yards, so 57 yards is 5 points)
 
-Rules with value 0 are ignored. Non-zero rules we can't compute are *reported* by
-`check_rules`, never silently dropped. Pure functions: pandas/numpy in, numbers out.
+Sleeper's rules are in SLEEPER_RULES; ESPN's are `espn:`-prefixed (app/model/scoring_espn.py).
+A key like `espn:REC@TE` is a per-position override: it replaces the base rule `espn:REC` for
+that position only. Rules with value 0 are ignored, except an override, because a zero override
+says "this position scores nothing for it" and must still suppress the base rule.
+
+Non-zero rules we can't compute are *reported* by `check_rules`, never silently dropped.
+Pure functions: pandas/numpy in, numbers out.
 """
 
 from __future__ import annotations
@@ -22,7 +29,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-Shape = Literal["per_unit", "tier", "range"]
+Shape = Literal["per_unit", "tier", "range", "step"]
 OFFENSE = frozenset({"QB", "RB", "WR", "TE"})
 KICKER = frozenset({"K"})
 DEFENSE = frozenset({"DEF"})
@@ -51,6 +58,7 @@ class Rule:
     lo: float = 0.0  # tier threshold, or range lower bound
     hi: float = float("inf")  # range upper bound (inclusive)
     only_position: str | None = None  # e.g. TE-premium bonus applies to TEs only
+    step: float = 1.0  # "step" shape: the size of one step (10 for "every 10 yards")
 
 
 def per_unit(q: Callable[[pd.DataFrame], pd.Series], pos: frozenset[str] = OFFENSE) -> Rule:
@@ -172,31 +180,62 @@ class RuleCheck:
     unsupported: dict[str, float]  # non-zero rules we can't score yet (shown, not hidden)
 
 
+def rule_for(key: str) -> Rule | None:
+    """The rule a settings key names, from either platform's table; None if we can't score it."""
+    if key.startswith("espn:"):
+        from app.model.scoring_espn import espn_rule  # imported late: it builds on this module
+
+        return espn_rule(key)
+    return SLEEPER_RULES.get(key)
+
+
 def check_rules(rules: Mapping[str, float]) -> RuleCheck:
     supported: dict[str, float] = {}
     unsupported: dict[str, float] = {}
     for key, value in rules.items():
         if not value:
-            continue  # omitted or zero rules score nothing
-        (supported if key in SLEEPER_RULES else unsupported)[key] = float(value)
+            continue  # omitted or zero rules score nothing (overrides are handled in score())
+        (supported if rule_for(key) is not None else unsupported)[key] = float(value)
     return RuleCheck(supported, unsupported)
 
 
 def scoring_key(rules: Mapping[str, float]) -> str:
-    """Stable hash of the rules that matter: leagues with identical scoring share projections."""
-    nonzero = {k: round(float(v), 6) for k, v in sorted(rules.items()) if v}
-    return hashlib.sha256(json.dumps(nonzero, sort_keys=True).encode()).hexdigest()[:16]
+    """Stable hash of the rules that matter: leagues with identical scoring share projections.
+
+    A zero per-position override ("TE: no points for receptions") counts, because it changes
+    what that position scores; any other zero rule scores nothing and is left out.
+    """
+    kept = {k: round(float(v), 6) for k, v in sorted(rules.items()) if v or "@" in k}
+    return hashlib.sha256(json.dumps(kept, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def _base_name(key: str) -> str:
+    return key.partition("@")[0].rstrip("+")
+
+
+def _overridden_positions(rules: Mapping[str, float]) -> dict[str, set[str]]:
+    """base rule name -> positions with their own value for it (including a value of zero)."""
+    out: dict[str, set[str]] = {}
+    for key in rules:
+        base, sep, pos = key.partition("@")
+        if sep:
+            out.setdefault(base.rstrip("+"), set()).add(pos)
+    return out
 
 
 def score(df: pd.DataFrame, rules: Mapping[str, float]) -> pd.Series:
     """Fantasy points for every row of `df` (needs a `position` column + stat columns)."""
     pts = pd.Series(0.0, index=df.index)
     position = df["position"]
+    overridden = _overridden_positions(rules)
     for key, value in check_rules(rules).supported.items():
-        rule = SLEEPER_RULES[key]
+        rule = rule_for(key)
+        assert rule is not None  # check_rules only lists keys we can score
         applies = position.isin(rule.positions)
         if rule.only_position:
             applies &= position == rule.only_position
+        elif "@" not in key and (taken := overridden.get(_base_name(key))):
+            applies &= ~position.isin(taken)  # that position has its own value for this rule
         if not applies.any():
             continue
         q = rule.quantity(df).astype(float)
@@ -204,6 +243,9 @@ def score(df: pd.DataFrame, rules: Mapping[str, float]) -> pd.Series:
             contrib = q * value
         elif rule.shape == "tier":
             contrib = (q >= rule.lo).astype(float) * value
+        elif rule.shape == "step":
+            # whole steps per game, cut toward zero
+            contrib = pd.Series(np.trunc(q / rule.step), index=q.index) * value
         else:
             contrib = ((q >= rule.lo) & (q <= rule.hi)).astype(float) * value
         pts = pts + np.where(applies, contrib, 0.0)

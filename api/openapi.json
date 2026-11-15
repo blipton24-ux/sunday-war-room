@@ -223,6 +223,235 @@
         }
       }
     },
+    "/api/v1/platforms/espn/probe": {
+      "post": {
+        "tags": [
+          "platforms"
+        ],
+        "summary": "Probe Espn League",
+        "description": "Is a pasted ESPN league public? (ADR-051: league link first.)\n\nPoll GET /api/v1/jobs/{job_id}. The result is one of: `public` (with `leagues` and `teams`),\n`private` (ask for the cookies), or `unsupported` (a league type we can't score yet).",
+        "operationId": "probe_espn_league",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EspnProbeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platforms/espn/credentials": {
+      "post": {
+        "tags": [
+          "platforms"
+        ],
+        "summary": "Connect Espn",
+        "description": "Save the user's ESPN cookies (encrypted) and list their leagues (ADR-051, ADR-052).\n\nThe cookies are stored here and only the account id is queued, because job arguments are kept\nunencrypted in Redis. Poll GET /api/v1/jobs/{job_id}; when done, `result.leagues` lists the\nuser's ESPN leagues, each with `team_id` (the user's own team). The cookies are never returned\nby any endpoint.",
+        "operationId": "connect_espn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EspnCredentialsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platforms/espn": {
+      "delete": {
+        "tags": [
+          "platforms"
+        ],
+        "summary": "Disconnect Espn",
+        "description": "Forget the user's stored ESPN cookies.\n\nLeagues followed with those cookies stay followed but ask to reconnect; an account no league\nuses is removed outright.",
+        "operationId": "disconnect_espn",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for another user's league)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready yet (e.g. first sync unfinished, or no team chosen)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/leagues": {
       "get": {
         "tags": [
@@ -302,7 +531,7 @@
           "leagues"
         ],
         "summary": "Follow League",
-        "description": "Follow a league found by the user's latest Sleeper connect, then sync it.",
+        "description": "Follow a league the user's connect step offered, then sync it.\n\nSleeper: from the latest username lookup. ESPN: from a public-link probe, or from the league\nlist a cookie connect returned (then this follow reads the league with the user's own cookies).",
         "operationId": "follow_league",
         "requestBody": {
           "content": {
@@ -1725,6 +1954,49 @@
         "title": "ErrorOut",
         "description": "Every error the API returns has this shape (app/errors.py)."
       },
+      "EspnCredentialsIn": {
+        "properties": {
+          "espn_s2": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 20,
+            "format": "password",
+            "title": "Espn S2",
+            "writeOnly": true
+          },
+          "swid": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 36,
+            "format": "password",
+            "title": "Swid",
+            "writeOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "espn_s2",
+          "swid"
+        ],
+        "title": "EspnCredentialsIn",
+        "description": "The two ESPN cookies (ADR-051). SecretStr keeps them out of validation-error echoes."
+      },
+      "EspnProbeIn": {
+        "properties": {
+          "link": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "link"
+        ],
+        "title": "EspnProbeIn",
+        "description": "A pasted league link (or just the league id): is the league public?"
+      },
       "Factor": {
         "properties": {
           "name": {
@@ -1757,7 +2029,10 @@
         "properties": {
           "platform": {
             "type": "string",
-            "const": "sleeper",
+            "enum": [
+              "sleeper",
+              "espn"
+            ],
             "title": "Platform"
           },
           "external_id": {
@@ -1994,6 +2269,11 @@
               }
             ],
             "title": "Sync Status"
+          },
+          "needs_reconnect": {
+            "type": "boolean",
+            "title": "Needs Reconnect",
+            "default": false
           }
         },
         "type": "object",
@@ -2315,6 +2595,13 @@
             ],
             "title": "Sleeper Username"
           },
+          "platforms": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformOut"
+            },
+            "type": "array",
+            "title": "Platforms"
+          },
           "memberships": {
             "items": {
               "$ref": "#/components/schemas/MembershipOut"
@@ -2331,6 +2618,7 @@
           "image",
           "plan",
           "sleeper_username",
+          "platforms",
           "memberships"
         ],
         "title": "MeOut"
@@ -2387,6 +2675,37 @@
           "last_synced_at"
         ],
         "title": "MembershipOut"
+      },
+      "PlatformOut": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "display_name",
+          "status"
+        ],
+        "title": "PlatformOut",
+        "description": "A connected platform account. Never carries the stored credentials."
       },
       "PlayerLine": {
         "properties": {
@@ -2792,6 +3111,10 @@
             "type": "integer",
             "title": "Id"
           },
+          "external_id": {
+            "type": "string",
+            "title": "External Id"
+          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -2845,6 +3168,7 @@
         "type": "object",
         "required": [
           "id",
+          "external_id",
           "name",
           "owner_name",
           "owner_external_id",

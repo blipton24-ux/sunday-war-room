@@ -21,6 +21,10 @@ const SCREENS: [path: string, ready: RegExp][] = [
   ["/waivers", /^Waivers$/],
   ["/trades", /^Trades$/],
   ["/settings", /^Settings$/],
+  // Connecting a league (P3): choosing a platform, ESPN's link step, and the cookie guide.
+  ["/onboarding", /^Where do you play\?$/],
+  ["/onboarding?platform=espn", /^Connect ESPN$/],
+  ["/onboarding?platform=espn&cookies=1", /^Connect your private ESPN league$/],
 ];
 
 for (const theme of ["dark", "light"] as const) {
@@ -41,7 +45,7 @@ for (const theme of ["dark", "light"] as const) {
         const results = await new AxeBuilder({ page })
           .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
           .analyze();
-        const name = `${theme}-${path === "/" ? "home" : path.slice(1)}`;
+        const name = `${theme}-${path === "/" ? "home" : path.slice(1).replace(/[^a-z0-9]+/gi, "-")}`;
         mkdirSync(OUT, { recursive: true });
         writeFileSync(`${OUT}/${name}.axe.json`, JSON.stringify(results.violations, null, 2));
         await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });

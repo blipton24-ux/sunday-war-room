@@ -27,7 +27,7 @@ Plain-language explainers: what each piece is, how it works in Sunday War Room, 
 - [Multi-tenancy](Multi-Tenancy.md): one app, many users, isolated data
 
 ## AI
-- [LLMs, agents and RAG](LLM-Agents-and-RAG.md): how the P3 assistant uses your real data
+- [LLMs, agents and RAG](LLM-Agents-and-RAG.md): how the P5 assistant uses your real data
 
 ## Quality & operations
 - [Testing levels](Testing-Levels.md): unit, integration, E2E

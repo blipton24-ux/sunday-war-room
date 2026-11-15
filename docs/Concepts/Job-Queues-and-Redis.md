@@ -33,6 +33,6 @@ Job queue:     click → FastAPI drops "sync league 10" into Redis → instantly
 | `compute_projections` | After ingest/sync; never overwrites a projection after kickoff | P1 |
 | `poll_live_scores` | Every ~1 min during games | P2 |
 | `send_push_alerts` | On injury/score events | P2 |
-| `ingest_news` + `embed_news` | Every ~15 min | P3 |
+| `ingest_news` + `embed_news` | Every ~15 min | P5 |
 
 Related: [ADR-016](../Decisions/ADR-016-Ingestion-Job-Queue.md) · [Backend Basics](Backend-Basics.md) · [Architecture](../Specs/Architecture.md)

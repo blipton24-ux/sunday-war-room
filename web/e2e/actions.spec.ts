@@ -33,7 +33,7 @@ test("the league menu lists leagues, settings and sign out, and can connect anot
   }
   await page.getByRole("menuitem", { name: "+ Connect a league" }).click();
   await expect(page).toHaveURL(/\/onboarding$/);
-  await expect(page.getByRole("heading", { name: "Connect Sleeper" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Where do you play?" })).toBeVisible();
 });
 
 test("the theme toggle sticks across a reload and shows in Settings", async ({ page }) => {

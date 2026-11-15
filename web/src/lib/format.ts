@@ -1,5 +1,12 @@
 /** Small display helpers shared by every screen. Pure functions (unit tested). */
 
+const PLATFORM_NAMES: Record<string, string> = { sleeper: "Sleeper", espn: "ESPN", yahoo: "Yahoo" };
+
+/** A platform's display name ("espn" -> "ESPN"). Unknown platforms are shown as given. */
+export function platformName(platform: string): string {
+  return PLATFORM_NAMES[platform] ?? platform;
+}
+
 export function f1(n: number | null | undefined): string {
   return n == null || Number.isNaN(n) ? "--" : n.toFixed(1);
 }

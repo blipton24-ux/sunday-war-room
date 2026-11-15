@@ -45,6 +45,6 @@ Flexible, but the same player's projection gets copied into many leagues' docume
 | Hosting support | Widest | Limited | Wide |
 
 ## pgvector
-A PostgreSQL extension that stores **embeddings** (lists of numbers representing meaning) and finds the most similar ones. Sunday War Room uses it for news search in P3 ([LLM Agents and RAG](LLM-Agents-and-RAG.md)), so there's no separate vector database.
+A PostgreSQL extension that stores **embeddings** (lists of numbers representing meaning) and finds the most similar ones. Sunday War Room uses it for news search in P5 ([LLM Agents and RAG](LLM-Agents-and-RAG.md)), so there's no separate vector database.
 
 Related: [ADR-015](../Decisions/ADR-015-Database-PostgreSQL.md) · [SQLAlchemy and Alembic](SQLAlchemy-and-Alembic.md) · [Data Model](../Specs/Data-Model.md)

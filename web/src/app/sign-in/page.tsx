@@ -19,7 +19,7 @@ export default async function SignInPage() {
         <Wordmark />
         <p className="text-sm text-ink-lo">
           Start/sit calls, matchup odds and projections that explain themselves, for your Sleeper
-          leagues.
+          and ESPN leagues.
         </p>
       </div>
       <SignInForm

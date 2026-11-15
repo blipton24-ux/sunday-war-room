@@ -1,7 +1,7 @@
 """Following leagues, choosing "my team", and refreshing (docs/Specs/API.md)."""
 
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy import delete, select
@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.auth.deps import DB, CurrentUser, Membership
 from app.config import Settings, get_settings
-from app.db.models import League, LeagueMembership, SyncRun, Team
+from app.db.models import League, LeagueMembership, PlatformAccount, SyncRun, Team
 from app.errors import ApiError, NotFound, error_responses
 from app.jobs.tracking import create_run
 from app.queue import Queue, get_queue
@@ -21,10 +21,13 @@ from app.schemas import (
     SetMyTeamIn,
     TeamOut,
 )
+from app.services.credentials import has_working_access
 
 router = APIRouter(prefix="/api/v1/leagues", tags=["leagues"], responses=error_responses())
 QueueDep = Annotated[Queue, Depends(get_queue)]
 ACTIVE = ("queued", "running")
+# The connect steps whose results offer leagues to follow, per platform.
+CONNECT_KINDS = {"sleeper": ("sleeper_connect",), "espn": ("espn_connect", "espn_probe")}
 
 
 async def _latest_sync_status(db: DB, league_id: int) -> str | None:
@@ -48,6 +51,7 @@ async def _league_out(db: DB, league: League, membership: LeagueMembership) -> L
         my_team_id=membership.my_team_id,
         last_synced_at=league.last_synced_at,
         sync_status=await _latest_sync_status(db, league.id),
+        needs_reconnect=not await has_working_access(db, membership),
     )
 
 
@@ -67,6 +71,20 @@ async def _enqueue_sync(db: DB, queue: Queue, league_id: int, user_id: int | Non
     return run
 
 
+async def _offered_account_id(db: DB, user_id: int, offer: SyncRun) -> int | None:
+    """The user's platform account that must read this league: only when the offer came from a
+    cookie connect (a public link needs no login). Never an account that isn't the user's."""
+    account_id = (offer.result or {}).get("account_id")
+    if offer.kind != "espn_connect" or account_id is None:
+        return None
+    owned = await db.scalar(
+        select(PlatformAccount.id).where(
+            PlatformAccount.id == int(account_id), PlatformAccount.user_id == user_id
+        )
+    )
+    return int(owned) if owned is not None else None
+
+
 @router.get("", response_model=list[LeagueOut])
 async def list_leagues(user: CurrentUser, db: DB) -> list[LeagueOut]:
     rows = (
@@ -84,26 +102,43 @@ async def list_leagues(user: CurrentUser, db: DB) -> list[LeagueOut]:
 async def follow_league(
     body: FollowLeagueIn, user: CurrentUser, db: DB, queue: QueueDep
 ) -> FollowLeagueOut:
-    """Follow a league found by the user's latest Sleeper connect, then sync it."""
-    connect = await db.scalar(
-        select(SyncRun)
-        .where(
-            SyncRun.requested_by == user.id,
-            SyncRun.kind == "sleeper_connect",
-            SyncRun.status == "done",
+    """Follow a league the user's connect step offered, then sync it.
+
+    Sleeper: from the latest username lookup. ESPN: from a public-link probe, or from the league
+    list a cookie connect returned (then this follow reads the league with the user's own cookies).
+    """
+    runs = (
+        await db.scalars(
+            select(SyncRun)
+            .where(
+                SyncRun.requested_by == user.id,
+                SyncRun.kind.in_(CONNECT_KINDS[body.platform]),
+                SyncRun.status == "done",
+            )
+            .order_by(SyncRun.id.desc())
+            .limit(10)
         )
-        .order_by(SyncRun.id.desc())
-        .limit(1)
-    )
-    offered = {
-        lg["external_id"]: lg
-        for lg in ((connect.result or {}).get("leagues", []) if connect else [])
-    }
-    found = offered.get(body.external_id)
-    if found is None:
+    ).all()
+    found: dict[str, Any] | None = None
+    offer: SyncRun | None = None
+    for run in runs:  # newest first, so the freshest offer of this league wins
+        match = next(
+            (
+                lg
+                for lg in (run.result or {}).get("leagues", [])
+                if lg["external_id"] == body.external_id
+            ),
+            None,
+        )
+        if match is not None:
+            found, offer = match, run
+            break
+    if found is None or offer is None:
         raise NotFound(
-            "That league isn't in your connected Sleeper account", code="league_not_offered"
+            f"That league isn't in your connected {body.platform.capitalize()} account",
+            code="league_not_offered",
         )
+    account_id = await _offered_account_id(db, user.id, offer)
 
     stmt = insert(League).values(
         platform=body.platform,
@@ -118,10 +153,15 @@ async def follow_league(
         set_={"external_id": stmt.excluded.external_id},
     ).returning(League.id)
     league_id = (await db.execute(upsert)).scalar_one()
+    membership_stmt = insert(LeagueMembership).values(
+        user_id=user.id, league_id=league_id, platform_account_id=account_id
+    )
     await db.execute(
-        insert(LeagueMembership)
-        .values(user_id=user.id, league_id=league_id)
-        .on_conflict_do_nothing(index_elements=["user_id", "league_id"])
+        membership_stmt.on_conflict_do_update(
+            index_elements=["user_id", "league_id"],
+            # re-following (e.g. after reconnecting) refreshes which login reads the league
+            set_={"platform_account_id": membership_stmt.excluded.platform_account_id},
+        )
     )
     await db.commit()
 

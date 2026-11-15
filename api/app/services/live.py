@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters.base import LeagueAdapter
+from app.adapters.base import CredentialsInvalid, LeagueAdapter, NflSource
 from app.db.models import League, LeagueMembership, LiveGame, NflGame
 from app.logging import get_logger
 from app.services.sync import refresh_live_matchups
@@ -78,12 +78,20 @@ async def store_scoreboard(db: AsyncSession, games: Sequence[GameStatus], now: d
 
 async def live_update(
     db: AsyncSession,
-    adapter: LeagueAdapter,
+    adapter: NflSource,
     fetch_week: FetchWeek,
     *,
     now: datetime | None = None,
+    resolve: Callable[[League], Awaitable[LeagueAdapter | None]] | None = None,
+    on_invalid: Callable[[int], Awaitable[None]] | None = None,
 ) -> dict[str, Any]:
-    """One live tick. Returns what it did (logged by the job)."""
+    """One live tick. Returns what it did (logged by the job).
+
+    `adapter` supplies the NFL clock. `resolve` picks the adapter that reads each league's scores
+    (by platform, and for private ESPN leagues with a follower's working cookies); None means no
+    usable adapter, and the league is skipped. Without it every league is read through `adapter`
+    (a Sleeper-only setup). `on_invalid` is told the league id when its credentials were refused.
+    """
     now = now or datetime.now(UTC)
     state = await adapter.fetch_state()
     if state.season_type != "regular" and state.season_type != "post":
@@ -108,12 +116,21 @@ async def live_update(
     ).all()
     updated = 0
     for league in leagues:
+        league_id = league.id  # read now: a rollback below expires the object
         try:
-            await refresh_live_matchups(db, adapter, league, week)
+            reader = await resolve(league) if resolve else cast(LeagueAdapter, adapter)
+            if reader is None:  # no usable adapter (e.g. credentials need reconnecting)
+                continue
+            await refresh_live_matchups(db, reader, league, week)
             updated += 1
+        except CredentialsInvalid:
+            await db.rollback()
+            if on_invalid:
+                await on_invalid(league_id)
+            log.warning("live_league_credentials_refused", league_id=league_id)
         except Exception as exc:  # one bad league must not stop the others
             await db.rollback()
-            log.warning("live_league_failed", league_id=league.id, error=str(exc))
+            log.warning("live_league_failed", league_id=league_id, error=str(exc))
     return {"season": season, "week": week, "leagues": updated, "scoreboard": scoreboard_ok}
 
 

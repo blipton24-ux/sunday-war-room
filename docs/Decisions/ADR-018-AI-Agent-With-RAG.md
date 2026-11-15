@@ -6,6 +6,8 @@ status: accepted
 ---
 # ADR-018: AI assistant (P3) — Claude tool-using agent + news search (RAG)
 
+> **Moved to P5 by [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)**, together with strategy tendencies. "P3" below means the AI phase.
+
 ## Context
 The LLM doesn't know your league. It knows general football up to its training date, not your roster or this week's projections. The design question is how Sunday War Room gives it your data. Full explanation: [LLM Agents and RAG](../Concepts/LLM-Agents-and-RAG.md).
 

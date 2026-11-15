@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.auth.deps import DB, CurrentUser, Membership, get_membership, require_league
+from app.auth.deps import DB, CurrentUser, DataMembership, get_membership, require_league
 from app.db.models import League
 from app.errors import error_responses
 from app.schemas import (
@@ -27,7 +27,7 @@ Week = Annotated[int | None, Query(ge=1, le=18, description="Defaults to the cur
 
 @router.get("/leagues/{league_id}/matchup", response_model=MatchupOut)
 async def get_matchup(
-    league: LeagueDep, membership: Membership, db: DB, week: Week = None
+    league: LeagueDep, membership: DataMembership, db: DB, week: Week = None
 ) -> MatchupOut:
     """Head-to-head: both lineups with projections and ranges, win probability, scores."""
     return await views.matchup_view(db, league, membership, week)
@@ -35,7 +35,7 @@ async def get_matchup(
 
 @router.get("/leagues/{league_id}/lineup", response_model=LineupOut)
 async def get_lineup(
-    league: LeagueDep, membership: Membership, db: DB, week: Week = None
+    league: LeagueDep, membership: DataMembership, db: DB, week: Week = None
 ) -> LineupOut:
     """My lineup: current vs optimal, swap suggestions, win chance before/after."""
     return await views.lineup_view(db, league, membership, week)
@@ -65,7 +65,7 @@ async def get_player_projection(
 @router.get("/leagues/{league_id}/waivers", response_model=WaiversOut)
 async def get_waivers(
     league: LeagueDep,
-    membership: Membership,
+    membership: DataMembership,
     db: DB,
     horizon: Annotated[
         Literal["ros", "week"], Query(description="Rest of season (default) or this week")
@@ -77,14 +77,16 @@ async def get_waivers(
 
 
 @router.get("/leagues/{league_id}/trades/rosters", response_model=TradeRostersOut)
-async def get_trade_rosters(league: LeagueDep, membership: Membership, db: DB) -> TradeRostersOut:
+async def get_trade_rosters(
+    league: LeagueDep, membership: DataMembership, db: DB
+) -> TradeRostersOut:
     """Every team's roster with rest-of-season points per week, to build a trade from."""
     return await trades.trade_rosters_view(db, league, membership)
 
 
 @router.post("/leagues/{league_id}/trades/evaluate", response_model=TradeEvaluationOut)
 async def evaluate_trade(
-    body: TradeEvaluateIn, league: LeagueDep, membership: Membership, db: DB
+    body: TradeEvaluateIn, league: LeagueDep, membership: DataMembership, db: DB
 ) -> TradeEvaluationOut:
     """Lineup impact of a trade between any two teams in the league (ADR-048)."""
     return await trades.evaluate_trade_view(db, league, body)
@@ -93,7 +95,7 @@ async def evaluate_trade(
 @router.get("/leagues/{league_id}/trades/suggestions", response_model=TradeSuggestionsOut)
 async def get_trade_suggestions(
     league: LeagueDep,
-    membership: Membership,
+    membership: DataMembership,
     db: DB,
     max_loss: Annotated[
         float,

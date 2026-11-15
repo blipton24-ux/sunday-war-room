@@ -115,6 +115,12 @@ class PlatformAccount(Base):
     platform: Mapped[str] = mapped_column(String(20))  # sleeper / espn / yahoo
     external_user_id: Mapped[str] = mapped_column(String(64))
     display_name: Mapped[str | None] = mapped_column(String(255))
+    # ESPN cookies / Yahoo tokens, encrypted by app/crypto.py (ADR-052). Never returned by the
+    # API, logged, or passed as a job argument; Sleeper needs none.
+    credentials_encrypted: Mapped[str | None] = mapped_column(Text)
+    # ok / pending (just saved, not yet checked) / needs_reconnect (the platform refused them).
+    status: Mapped[str] = mapped_column(String(20), server_default="ok", default="ok")
+    credentials_checked_at: Mapped[datetime | None] = mapped_column(TZ)
     created_at: Mapped[datetime] = mapped_column(TZ, server_default=func.now())
 
 
@@ -128,6 +134,11 @@ class LeagueMembership(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id", ondelete="CASCADE"), index=True)
     my_team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id", ondelete="SET NULL"))
+    # The account whose credentials this follower reads a private league with (ADR-051): each
+    # user's own cookies only, never a league-mate's. NULL for public leagues and Sleeper.
+    platform_account_id: Mapped[int | None] = mapped_column(
+        ForeignKey("platform_accounts.id", ondelete="SET NULL")
+    )
     created_at: Mapped[datetime] = mapped_column(TZ, server_default=func.now())
 
     league: Mapped[League] = relationship(lazy="raise")

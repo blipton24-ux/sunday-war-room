@@ -13,13 +13,17 @@ REST + OpenAPI ([ADR-014](../Decisions/ADR-014-API-REST-OpenAPI.md)). Every endp
 | GET | `/api/v1/me` | Current user + memberships |
 | DELETE | `/api/v1/me` | Delete account and its data |
 | POST | `/api/v1/platforms/sleeper/connect` | `{username}` → 202 + `{job_id}`; the worker finds the user's leagues for the season (result on the job) |
-| GET | `/api/v1/leagues` | Leagues the user follows |
-| POST | `/api/v1/leagues` | Follow a league `{platform, external_id}` → 202, enqueues `sync_league`. Only leagues returned by the user's latest connect can be followed |
-| GET | `/api/v1/leagues/{id}/teams` | Teams in the league (for choosing "my team") |
+| POST | `/api/v1/platforms/espn/probe` | P3 ([ADR-051](../Decisions/ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md)): `{link}` (a league URL or id) → 202 + `{job_id}`; the worker asks ESPN once with no cookies. Job result: `public` (with `leagues`, `teams`), `private`, or `unsupported`. 422 `invalid_league_link` |
+| POST | `/api/v1/platforms/espn/credentials` | P3: `{espn_s2, swid}` → 202 + `{job_id}`. Saved **encrypted** ([ADR-052](../Decisions/ADR-052-Credential-Encryption.md)); only the account id is queued. Job result: `leagues` (each with `team_id`, ESPN's id for the user's own team). 422 `invalid_cookies`. The cookies are never returned or echoed |
+| DELETE | `/api/v1/platforms/espn` | P3: forget the saved cookies. Followed leagues stay and ask to reconnect |
+| GET | `/api/v1/leagues` | Leagues the user follows (`needs_reconnect`: this user's own platform login was refused) |
+| POST | `/api/v1/leagues` | Follow a league `{platform, external_id}` → 202, enqueues `sync_league`. Only leagues offered by the user's latest connect (Sleeper username, ESPN link or ESPN cookies) can be followed; a league offered by an ESPN cookie connect is then read with that user's cookies |
+| GET | `/api/v1/leagues/{id}/teams` | Teams in the league (for choosing "my team"); each has the platform's own `external_id` and `owner_external_id` so onboarding can preselect the user's team |
 | PATCH | `/api/v1/leagues/{id}` | Set `my_team_id` |
 | DELETE | `/api/v1/leagues/{id}` | Unfollow |
 | POST | `/api/v1/leagues/{id}/refresh` | Enqueue sync → returns `{job_id}` (202 Accepted) |
 | GET | `/api/v1/jobs/{job_id}` | Job status (queued/running/done/failed) + small `result`; visible to the requester and members of the job's league |
+| — | *League data routes (matchup, lineup, waivers, trades)* | P3: return 409 `credentials_expired` when this user's own ESPN cookies were refused, so no one is shown data fetched with a league-mate's login |
 | GET | `/api/v1/leagues/{id}/matchup?week=` | Head-to-head: both lineups, projections, ranges, win probability, scores. P2 live: each player's points so far, game clock, has-the-ball, share of the game left; `live`, `clock_source` (scoreboard / kickoff estimate), `scores_updated_at`. 409 `team_not_chosen` until my team is set |
 | GET | `/api/v1/leagues/{id}/lineup?week=` | My lineup: current vs optimal, swap suggestions |
 | GET | `/api/v1/players/{id}/projection?league_id=&week=` | One projection with factors and range, plus the last 4 games scored with the league's rules. Membership of `league_id` is checked (404) |
@@ -36,6 +40,6 @@ REST + OpenAPI ([ADR-014](../Decisions/ADR-014-API-REST-OpenAPI.md)). Every endp
 - Data responses include `as_of` (last sync time) so the UI can show freshness, and `model_version`.
 - Player rows carry `game_status` (upcoming / in_progress / final / bye); players whose game started are locked in lineup suggestions. `actual_points` is filled from nflverse once a game is final.
 - Screens list `unsupported_rules`: league scoring rules that aren't scored yet (shown, never hidden).
-- Rate limiting per user on refresh endpoints (and the P3 chat): one manual refresh per league per minute; a refresh while a sync is already queued returns that job instead of starting another.
+- Rate limiting per user on refresh endpoints (and the P5 chat): one manual refresh per league per minute; a refresh while a sync is already queued returns that job instead of starting another.
 
 Related: [REST vs GraphQL](../Concepts/REST-vs-GraphQL.md) · [Data Model](Data-Model.md) · [UI Screens](UI-Screens.md)

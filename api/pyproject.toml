@@ -14,6 +14,7 @@ dependencies = [
   "arq>=0.26",
   "httpx>=0.28",
   "pyjwt>=2.10",
+  "cryptography>=44",  # Fernet: encrypts stored platform credentials (ADR-052)
   "structlog>=24.4",
   "numpy>=2.1",
   "pandas>=2.2",

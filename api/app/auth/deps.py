@@ -15,7 +15,7 @@ from app.auth.tokens import InvalidToken, decode_api_token
 from app.config import Settings, get_settings
 from app.db.models import League, LeagueMembership, User
 from app.db.session import get_db
-from app.errors import NotFound, Unauthorized
+from app.errors import ApiError, NotFound, Unauthorized
 
 DB = Annotated[AsyncSession, Depends(get_db)]
 
@@ -61,8 +61,25 @@ async def require_membership(league_id: int, user: CurrentUser, db: DB) -> Leagu
     return await get_membership(db, user, league_id)
 
 
-async def require_league(
+async def require_data_membership(
     membership: Annotated[LeagueMembership, Depends(require_membership)], db: DB
+) -> LeagueMembership:
+    """For routes that return a league's data: also requires this user's own platform login to
+    still work. A user whose ESPN cookies were refused is asked to reconnect and sees nothing
+    fetched with a league-mate's login (ADR-051)."""
+    from app.services.credentials import has_working_access  # late: avoids an import cycle
+
+    if not await has_working_access(db, membership):
+        raise ApiError(
+            409,
+            "credentials_expired",
+            "Your ESPN sign-in expired. Reconnect ESPN to see this league.",
+        )
+    return membership
+
+
+async def require_league(
+    membership: Annotated[LeagueMembership, Depends(require_data_membership)], db: DB
 ) -> League:
     league = await db.get(League, membership.league_id)
     assert league is not None  # FK guarantees it
@@ -70,3 +87,4 @@ async def require_league(
 
 
 Membership = Annotated[LeagueMembership, Depends(require_membership)]
+DataMembership = Annotated[LeagueMembership, Depends(require_data_membership)]

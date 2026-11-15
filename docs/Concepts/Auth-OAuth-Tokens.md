@@ -17,7 +17,7 @@ tags: [concept, auth, security]
 A common token format is a **JWT** (JSON Web Token): readable data plus a cryptographic signature.
 
 ## OAuth ("Sign in with Google")
-Instead of Sunday War Room storing a password, Google confirms who you are and tells Sunday War Room. You never give Sunday War Room your Google password. Sunday War Room also uses OAuth in P4 to connect **Yahoo** leagues.
+Instead of Sunday War Room storing a password, Google confirms who you are and tells Sunday War Room. You never give Sunday War Room your Google password. Sunday War Room also uses OAuth in P7 to connect **Yahoo** leagues.
 
 ## Magic links
 "Email me a sign-in link": a one-time link that logs you in. No password to store, leak or reset.

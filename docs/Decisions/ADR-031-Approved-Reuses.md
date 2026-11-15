@@ -12,7 +12,7 @@ status: accepted
 ## Decisions
 | # | Candidate | Decision | When |
 |---|---|---|---|
-| 1 | ESPN scoring-rule mapping table (ESPN abbreviations → nflverse columns, plus the three rule shapes: per-unit, tier, range-count) | **Use the idea now; adapt the table in P4.** The Sleeper mapping is built fresh in P1 but must model all three rule shapes and treat omitted rules as zero. The ESPN table is adapted when the ESPN adapter is built. | P1 (idea), P4 (table) |
+| 1 | ESPN scoring-rule mapping table (ESPN abbreviations → nflverse columns, plus the three rule shapes: per-unit, tier, range-count) | **Use the idea now; adapt the table in the ESPN phase** (P4 at the time, P3 since [ADR-049](ADR-049-Phases-Reordered-ESPN-First.md)). The Sleeper mapping is built fresh in P1 but must model all three rule shapes and treat omitted rules as zero. The ESPN table is adapted when the ESPN adapter is built. | P1 (idea), P3 (table) |
 | 2 | Projection-range method: empirical quantiles of standardized residuals with an affine scale by projection, per-position floors (not clip-at-zero), volatility applied only where it persists | **Reuse the method.** Rewritten in `model/`; **all fitted numbers are refit** on Sunday War Room's own walk-forward backtest. Ships only if calibration holds (80% interval covers ~80%). | P1 |
 | 3 | Grading definitions: MAE (headline), RMSE, bias, rank correlation within position-week, error by projected-points bucket, interval coverage | **Reuse the definitions.** Rewritten in Sunday War Room's code; used by both the backtest and the live accuracy page so both measure the same way. | P1 |
 

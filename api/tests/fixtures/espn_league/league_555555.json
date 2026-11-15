@@ -1,0 +1,694 @@
+{
+  "id": 555555,
+  "seasonId": 2026,
+  "scoringPeriodId": 9,
+  "status": {
+    "isActive": true,
+    "currentMatchupPeriod": 9,
+    "firstScoringPeriod": 1
+  },
+  "settings": {
+    "name": "ESPN Fixture League",
+    "size": 4,
+    "isPublic": false,
+    "scoringSettings": {
+      "scoringType": "H2H_CATEGORY",
+      "scoringItems": [
+        {
+          "statId": 3,
+          "points": 0.04,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 4,
+          "points": 4,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 20,
+          "points": -2,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 24,
+          "points": 0.1,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 25,
+          "points": 6,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 53,
+          "points": 1,
+          "pointsOverrides": {
+            "6": 1.5
+          }
+        },
+        {
+          "statId": 42,
+          "points": 0.1,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 43,
+          "points": 6,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 72,
+          "points": -2,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 80,
+          "points": 3,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 77,
+          "points": 4,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 198,
+          "points": 5,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 86,
+          "points": 1,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 99,
+          "points": 1,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 95,
+          "points": 2,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 89,
+          "points": 10,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 90,
+          "points": 7,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 91,
+          "points": 4,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 92,
+          "points": 1,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 123,
+          "points": -1,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 124,
+          "points": -4,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 103,
+          "points": 6,
+          "pointsOverrides": {}
+        },
+        {
+          "statId": 104,
+          "points": 6,
+          "pointsOverrides": {}
+        }
+      ]
+    },
+    "rosterSettings": {
+      "lineupSlotCounts": {
+        "0": 1,
+        "2": 2,
+        "4": 2,
+        "6": 1,
+        "23": 1,
+        "16": 1,
+        "17": 1,
+        "20": 6,
+        "21": 1,
+        "8": 0,
+        "10": 1,
+        "12": 0,
+        "18": 0,
+        "19": 0
+      }
+    },
+    "scheduleSettings": {
+      "matchupPeriodCount": 14,
+      "matchupPeriods": {
+        "1": [
+          1
+        ],
+        "2": [
+          2
+        ],
+        "3": [
+          3
+        ],
+        "4": [
+          4
+        ],
+        "5": [
+          5
+        ],
+        "6": [
+          6
+        ],
+        "7": [
+          7
+        ],
+        "8": [
+          8
+        ],
+        "9": [
+          9
+        ],
+        "10": [
+          10
+        ],
+        "11": [
+          11
+        ],
+        "12": [
+          12
+        ],
+        "13": [
+          13
+        ],
+        "14": [
+          14
+        ],
+        "15": [
+          15,
+          16
+        ],
+        "16": [
+          17,
+          18
+        ]
+      },
+      "playoffTeamCount": 6,
+      "playoffMatchupPeriodLength": 2
+    },
+    "acquisitionSettings": {
+      "acquisitionType": "FAAB",
+      "isUsingAcquisitionBudget": true,
+      "acquisitionBudget": 100,
+      "minimumBid": 1,
+      "waiverHours": 48,
+      "waiverProcessDays": [
+        "WED"
+      ]
+    }
+  },
+  "teams": [
+    {
+      "id": 1,
+      "name": "Team 1",
+      "location": null,
+      "nickname": null,
+      "abbrev": "T1",
+      "primaryOwner": "{11111111-2222-3333-4444-555555555555}",
+      "owners": [
+        "{11111111-2222-3333-4444-555555555555}"
+      ],
+      "logo": "https://example.invalid/logo1.png",
+      "waiverRank": 1,
+      "record": {
+        "overall": {
+          "wins": 5,
+          "losses": 3,
+          "ties": 0
+        }
+      },
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 0
+      },
+      "roster": {
+        "entries": [
+          {
+            "playerId": 9000001,
+            "lineupSlotId": 0,
+            "playerPoolEntry": {
+              "id": 9000001,
+              "player": {
+                "id": 9000001,
+                "fullName": "Quarterback 0",
+                "defaultPositionId": 1,
+                "proTeamId": 12,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000002,
+            "lineupSlotId": 2,
+            "playerPoolEntry": {
+              "id": 9000002,
+              "player": {
+                "id": 9000002,
+                "fullName": "Runner 0",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000003,
+            "lineupSlotId": 20,
+            "playerPoolEntry": {
+              "id": 9000003,
+              "player": {
+                "id": 9000003,
+                "fullName": "Backup Runner 0",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000004,
+            "lineupSlotId": 4,
+            "playerPoolEntry": {
+              "id": 9000004,
+              "player": {
+                "id": 9000004,
+                "fullName": "Receiver 0",
+                "defaultPositionId": 3,
+                "proTeamId": 16,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000006,
+            "lineupSlotId": 6,
+            "playerPoolEntry": {
+              "id": 9000006,
+              "player": {
+                "id": 9000006,
+                "fullName": "Tight End 0",
+                "defaultPositionId": 4,
+                "proTeamId": 17,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": -16012,
+            "lineupSlotId": 16,
+            "playerPoolEntry": {
+              "id": -16012,
+              "player": {
+                "id": -16012,
+                "fullName": "Chiefs D/ST",
+                "defaultPositionId": 16,
+                "proTeamId": 12,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000007,
+            "lineupSlotId": 17,
+            "playerPoolEntry": {
+              "id": 9000007,
+              "player": {
+                "id": 9000007,
+                "fullName": "Kicker",
+                "defaultPositionId": 5,
+                "proTeamId": 12,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000099,
+            "lineupSlotId": 23,
+            "playerPoolEntry": {
+              "id": 9000099,
+              "player": {
+                "id": 9000099,
+                "fullName": "Rookie Rusher Jr.",
+                "defaultPositionId": 2,
+                "proTeamId": 14,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000050,
+            "lineupSlotId": 10,
+            "playerPoolEntry": {
+              "id": 9000050,
+              "player": {
+                "id": 9000050,
+                "fullName": "Linebacker",
+                "defaultPositionId": 10,
+                "proTeamId": 3,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "name": "Team 2",
+      "location": null,
+      "nickname": null,
+      "abbrev": "T2",
+      "primaryOwner": "{AAAAAAAA-BBBB-CCCC-DDDD-000000000002}",
+      "owners": [
+        "{AAAAAAAA-BBBB-CCCC-DDDD-000000000002}"
+      ],
+      "logo": "https://example.invalid/logo2.png",
+      "waiverRank": 2,
+      "record": {
+        "overall": {
+          "wins": 4,
+          "losses": 4,
+          "ties": 0
+        }
+      },
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 10
+      },
+      "roster": {
+        "entries": [
+          {
+            "playerId": 9000101,
+            "lineupSlotId": 0,
+            "playerPoolEntry": {
+              "id": 9000101,
+              "player": {
+                "id": 9000101,
+                "fullName": "Quarterback 1",
+                "defaultPositionId": 1,
+                "proTeamId": 12,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000102,
+            "lineupSlotId": 2,
+            "playerPoolEntry": {
+              "id": 9000102,
+              "player": {
+                "id": 9000102,
+                "fullName": "Runner 1",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000103,
+            "lineupSlotId": 20,
+            "playerPoolEntry": {
+              "id": 9000103,
+              "player": {
+                "id": 9000103,
+                "fullName": "Backup Runner 1",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000104,
+            "lineupSlotId": 4,
+            "playerPoolEntry": {
+              "id": 9000104,
+              "player": {
+                "id": 9000104,
+                "fullName": "Receiver 1",
+                "defaultPositionId": 3,
+                "proTeamId": 16,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000106,
+            "lineupSlotId": 6,
+            "playerPoolEntry": {
+              "id": 9000106,
+              "player": {
+                "id": 9000106,
+                "fullName": "Tight End 1",
+                "defaultPositionId": 4,
+                "proTeamId": 17,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "name": "Team 3",
+      "location": null,
+      "nickname": null,
+      "abbrev": "T3",
+      "primaryOwner": "{AAAAAAAA-BBBB-CCCC-DDDD-000000000003}",
+      "owners": [
+        "{AAAAAAAA-BBBB-CCCC-DDDD-000000000003}"
+      ],
+      "logo": "https://example.invalid/logo3.png",
+      "waiverRank": 3,
+      "record": {
+        "overall": {
+          "wins": 3,
+          "losses": 5,
+          "ties": 0
+        }
+      },
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 20
+      },
+      "roster": {
+        "entries": [
+          {
+            "playerId": 9000201,
+            "lineupSlotId": 0,
+            "playerPoolEntry": {
+              "id": 9000201,
+              "player": {
+                "id": 9000201,
+                "fullName": "Quarterback 2",
+                "defaultPositionId": 1,
+                "proTeamId": 12,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000202,
+            "lineupSlotId": 2,
+            "playerPoolEntry": {
+              "id": 9000202,
+              "player": {
+                "id": 9000202,
+                "fullName": "Runner 2",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000203,
+            "lineupSlotId": 20,
+            "playerPoolEntry": {
+              "id": 9000203,
+              "player": {
+                "id": 9000203,
+                "fullName": "Backup Runner 2",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000204,
+            "lineupSlotId": 4,
+            "playerPoolEntry": {
+              "id": 9000204,
+              "player": {
+                "id": 9000204,
+                "fullName": "Receiver 2",
+                "defaultPositionId": 3,
+                "proTeamId": 16,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000206,
+            "lineupSlotId": 6,
+            "playerPoolEntry": {
+              "id": 9000206,
+              "player": {
+                "id": 9000206,
+                "fullName": "Tight End 2",
+                "defaultPositionId": 4,
+                "proTeamId": 17,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "name": null,
+      "location": "Gridiron",
+      "nickname": "Gang",
+      "abbrev": "T4",
+      "primaryOwner": "{AAAAAAAA-BBBB-CCCC-DDDD-000000000004}",
+      "owners": [
+        "{AAAAAAAA-BBBB-CCCC-DDDD-000000000004}"
+      ],
+      "logo": "https://example.invalid/logo4.png",
+      "waiverRank": 4,
+      "record": {
+        "overall": {
+          "wins": 2,
+          "losses": 6,
+          "ties": 0
+        }
+      },
+      "transactionCounter": {
+        "acquisitionBudgetSpent": 30
+      },
+      "roster": {
+        "entries": [
+          {
+            "playerId": 9000301,
+            "lineupSlotId": 0,
+            "playerPoolEntry": {
+              "id": 9000301,
+              "player": {
+                "id": 9000301,
+                "fullName": "Quarterback 3",
+                "defaultPositionId": 1,
+                "proTeamId": 12,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000302,
+            "lineupSlotId": 2,
+            "playerPoolEntry": {
+              "id": 9000302,
+              "player": {
+                "id": 9000302,
+                "fullName": "Runner 3",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000303,
+            "lineupSlotId": 20,
+            "playerPoolEntry": {
+              "id": 9000303,
+              "player": {
+                "id": 9000303,
+                "fullName": "Backup Runner 3",
+                "defaultPositionId": 2,
+                "proTeamId": 7,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000304,
+            "lineupSlotId": 4,
+            "playerPoolEntry": {
+              "id": 9000304,
+              "player": {
+                "id": 9000304,
+                "fullName": "Receiver 3",
+                "defaultPositionId": 3,
+                "proTeamId": 16,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          },
+          {
+            "playerId": 9000306,
+            "lineupSlotId": 6,
+            "playerPoolEntry": {
+              "id": 9000306,
+              "player": {
+                "id": 9000306,
+                "fullName": "Tight End 3",
+                "defaultPositionId": 4,
+                "proTeamId": 17,
+                "injuryStatus": "ACTIVE"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "members": [
+    {
+      "id": "{11111111-2222-3333-4444-555555555555}",
+      "displayName": "owner1",
+      "firstName": "Pat",
+      "lastName": "No1"
+    },
+    {
+      "id": "{AAAAAAAA-BBBB-CCCC-DDDD-000000000002}",
+      "displayName": "owner2",
+      "firstName": "Pat",
+      "lastName": "No2"
+    },
+    {
+      "id": "{AAAAAAAA-BBBB-CCCC-DDDD-000000000003}",
+      "displayName": "owner3",
+      "firstName": "Pat",
+      "lastName": "No3"
+    },
+    {
+      "id": "{AAAAAAAA-BBBB-CCCC-DDDD-000000000004}",
+      "displayName": "owner4",
+      "firstName": "Pat",
+      "lastName": "No4"
+    }
+  ]
+}

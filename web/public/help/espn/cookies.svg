@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" role="img" aria-labelledby="t d">
+  <title id="t">Where the two ESPN cookies are in the browser's developer tools</title>
+  <desc id="d">A schematic of the developer tools: the Application tab, then Cookies on the left, and the rows named espn_s2 and SWID in the list.</desc>
+  <rect width="640" height="300" rx="14" fill="#0b1016"/>
+  <rect x="12" y="12" width="616" height="34" rx="8" fill="#141e28"/>
+  <g font-family="Inter, Arial, sans-serif" font-size="13" fill="#8d99a6">
+    <text x="28" y="34">Elements</text>
+    <text x="104" y="34">Console</text>
+    <text x="172" y="34">Network</text>
+    <rect x="244" y="18" width="104" height="22" rx="6" fill="#e6b95c"/>
+    <text x="258" y="34" fill="#1b1406" font-weight="800">Application</text>
+  </g>
+  <rect x="12" y="54" width="170" height="234" rx="8" fill="#141e28"/>
+  <g font-family="Inter, Arial, sans-serif" font-size="12" fill="#8d99a6">
+    <text x="26" y="78">Storage</text>
+    <text x="38" y="102">Local storage</text>
+    <text x="38" y="124">Session storage</text>
+    <text x="38" y="146" fill="#efe8da" font-weight="700">Cookies</text>
+    <rect x="22" y="156" width="150" height="24" rx="6" fill="#1f2d3b"/>
+    <text x="50" y="172" fill="#efe8da">https://www.espn.com</text>
+  </g>
+  <rect x="192" y="54" width="436" height="234" rx="8" fill="#141e28"/>
+  <g font-family="Inter, Arial, sans-serif" font-size="12" fill="#8d99a6">
+    <text x="206" y="78" font-weight="700">Name</text>
+    <text x="326" y="78" font-weight="700">Value</text>
+    <line x1="200" y1="88" x2="620" y2="88" stroke="#243240"/>
+    <text x="206" y="110">country</text><text x="326" y="110">us</text>
+    <rect x="200" y="122" width="420" height="26" rx="6" fill="#e6b95c" fill-opacity="0.18" stroke="#e6b95c"/>
+    <text x="206" y="140" fill="#efe8da" font-weight="700">espn_s2</text>
+    <text x="326" y="140" fill="#efe8da">AEB… (a long value: double-click, copy)</text>
+    <text x="206" y="172">region</text><text x="326" y="172">unknown</text>
+    <rect x="200" y="184" width="420" height="26" rx="6" fill="#e6b95c" fill-opacity="0.18" stroke="#e6b95c"/>
+    <text x="206" y="202" fill="#efe8da" font-weight="700">SWID</text>
+    <text x="326" y="202" fill="#efe8da">{XXXXXXXX-XXXX-…} (copy this too)</text>
+    <text x="206" y="234">…</text>
+  </g>
+</svg>

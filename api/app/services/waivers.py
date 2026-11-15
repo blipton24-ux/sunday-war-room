@@ -29,6 +29,7 @@ from app.model.scoring import scoring_key
 from app.model.value import ValuePlayer, roster_limit, starting_slots, waiver_gains
 from app.model.waivers import faab_bid, waiver_status
 from app.schemas import PlayerRef, WaiverPlayer, WaiversOut
+from app.services.player_ids import platform_player_id
 from app.services.projections import ROS_MODEL_VERSION, horizon_key, league_horizon
 from app.services.views import _my_team_id, _resolve_week, headshot
 
@@ -155,7 +156,9 @@ async def waivers_view(
     out: list[WaiverPlayer] = []
     for g in gains[:MAX_RESULTS]:
         p = players[g.player_id]
-        status, until = waiver_status(drops.get(p.sleeper_id or ""), rules, now)
+        status, until = waiver_status(
+            drops.get(platform_player_id(p, league.platform) or ""), rules, now
+        )
         per_week = g.gain / total_weight
         bid = faab_bid(per_week, remaining, int(rules.get("min_bid") or 0)) if remaining else None
         own = sum(points[p.id].get(w, 0.0) * wt for w, wt in weights.items()) / total_weight

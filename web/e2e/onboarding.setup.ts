@@ -35,6 +35,8 @@ test("asking for a link says to check the inbox, then the link signs you in", as
   await signIn(page, uniqueEmail("newcomer"));
   // Signed in but with no league yet: straight to onboarding.
   await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page.getByRole("heading", { name: "Where do you play?" })).toBeVisible();
+  await page.getByRole("button", { name: /^Sleeper/ }).click();
   await expect(page.getByRole("heading", { name: "Connect Sleeper" })).toBeVisible();
 });
 
