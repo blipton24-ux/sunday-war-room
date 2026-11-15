@@ -85,6 +85,7 @@ async def upsert_games(db: AsyncSession, schedule: pl.DataFrame) -> int:
                     "week": ex.week,
                     "spread_line": ex.spread_line,
                     "total_line": ex.total_line,
+                    "roof": ex.roof,
                 },
             )
         )

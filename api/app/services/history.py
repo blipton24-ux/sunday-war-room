@@ -8,7 +8,13 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import InjuryReport, NflGame, PlayerWeekStats
+from app.db.models import (
+    DepthChartWeek,
+    InjuryReport,
+    NflGame,
+    PlayerBackground,
+    PlayerWeekStats,
+)
 from app.model.scoring import score
 
 
@@ -51,10 +57,36 @@ async def load_injury_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataF
             InjuryReport.week,
             InjuryReport.report_status,
             InjuryReport.roster_status,
+            InjuryReport.practice_status,
         ).where(InjuryReport.season.in_(list(seasons)))
     )
     return pd.DataFrame(
-        rows.all(), columns=["gsis_id", "season", "week", "report_status", "roster_status"]
+        rows.all(),
+        columns=["gsis_id", "season", "week", "report_status", "roster_status", "practice_status"],
+    )
+
+
+async def load_depth_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFrame:
+    """Depth-chart tier per player-week (1 starter, 2 next in line, 3 deeper)."""
+    rows = await db.execute(
+        select(
+            DepthChartWeek.gsis_id, DepthChartWeek.season, DepthChartWeek.week,
+            DepthChartWeek.depth_tier,
+        ).where(DepthChartWeek.season.in_(list(seasons)))
+    )  # fmt: skip
+    return pd.DataFrame(rows.all(), columns=["gsis_id", "season", "week", "depth_tier"])
+
+
+async def load_background_rows(db: AsyncSession) -> pd.DataFrame:
+    """Birth date, rookie season and draft round and pick for every stored player."""
+    rows = await db.execute(
+        select(
+            PlayerBackground.gsis_id, PlayerBackground.birth_date, PlayerBackground.rookie_season,
+            PlayerBackground.draft_round, PlayerBackground.draft_pick,
+        )
+    )  # fmt: skip
+    return pd.DataFrame(
+        rows.all(), columns=["gsis_id", "birth_date", "rookie_season", "draft_round", "draft_pick"]
     )
 
 
@@ -63,13 +95,14 @@ async def load_game_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFra
     rows = await db.execute(
         select(
             NflGame.season, NflGame.week, NflGame.home, NflGame.away, NflGame.spread_line,
-            NflGame.total_line, NflGame.home_score, NflGame.away_score,
+            NflGame.total_line, NflGame.home_score, NflGame.away_score, NflGame.kickoff_at,
+            NflGame.roof,
         ).where(NflGame.season.in_(list(seasons)), NflGame.game_type == "REG")
     )  # fmt: skip
     return pd.DataFrame(
         rows.all(),
         columns=["season", "week", "home", "away", "spread_line", "total_line", "home_score",
-                 "away_score"],
+                 "away_score", "kickoff_at", "roof"],
     )  # fmt: skip
 
 

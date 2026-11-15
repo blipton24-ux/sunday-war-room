@@ -286,6 +286,8 @@ class NflGame(Base):
     # favoured by that many points) and the total. Pre-game; refreshed by the daily ingest.
     spread_line: Mapped[float | None] = mapped_column(Float)
     total_line: Mapped[float | None] = mapped_column(Float)
+    # nflverse roof: dome, closed, open or outdoors (a P4 model feature)
+    roof: Mapped[str | None] = mapped_column(String(16))
 
     __table_args__ = (Index("ix_nfl_games_season_week", "season", "week"),)
 
