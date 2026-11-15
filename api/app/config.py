@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     credentials_keys: str = DEV_CREDENTIALS_KEY
 
     # First season loaded from nflverse for the model's history and backtests.
-    nflverse_first_season: int = 2022
+    nflverse_first_season: int = 2016  # ADR-062: training history from 2016
 
     # Where Sleeper's public API lives. Overridden only by end-to-end tests (a local stand-in
     # serving recorded responses), so tests never depend on the live service.

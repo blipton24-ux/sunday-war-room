@@ -24,6 +24,7 @@ FANTASY_POSITIONS = ("QB", "RB", "WR", "TE", "K")
 # Columns the scoring map (app/model/scoring.py) and the model read. Contract for load_player_stats.
 PLAYER_STAT_COLUMNS: tuple[str, ...] = (
     "completions", "attempts", "passing_yards", "passing_tds", "passing_interceptions",
+    "passing_air_yards", "receiving_air_yards",
     "sacks_suffered", "sack_fumbles_lost", "passing_2pt_conversions", "passing_first_downs",
     "carries", "rushing_yards", "rushing_tds", "rushing_fumbles_lost", "rushing_first_downs",
     "rushing_2pt_conversions",
@@ -55,8 +56,13 @@ GAME_CONTEXT_COLUMNS = ("season", "game_type", "week", "home_team", "away_team",
                         "total_line", "roof", "temp", "wind", "home_rest", "away_rest",
                         "home_score", "away_score")  # fmt: skip
 DRAFT_COLUMNS = ("season", "round", "pick", "gsis_id", "position")
+BACKGROUND_COLUMNS = ("gsis_id", "birth_date", "rookie_season", "draft_year", "draft_round",
+                      "draft_pick")  # fmt: skip
 INJURY_COLUMNS = ("season", "game_type", "week", "gsis_id", "report_status", "practice_status",
-                  "report_primary_injury", "date_modified")  # fmt: skip
+                  "report_primary_injury")  # fmt: skip
+# Up to 2024 the injury file has one row per practice day, ordered by `date_modified`; from 2025
+# it has one row per player-week and no `date_modified` column.
+INJURY_ORDER_COLUMN = "date_modified"
 ID_COLUMNS = ("gsis_id", "sleeper_id", "espn_id", "yahoo_id", "pfr_id", "name", "position")
 
 
@@ -213,6 +219,22 @@ def load_draft_capital(seasons: Sequence[int]) -> pl.DataFrame:
     )
 
 
+def load_player_background() -> pl.DataFrame:
+    """Birth date, rookie season and draft year, round and pick for every player nflverse knows
+    (retired ones included), one row per gsis_id. Empty draft columns mean undrafted."""
+    raw = nfl.load_players()
+    check_columns(raw, BACKGROUND_COLUMNS, "players")
+    return (
+        raw.filter(pl.col("gsis_id").is_not_null())
+        .select(
+            pl.col("gsis_id").cast(pl.String),
+            pl.col("birth_date").cast(pl.String).str.to_date("%Y-%m-%d", strict=False),
+            *(pl.col(c).cast(pl.Int64) for c in BACKGROUND_COLUMNS[2:]),
+        )
+        .unique(subset=["gsis_id"], keep="first")
+    )
+
+
 DEPTH_POSITIONS = ("QB", "RB", "WR", "TE")
 DEPTH_TIERS = 3  # starter, next in line, deeper
 WR_TIER_LIMITS = (3, 5)  # 2025+ format: WR1-3 are starters, WR4-5 next in line
@@ -331,15 +353,18 @@ def load_injury_reports(seasons: Sequence[int]) -> pl.DataFrame:
     raw = nfl.load_injuries(list(seasons))
     check_columns(raw, INJURY_COLUMNS, "injuries")
     _check_seasons(raw, seasons, "injuries")
-    reports = (
-        raw.filter((pl.col("game_type") == "REG") & pl.col("gsis_id").is_not_null())
-        .sort("date_modified")
-        .group_by(["gsis_id", "season", "week"], maintain_order=True)
-        .agg(
-            pl.col("report_status").drop_nulls().last().alias("report_status"),
-            pl.col("practice_status").drop_nulls().last().alias("practice_status"),
-            pl.col("report_primary_injury").drop_nulls().last().alias("injury"),
-        )
+    rows = raw.filter(
+        (pl.col("game_type") == "REG") & pl.col("gsis_id").is_not_null()
+    ).with_columns(
+        pl.col("season").cast(pl.Int64),
+        pl.col("week").cast(pl.Int64),  # 2016-2020: decimals
+    )
+    if INJURY_ORDER_COLUMN in rows.columns:
+        rows = rows.sort(INJURY_ORDER_COLUMN, nulls_last=False, maintain_order=True)
+    reports = rows.group_by(["gsis_id", "season", "week"], maintain_order=True).agg(
+        pl.col("report_status").drop_nulls().last().alias("report_status"),
+        pl.col("practice_status").drop_nulls().last().alias("practice_status"),
+        pl.col("report_primary_injury").drop_nulls().last().alias("injury"),
     )
     rosters = nfl.load_rosters_weekly(list(seasons))
     check_columns(rosters, ROSTER_COLUMNS, "rosters_weekly")
@@ -350,7 +375,12 @@ def load_injury_reports(seasons: Sequence[int]) -> pl.DataFrame:
             & pl.col("gsis_id").is_not_null()
             & (pl.col("status") == "RES")
         )
-        .select("gsis_id", "season", "week", pl.lit("RES").alias("roster_status"))
+        .select(
+            "gsis_id",
+            pl.col("season").cast(pl.Int64),
+            pl.col("week").cast(pl.Int64),
+            pl.lit("RES").alias("roster_status"),
+        )
         .unique(subset=["gsis_id", "season", "week"])
     )
     return reports.join(reserve, on=["gsis_id", "season", "week"], how="full", coalesce=True)

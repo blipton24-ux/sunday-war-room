@@ -132,8 +132,8 @@ async def test_nflverse_job_loads_grades_and_records_its_run(
     assert run is not None and run.status == "done"
 
     await nfl_jobs.ingest_nflverse_job(ctx, None, True)  # the first-run load: every season
-    assert seen[-1] == [2022, 2023, 2024, 2025, 2026]
-    assert nfl_jobs.seasons_to_load(2024) == [2022, 2023, 2024]
+    assert seen[-1] == list(range(2016, 2027))
+    assert nfl_jobs.seasons_to_load(2024) == list(range(2016, 2025))
 
 
 async def test_syncing_a_league_that_does_not_exist_fails_without_retrying(

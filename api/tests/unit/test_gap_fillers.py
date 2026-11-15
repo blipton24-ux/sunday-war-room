@@ -120,7 +120,7 @@ def test_snap_shares_map_pfr_ids_to_gsis_ids(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_fetch_frames_gathers_every_dataset(monkeypatch: pytest.MonkeyPatch) -> None:
-    """One call produces all five frames, in the shape the loader expects."""
+    """One call produces every frame, in the shape the loader expects."""
     sched = fake.schedules(
         [{"game_id": "g1", "season": 2026, "week": 1, "home_team": "LA", "away_team": "KC",
           "home_score": 24, "away_score": 17}]
@@ -145,8 +145,16 @@ def test_fetch_frames_gathers_every_dataset(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(nflreadpy, "load_rosters_weekly", lambda s: fake.rosters_weekly(
         [{"gsis_id": "00-1", "season": 2026, "week": 1, "status": "ACT"}]
     ))  # fmt: skip
+    monkeypatch.setattr(nflreadpy, "load_depth_charts", lambda s: fake.depth_charts_snapshots(
+        [{"dt": "2026-09-08T12:00:00Z", "gsis_id": "00-1", "pos_abb": "WR", "pos_rank": 2}]
+    ))  # fmt: skip
+    monkeypatch.setattr(nflreadpy, "load_players", lambda: fake.players(
+        [{"gsis_id": "00-1", "birth_date": "2001-05-29", "rookie_season": 2023}]
+    ))  # fmt: skip
     frames = ingest.fetch_frames([2026])
     assert frames.schedule.height == 1 and frames.player_stats.height == 1
+    assert frames.depth is not None and frames.depth["depth_tier"].to_list() == [1]  # WR2: starter
+    assert frames.background is not None and frames.background["rookie_season"].to_list() == [2023]
     assert frames.defense_stats["points_allowed"].to_list() == [17.0]  # LA allowed KC's 17
     assert frames.ids["sleeper_id"].to_list() == ["100"]
     assert frames.snaps["gsis_id"].to_list() == ["00-1"]  # pfr id mapped through the crosswalk

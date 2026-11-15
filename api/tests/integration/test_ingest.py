@@ -1,20 +1,27 @@
 """nflverse ingest into Postgres: idempotent per season, crosswalk links Sleeper players."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import polars as pl
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import InjuryReport, NflGame, Player, PlayerWeekStats
+from app.db.models import (
+    DepthChartWeek,
+    InjuryReport,
+    NflGame,
+    Player,
+    PlayerBackground,
+    PlayerWeekStats,
+)
 from app.services import ingest
 from app.services.ingest import NflverseFrames
 
 pytestmark = pytest.mark.integration
 
 
-def frames(receiving_yards: float = 80.0) -> NflverseFrames:
+def frames(receiving_yards: float = 80.0, tier: int = 1) -> NflverseFrames:
     schedule = pl.DataFrame(
         {
             "game_id": ["2026_01_KC_LA"],
@@ -55,7 +62,20 @@ def frames(receiving_yards: float = 80.0) -> NflverseFrames:
             ],
         }
     )
-    return NflverseFrames(schedule, player_stats, defense, snaps, ids, injuries)
+    # a depth row for a player with no stats that week: kept (he was on the chart, didn't play)
+    depth = pl.DataFrame(
+        {"gsis_id": ["00-1", "00-2"], "season": [2026, 2026], "week": [1, 1],
+         "depth_tier": [tier, 2]}
+    )  # fmt: skip
+    background = pl.DataFrame(
+        {"gsis_id": ["00-1", "00-2"], "birth_date": [date(2001, 5, 29), None],
+         "rookie_season": [2023, 2016], "draft_year": [2023, None],
+         "draft_round": [5, None], "draft_pick": [177, None]},
+        schema_overrides={"draft_year": pl.Int64, "draft_round": pl.Int64, "draft_pick": pl.Int64},
+    )  # fmt: skip
+    return NflverseFrames(
+        schedule, player_stats, defense, snaps, ids, injuries, depth=depth, background=background
+    )
 
 
 async def test_ingest_is_idempotent_and_links_players(
@@ -72,7 +92,7 @@ async def test_ingest_is_idempotent_and_links_players(
 
     monkeypatch.setattr(ingest, "fetch_frames", lambda seasons: frames(80.0))
     first = await ingest.ingest_nflverse(db, [2026])
-    monkeypatch.setattr(ingest, "fetch_frames", lambda seasons: frames(95.0))  # stat correction
+    monkeypatch.setattr(ingest, "fetch_frames", lambda seasons: frames(95.0, tier=2))  # fixes
     second = await ingest.ingest_nflverse(db, [2026])
 
     assert first["player_weeks"] == second["player_weeks"] == 2
@@ -94,6 +114,24 @@ async def test_ingest_is_idempotent_and_links_players(
     injury = await db.get(InjuryReport, ("00-1", 2026, 1))
     assert injury is not None and injury.report_status == "Questionable"
     assert injury.roster_status == "RES" and len(injury.injury or "") > 64  # long text fits
+
+    assert first["depth_chart_weeks"] == second["depth_chart_weeks"] == 2
+    assert await db.scalar(select(func.count()).select_from(DepthChartWeek)) == 2
+    depth = await db.get(DepthChartWeek, ("00-1", 2026, 1))
+    assert depth is not None and depth.depth_tier == 2  # replaced by the second run
+    assert first["player_background"] == second["player_background"] == 2
+    puka = await db.get(PlayerBackground, "00-1")
+    assert puka is not None and puka.birth_date == date(2001, 5, 29) and puka.draft_pick == 177
+    undrafted = await db.get(PlayerBackground, "00-2")
+    assert undrafted is not None and undrafted.draft_round is None
+
+
+async def test_an_empty_background_download_never_wipes_the_table(db: AsyncSession) -> None:
+    db.add(PlayerBackground(gsis_id="00-1", rookie_season=2023))
+    await db.commit()
+    empty = pl.DataFrame(schema={"gsis_id": pl.String})
+    assert await ingest.replace_player_background(db, empty) == 0
+    assert await db.scalar(select(func.count()).select_from(PlayerBackground)) == 1
 
 
 async def test_crosswalk_moves_an_id_without_tripping_uniqueness(db: AsyncSession) -> None:

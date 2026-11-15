@@ -9,11 +9,12 @@ mapping in web/src/lib/server/auth-schema.ts; Better Auth checks this at startup
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -354,6 +355,34 @@ class InjuryReport(Base):
     roster_status: Mapped[str | None] = mapped_column(String(8))  # "RES": on a reserve list
     practice_status: Mapped[str | None] = mapped_column(Text)
     injury: Mapped[str | None] = mapped_column(Text)
+
+
+class DepthChartWeek(Base):
+    """Each offensive player's depth-chart tier the week of each game, from nflverse (P4,
+    ADR-063): 1 starter, 2 next in line, 3 deeper. A row exists whether or not he then played,
+    and only charts published before that week's first kickoff are read
+    (`nflverse.load_depth_tiers`)."""
+
+    __tablename__ = "depth_chart_weeks"
+
+    gsis_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    week: Mapped[int] = mapped_column(Integer, primary_key=True)
+    depth_tier: Mapped[int] = mapped_column(Integer)
+
+
+class PlayerBackground(Base):
+    """Facts about a player that do not change week to week, for every player nflverse knows,
+    retired ones included (P4, ADR-063). Empty draft columns mean undrafted."""
+
+    __tablename__ = "player_background"
+
+    gsis_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    rookie_season: Mapped[int | None] = mapped_column(Integer)
+    draft_year: Mapped[int | None] = mapped_column(Integer)
+    draft_round: Mapped[int | None] = mapped_column(Integer)
+    draft_pick: Mapped[int | None] = mapped_column(Integer)
 
 
 class PlayerStatusSnapshot(Base):

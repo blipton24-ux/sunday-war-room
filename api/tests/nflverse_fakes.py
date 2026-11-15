@@ -71,4 +71,27 @@ def ff_playerids(rows: list[dict[str, Any]]) -> pl.DataFrame:
     return pl.DataFrame([base | r for r in rows], schema_overrides={"sleeper_id": pl.Int64})
 
 
+def depth_charts_weekly(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    """Up to 2024: one chart per week, `depth_team` is the level ("1" starter), several
+    receivers can share a level."""
+    base = {"game_type": "REG", "formation": "Offense"}
+    return pl.DataFrame([base | r for r in rows], schema_overrides={"depth_team": pl.String})
+
+
+def depth_charts_snapshots(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    """2025 on: dated snapshots (`dt`), players numbered straight down (`pos_rank`)."""
+    return pl.DataFrame(rows)
+
+
+def players(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    base = {"birth_date": None, "rookie_season": None, "draft_year": None, "draft_round": None,
+            "draft_pick": None, "display_name": "X"}  # fmt: skip
+    return pl.DataFrame(
+        [base | r for r in rows],
+        schema_overrides={"birth_date": pl.String, "rookie_season": pl.Int32,
+                          "draft_year": pl.Int32, "draft_round": pl.Int32,
+                          "draft_pick": pl.Int32},
+    )  # fmt: skip
+
+
 assert PLAYER_KEY_COLUMNS  # imported for documentation: fakes must carry these columns
