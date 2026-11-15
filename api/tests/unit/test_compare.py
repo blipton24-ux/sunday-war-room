@@ -1,12 +1,12 @@
-"""Model comparison, the startable slice and the keep rule (ADR-055); the switches (ADR-054)."""
+"""Model comparison, the startable slice and the keep rule; --compare's model list."""
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from app.model import compare, metrics
-from app.model.config import CANDIDATES, SHIPPED, ModelConfig, by_name
-from app.model.projection import Context, project_week
+from app.model.projection import project_week
+from app.scripts import backtest
 
 POSITIONS = ("QB", "RB", "WR", "TE")
 
@@ -158,17 +158,13 @@ def test_the_report_names_both_models_and_the_verdict() -> None:
     assert "**Not kept.**" in worse and "| worse |" in worse
 
 
-# --------------------------------------------------------------------------- switches
-def test_config_names() -> None:
-    assert by_name("shipped") is SHIPPED
-    assert CANDIDATES["skip-injury-history"].skip_injury_games_in_history
-    assert not SHIPPED.skip_injury_games_in_history  # live code never runs an unproven idea
-    with pytest.raises(SystemExit, match="Unknown model config"):
-        by_name("nope")
+# --------------------------------------------------------------------------- --compare models
+def test_the_live_model_is_the_shipped_entry() -> None:
+    assert backtest.MODELS["shipped"] is project_week
 
 
 def history_with_a_spoiled_game() -> pd.DataFrame:
-    rows = [(2025, w, 10.0, None) for w in range(1, 6)] + [(2025, 6, 0.0, "during")]
+    rows = [(2025, w, 10.0 + w, None) for w in range(1, 6)] + [(2025, 6, 0.0, "during")]
     return pd.DataFrame(
         [
             {
@@ -187,14 +183,12 @@ def history_with_a_spoiled_game() -> pd.DataFrame:
     )
 
 
-def test_the_injury_history_switch_leaves_hurt_games_out_of_the_baseline() -> None:
+def test_a_model_compared_with_itself_differs_by_exactly_zero() -> None:
     hist = history_with_a_spoiled_game()
-    target = pd.DataFrame([{"gsis_id": "wr1", "position": "WR", "team": "AAA", "opponent": "KC"}])
-    ctx = Context(2025, 7)
-    shipped = project_week(hist, target, ctx, None)["points"].iloc[0]
-    skipping = project_week(hist, target, ctx, None, ModelConfig(skip_injury_games_in_history=True))
-    assert skipping["points"].iloc[0] > shipped  # the 0-point injury game no longer drags it down
-    # without the column, the switch is harmless
-    plain = hist.drop(columns=["injury_game"])
-    same = project_week(plain, target, ctx, None, ModelConfig(skip_injury_games_in_history=True))
-    assert same["points"].iloc[0] == project_week(plain, target, ctx, None)["points"].iloc[0]
+    base = backtest.walk_forward(hist, [2025], backtest.MODELS["shipped"])
+    cand = backtest.walk_forward(hist, [2025], backtest.MODELS["shipped"])
+    paired = compare.pair(base, cand)
+    assert len(paired) == 6
+    assert (paired["proj_base"] == paired["proj_cand"]).all()
+    assert compare.bootstrap(paired).change == 0.0
+    assert paired["left_out"].sum() == 1  # the injury mark reaches the comparison

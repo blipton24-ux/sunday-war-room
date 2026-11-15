@@ -4,11 +4,11 @@
     python -m app.scripts.backtest --write-calibration   # also refresh app/model/calibration.json
     python -m app.scripts.backtest --report ../docs/Build-Plan/Backtest-Report.md
     python -m app.scripts.backtest --scoring full        # half (default), full or standard PPR
-    python -m app.scripts.backtest --compare shipped,skip-injury-history
+    python -m app.scripts.backtest --compare shipped,shipped    # two names from MODELS
 
---compare runs two model configurations (app/model/config.py) over the same player-games,
-grades them on the tuning seasons and the check season, and applies the keep rule (ADR-055).
-Games spoiled by an injury are left out of its numbers (ADR-054, features/injury_games.py).
+--compare runs two models (MODELS below) over the same player-games and grades the difference
+on the earlier seasons and the held-out one, with a bootstrap for chance (compare.py).
+Games spoiled by an injury are left out of its numbers (features/injury_games.py).
 
 Walk-forward: each week is projected using only games before it, exactly as it would have been
 live. Ranges are fit on the earlier test seasons and their coverage is checked on the last,
@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import sys
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -33,15 +33,12 @@ import pandas as pd
 
 from app.db.session import get_engine, get_sessionmaker
 from app.model import compare, metrics
-from app.model.config import CANDIDATES, SHIPPED, ModelConfig, by_name
 from app.model.distribution import CALIBRATION_FILE, apply_range, fit_calibration
-from app.model.features.context import Extras, build_extras
 from app.model.features.injury_games import excluded, mark_injury_games
-from app.model.projection import MODEL_VERSION, RAW_COLUMNS, Context, project_week
+from app.model.projection import MODEL_VERSION, Context, project_week
 from app.model.rest_of_season import Horizon, project_rest_of_season
-from app.model.scoring import REFERENCE_RULES, score
+from app.model.scoring import REFERENCE_RULES
 from app.services.history import load_injury_rows, load_stat_rows, scored_history
-from app.sources import nflverse
 
 SCORING = {  # the reference rules are Sleeper's half-PPR; ranges are only fit in half-PPR
     "half": REFERENCE_RULES,
@@ -49,12 +46,15 @@ SCORING = {  # the reference rules are Sleeper's half-PPR; ranges are only fit i
     "standard": {**REFERENCE_RULES, "rec": 0.0},
 }
 
+# (history, targets, ctx, calibration) -> projections; the models --compare can run by name.
+Projector = Callable[[pd.DataFrame, pd.DataFrame, Context, Any], pd.DataFrame]
+MODELS: dict[str, Projector] = {"shipped": project_week}
+
 
 def walk_forward(
     history: pd.DataFrame,
     seasons: list[int],
-    config: ModelConfig = SHIPPED,
-    extras: Extras | None = None,
+    project: Projector = project_week,
     positions: tuple[str, ...] | None = None,
 ) -> pd.DataFrame:
     """Projection vs actual for every player-game in `seasons`, plus a naive baseline.
@@ -69,19 +69,8 @@ def walk_forward(
                 actual = actual[actual["position"].isin(positions)]
                 if actual.empty:
                     continue
-            # depth_tier (round 2) is read only by the depth idea; shipped settings ignore it
-            targets = actual[
-                ["gsis_id", "position", "team", "opponent"]
-                + (["depth_tier"] if "depth_tier" in actual.columns else [])
-            ]
-            proj = project_week(
-                history,
-                targets,
-                Context(season, int(week)),
-                calibration=None,
-                config=config,
-                extras=extras,
-            )
+            targets = actual[["gsis_id", "position", "team", "opponent"]]
+            proj = project(history, targets, Context(season, int(week)), None)
             flag = "injury_game" if "injury_game" in actual.columns else None
             merged = proj[["gsis_id", "position", "points"]].merge(
                 actual[["gsis_id", "points", *([flag] if flag else [])]].rename(
@@ -266,39 +255,18 @@ def report(
     return "\n".join(lines) + "\n"
 
 
-async def load(seasons: list[int], scoring: str = "half") -> tuple[pd.DataFrame, Extras]:
-    """Scored history with an `injury_game` mark on every row (features/injury_games.py): used to
-    pick which games are fair to judge and, as an experiment, to leave out of a player's own
-    history."""
+async def load(seasons: list[int], scoring: str = "half") -> pd.DataFrame:
+    """Scored history with an `injury_game` mark on every row (features/injury_games.py), used to
+    pick which games are fair to judge."""
     async with get_sessionmaker()() as db:
         rows = await load_stat_rows(db, seasons)
         injuries = await load_injury_rows(db, seasons)
     await get_engine().dispose()
     if rows.empty:
         raise SystemExit("No nflverse rows in the database: run the ingest_nflverse job first.")
-    history = scored_history(rows, SCORING[scoring], keep=RAW_COLUMNS)
+    history = scored_history(rows, SCORING[scoring])
     history["injury_game"] = mark_injury_games(history, injuries)
-    history = with_round_2_columns(history, seasons, SCORING[scoring])
-    context = nflverse.load_game_context(seasons).to_pandas()
-    draft = nflverse.load_draft_capital(list(range(seasons[0] - 4, seasons[-1] + 1))).to_pandas()
-    return history, build_extras(context, draft, injuries)
-
-
-KEY_COLUMNS = ["gsis_id", "season", "week"]
-
-
-def with_round_2_columns(
-    history: pd.DataFrame, seasons: list[int], rules: dict[str, float]
-) -> pd.DataFrame:
-    """Backtest-only columns for round 2 ideas (ADR-058): `xfp_nflverse`, nflverse's expected
-    stats scored with these rules (E-04), and `depth_tier`, the depth-chart tier that week (E-14).
-    Both are known before each game's kickoff. Missing values stay empty."""
-    expected = nflverse.load_expected_stats(seasons).to_pandas()
-    expected = expected.merge(history[[*KEY_COLUMNS, "position"]], on=KEY_COLUMNS, how="inner")
-    expected["xfp_nflverse"] = score(expected, rules)
-    depth = nflverse.load_depth_tiers(seasons).to_pandas()
-    out = history.merge(expected[[*KEY_COLUMNS, "xfp_nflverse"]], on=KEY_COLUMNS, how="left")
-    return out.merge(depth, on=KEY_COLUMNS, how="left")
+    return history
 
 
 def injury_section(df_test: pd.DataFrame, test: int) -> list[str]:
@@ -309,7 +277,7 @@ def injury_section(df_test: pd.DataFrame, test: int) -> list[str]:
     lines = [
         f"## Injury games ({test}, held out)",
         "",
-        "Games spoiled by an injury (ADR-054) are left out of the headline when comparing models. "
+        "Games spoiled by an injury (ADR-061) are left out of the headline when comparing models. "
         f"Of {len(df_test):,} player-games: {int(flags.get('before', 0)):,} listed Out or Doubtful "
         f"who played, {int(flags.get('during', 0)):,} hurt during the game, "
         f"{int(flags.get('questionable', 0)):,} Questionable who played (kept).",
@@ -361,52 +329,19 @@ def main() -> None:
     parser.add_argument("--first", type=int, default=2021, help="first season of history")
     parser.add_argument("--test", type=int, default=2025, help="held-out season")
     parser.add_argument("--scoring", choices=sorted(SCORING), default="half")
-    parser.add_argument(
-        "--compare", metavar="BASE,CANDIDATE", help="two names from app/model/config.py"
-    )
-    parser.add_argument(
-        "--sweep",
-        metavar="IDEAS",
-        help="comma-separated names (or 'all'), each compared with --baseline in one table",
-    )
-    parser.add_argument("--baseline", default="shipped", help="what --sweep compares against")
+    parser.add_argument("--compare", metavar="BASE,CANDIDATE", help="two names from MODELS")
     parser.add_argument("--write-calibration", action="store_true")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
 
-    history, extras = asyncio.run(load(list(range(args.first, args.test + 1)), args.scoring))
+    history = asyncio.run(load(list(range(args.first, args.test + 1)), args.scoring))
     fit_seasons = list(range(args.first + 1, args.test))  # first season is history only
-    if args.sweep:
-        names = (
-            [n for n in CANDIDATES if n not in ("shipped", "skip-injury-history")]
-            if args.sweep == "all"
-            else args.sweep.split(",")
-        )
-        graded_seasons = [*fit_seasons, args.test]
-        base_frame = walk_forward(history, graded_seasons, by_name(args.baseline), extras)
-        rows = []
-        for name in names:
-            cand_frame = walk_forward(history, graded_seasons, by_name(name), extras)
-            paired = compare.pair(base_frame, cand_frame)
-            rows.append(
-                compare.summarize(
-                    name,
-                    paired[paired["season"].isin(fit_seasons)],
-                    paired[paired["season"] == args.test],
-                )
-            )
-            print(f"done {name}", file=sys.stderr, flush=True)
-        text = compare.render_sweep(args.baseline, rows, f"Idea sweep ({args.scoring} PPR)")
-        print(text)
-        if args.report:
-            args.report.write_text(text, encoding="utf-8")
-        return
     if args.compare:
         base_name, cand_name = args.compare.split(",")
         graded_seasons = [*fit_seasons, args.test]
         paired = compare.pair(
-            walk_forward(history, graded_seasons, by_name(base_name), extras),
-            walk_forward(history, graded_seasons, by_name(cand_name), extras),
+            walk_forward(history, graded_seasons, MODELS[base_name]),
+            walk_forward(history, graded_seasons, MODELS[cand_name]),
         )
         text = compare.render(
             base_name,
@@ -419,7 +354,7 @@ def main() -> None:
         if args.report:
             args.report.write_text(text, encoding="utf-8")
         return
-    df = walk_forward(history, [*fit_seasons, args.test], extras=extras)
+    df = walk_forward(history, [*fit_seasons, args.test])
     df_fit, df_test = df[df["season"].isin(fit_seasons)], df[df["season"] == args.test]
 
     ros = rest_of_season_backtest(history, args.test)

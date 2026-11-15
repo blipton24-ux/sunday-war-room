@@ -1,4 +1,4 @@
-"""Injury-game marking (ADR-054): evidence-based, no hindsight, strict on purpose."""
+"""Injury-game marking (ADR-061, point 6): evidence-based, no hindsight, strict on purpose."""
 
 from typing import Any
 

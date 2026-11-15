@@ -1,8 +1,11 @@
-"""Defense against each position, passing and rushing apart (P4 group B).
+"""Defense against each position, passing and rushing apart.
 
-Today's opponent factor looks at fantasy points allowed to a position. These tables split what a
-defense allows into the passing game (passing for quarterbacks, receiving for everyone else) and
-the running game, and can also adjust for the quality of the offenses it has faced.
+Kept from the first P4 approach as a reference for P4 step 4: the signals here move into the
+feature table (`app/model/ml/features.py`) and this file is deleted then.
+
+These tables split what a defense allows into the passing game (passing for quarterbacks,
+receiving for everyone else) and the running game, and can also adjust for the quality of the
+offenses it has faced.
 
 All tables are built from games before the week being projected (the caller passes `cur`).
 Needs raw stat columns on the history frame.

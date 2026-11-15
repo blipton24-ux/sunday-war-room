@@ -1,11 +1,9 @@
-"""Game context for the projection experiments (P4): betting lines, weather, rest, team strength,
-draft capital. Built once per backtest from nflverse schedules; every value a projection reads
-is known before that week's kickoff (lines and conditions are pre-game; team strength uses only
-earlier games).
+"""Game context: betting lines (implied team scores), weather, rest, team strength, draft
+capital, and who was unavailable each week. Every value is known before that week's kickoff
+(lines and conditions are pre-game; team strength uses only earlier games).
 
-`Extras` is passed to `project_week`; the live path passes none until an idea that needs it has
-been kept and its data plumbing built.
-"""
+Kept from the first P4 approach as a reference for P4 step 4: the signals here move into the
+feature table (`app/model/ml/features.py`) and this file is deleted then."""
 
 from __future__ import annotations
 
@@ -28,9 +26,9 @@ class Extras:
     league_implied: dict[tuple[int, int], float]  # (season, week) -> mean implied score so far
     draft: dict[str, tuple[int, int]]  # gsis_id -> (draft year, round)
     cache: dict[Any, Any] = field(default_factory=dict)  # tables fitted per target season
-    # (player, season, week) listed Out or Doubtful, or on a reserve list, that week (E-15)
+    # (player, season, week) listed Out or Doubtful, or on a reserve list, that week
     unavailable: set[tuple[str, int, int]] = field(default_factory=set)
-    # (player, season, week) on a reserve list (injured reserve and the like) that week (E-20)
+    # (player, season, week) on a reserve list (injured reserve and the like) that week
     reserve: set[tuple[str, int, int]] = field(default_factory=set)
 
     def game(self, team: str | None, season: int, week: int) -> dict[str, Any] | None:

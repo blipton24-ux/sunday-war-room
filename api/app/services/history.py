@@ -59,7 +59,7 @@ async def load_injury_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataF
 
 
 async def load_game_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFrame:
-    """Stored regular-season games with scores and betting lines (model 1.1.0's game context)."""
+    """Stored regular-season games with scores and betting lines (game context for the P4 model)."""
     rows = await db.execute(
         select(
             NflGame.season, NflGame.week, NflGame.home, NflGame.away, NflGame.spread_line,

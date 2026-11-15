@@ -1,4 +1,4 @@
-"""Mark player-games spoiled by an injury (ADR-054).
+"""Mark player-games spoiled by an injury (ADR-061, point 6).
 
 A player hurt before or during a game scores for a reason no model could know, so backtests
 leave those games out of the headline numbers. The rule is fixed here, was checked by hand

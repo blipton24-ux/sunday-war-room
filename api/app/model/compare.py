@@ -1,4 +1,5 @@
-"""Compare two model versions on the same player-games, and apply the keep rule (ADR-055).
+"""Compare two model versions on the same player-games, and apply the keep rule (its
+per-position limit is part of ADR-061's ship rule; the full rule comes in P4 step 7).
 
 Both frames hold one row per player-game with: gsis_id, position, season, week, actual, proj,
 naive, and `injury_flag` (features/injury_games.py). They must cover the same rows; the
@@ -22,7 +23,7 @@ from app.model.features.injury_games import excluded
 KEY = ["gsis_id", "season", "week"]
 BOOTSTRAPS = 2000
 SEED = 20261112
-WORSE_LIMIT = 0.05  # no position may get worse by more than this many points (ADR-055)
+WORSE_LIMIT = 0.05  # no position may get worse by more than this many points (ADR-061)
 
 
 @dataclass(frozen=True)
@@ -122,7 +123,7 @@ class Verdict:
 
 
 def verdict(tuning: pd.DataFrame, check: pd.DataFrame, weeks: str | None = "5+") -> Verdict:
-    """ADR-055. `tuning` and `check` are `pair()` frames for the tuning and check seasons."""
+    """The keep rule. `tuning` and `check` are `pair()` frames for the tuning and check seasons."""
     reasons: list[str] = []
     t = slice_diff(tuning, startable=True, weeks=weeks)
     c = slice_diff(check, startable=True, weeks=weeks)
@@ -192,7 +193,7 @@ def render(base: str, cand: str, tuning: pd.DataFrame, check: pd.DataFrame, titl
             lines.append(_row(f"{pos}, startable, weeks 5+", d))
         lines.append("")
     v = verdict(tuning, check)
-    lines += ["## Keep rule (ADR-055)", ""]
+    lines += ["## Keep rule", ""]
     if v.kept:
         lines.append(
             "**Kept.** Better on the tuning seasons and the check season, beyond chance, "

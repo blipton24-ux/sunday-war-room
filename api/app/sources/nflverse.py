@@ -213,40 +213,9 @@ def load_draft_capital(seasons: Sequence[int]) -> pl.DataFrame:
     )
 
 
-# Expected stats per game (nflverse ff_opportunity), renamed to the stat names the scoring map
-# reads, so a league's own rules turn them into expected fantasy points.
-EXPECTED_STAT_COLUMNS = {
-    "pass_attempt": "attempts", "rush_attempt": "carries", "rec_attempt": "targets",
-    "pass_completions_exp": "completions", "pass_yards_gained_exp": "passing_yards",
-    "pass_touchdown_exp": "passing_tds", "pass_interception_exp": "passing_interceptions",
-    "pass_two_point_conv_exp": "passing_2pt_conversions",
-    "pass_first_down_exp": "passing_first_downs",
-    "rush_yards_gained_exp": "rushing_yards", "rush_touchdown_exp": "rushing_tds",
-    "rush_two_point_conv_exp": "rushing_2pt_conversions",
-    "rush_first_down_exp": "rushing_first_downs",
-    "receptions_exp": "receptions", "rec_yards_gained_exp": "receiving_yards",
-    "rec_touchdown_exp": "receiving_tds", "rec_two_point_conv_exp": "receiving_2pt_conversions",
-    "rec_first_down_exp": "receiving_first_downs",
-}  # fmt: skip
 DEPTH_POSITIONS = ("QB", "RB", "WR", "TE")
 DEPTH_TIERS = 3  # starter, next in line, deeper
 WR_TIER_LIMITS = (3, 5)  # 2025+ format: WR1-3 are starters, WR4-5 next in line
-
-
-def load_expected_stats(seasons: Sequence[int]) -> pl.DataFrame:
-    """What an average player would have produced from each player's opportunities, per game
-    (P4, E-04). Opportunity counts are real; yards, catches and touchdowns are nflverse's
-    expected values given where and how each play happened (down, distance, field position,
-    air yards). One row per player-game: gsis_id, season, week and EXPECTED_STAT_COLUMNS' names."""
-    raw = nfl.load_ff_opportunity(list(seasons))
-    check_columns(raw, ("season", "week", "player_id", *EXPECTED_STAT_COLUMNS), "ff_opportunity")
-    return raw.filter(pl.col("player_id").is_not_null()).select(
-        pl.col("player_id").alias("gsis_id"),
-        pl.col("season").cast(pl.Int64),
-        pl.col("week").cast(pl.Int64),
-        *(pl.col(src).cast(pl.Float64).fill_null(0.0).alias(dst)
-          for src, dst in EXPECTED_STAT_COLUMNS.items()),
-    )  # fmt: skip
 
 
 def _tier(position: pl.Expr, rank: pl.Expr) -> pl.Expr:
@@ -262,7 +231,7 @@ def _tier(position: pl.Expr, rank: pl.Expr) -> pl.Expr:
 
 
 def load_depth_tiers(seasons: Sequence[int]) -> pl.DataFrame:
-    """Each offensive player's depth-chart tier the week of each game (P4, E-14): 1 starter,
+    """Each offensive player's depth-chart tier the week of each game: 1 starter,
     2 next in line, 3 deeper. One row per player-week: gsis_id, season, week, depth_tier.
 
     Up to 2024 nflverse publishes a chart per week, where several receivers share level 1 (one

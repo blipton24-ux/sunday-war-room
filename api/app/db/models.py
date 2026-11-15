@@ -281,7 +281,7 @@ class NflGame(Base):
     kickoff_at: Mapped[datetime | None] = mapped_column(TZ)
     home_score: Mapped[int | None] = mapped_column(Integer)
     away_score: Mapped[int | None] = mapped_column(Integer)
-    # Betting lines from nflverse (model 1.1.0): the home team's spread (positive: home
+    # Betting lines from nflverse (a P4 model feature): the home team's spread (positive: home
     # favoured by that many points) and the total. Pre-game; refreshed by the daily ingest.
     spread_line: Mapped[float | None] = mapped_column(Float)
     total_line: Mapped[float | None] = mapped_column(Float)
