@@ -66,6 +66,7 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-062 Training history from 2016](ADR-062-P4-Training-History-From-2016.md): the ML model loads and trains on every season from 2016
 - [ADR-063 Depth charts and player background tables](ADR-063-P4-Depth-Charts-And-Player-Background-Tables.md): two new tables, filled from nflverse, for the ML model and the live compute
 - [ADR-064 Spread-aware scoring of predicted stats](ADR-064-P4-Spread-Aware-Scoring-Of-Predicted-Stats.md): step and bonus rules score their expected value under a learned spread (gamma)
+- [ADR-065 Retrain every 4 weeks in testing](ADR-065-P4-Retrain-Every-Four-Weeks-In-Testing.md): the four-season test retrains before weeks 1, 5, 9 and 13 with the season so far added
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
 - [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in

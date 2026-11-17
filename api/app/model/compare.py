@@ -1,5 +1,5 @@
-"""Compare two model versions on the same player-games, and apply the keep rule (its
-per-position limit is part of ADR-061's ship rule; the full rule comes in P4 step 7).
+"""Compare two model versions on the same player-games: the keep rule used while building, and
+ADR-061's ship rule over the four test seasons (`ship_evidence`, `ship_rule`).
 
 Both frames hold one row per player-game with: gsis_id, position, season, week, actual, proj,
 naive, and `injury_flag` (features/injury_games.py). They must cover the same rows; the
@@ -145,6 +145,55 @@ def verdict(tuning: pd.DataFrame, check: pd.DataFrame, weeks: str | None = "5+")
         reasons.append(f"worse by more than {WORSE_LIMIT} points at {', '.join(worse)}")
     kept = not reasons
     return Verdict(kept, () if kept else tuple(helped), tuple(reasons))
+
+
+# --------------------------------------------------------------------------- ship rule (ADR-061)
+@dataclass(frozen=True)
+class ShipEvidence:
+    """Everything ADR-061's ship rule reads. Startable players (picked by season average), all
+    weeks, injury games left out; change = candidate - live model, negative is better."""
+
+    pooled: Diff  # the test seasons together, with the week bootstrap
+    seasons: dict[int, Diff]  # each test season on its own
+    positions: dict[str, Diff]  # each position, test seasons pooled
+    final: Diff | None  # the current season's weeks so far: the one look before shipping
+
+
+def ship_evidence(paired: pd.DataFrame, final: pd.DataFrame | None = None) -> ShipEvidence:
+    """`paired`: a `pair()` frame over the test seasons; `final`: one over the current season's
+    weeks, or None while it has not been looked at (it is looked at once, before shipping)."""
+
+    def on(frame: pd.DataFrame, position: str | None = None) -> Diff:
+        return slice_diff(frame, startable=True, weeks=None, position=position)
+
+    present = set(paired["position"].unique())
+    return ShipEvidence(
+        on(paired),
+        {int(s): on(paired[paired["season"] == s]) for s in sorted(paired["season"].unique())},
+        {pos: on(paired, position=pos) for pos in sorted(metrics.STARTABLE_TOP) if pos in present},
+        None if final is None else on(final),
+    )
+
+
+def ship_rule(e: ShipEvidence) -> Verdict:
+    """ADR-061 decision 4: ship only if every condition holds; `reasons` lists each one that
+    fails, in plain words, for the report."""
+    reasons: list[str] = []
+    if not e.pooled.better:
+        reasons.append(f"test seasons pooled: change {e.pooled.change:+.3f}, "
+                       "not better beyond chance")  # fmt: skip
+    wins = sum(d.change < 0 for d in e.seasons.values())
+    if wins < 3:
+        reasons.append(f"better in only {wins} of {len(e.seasons)} test seasons (needs 3)")
+    for pos, d in e.positions.items():
+        if d.change > WORSE_LIMIT:
+            reasons.append(f"{pos}: worse by {d.change:.3f} points (limit {WORSE_LIMIT})")
+    # Until the one look at 2026 (step 11), the rule is read on the test seasons alone:
+    # if e.final is None:
+    #     reasons.append("2026 weeks not looked at yet (the one look comes in step 11)")
+    if e.final is not None and e.final.worse:
+        reasons.append(f"2026 weeks: change {e.final.change:+.3f}, worse beyond chance")
+    return Verdict(not reasons, (), tuple(reasons))
 
 
 def _flag(d: Diff) -> str:

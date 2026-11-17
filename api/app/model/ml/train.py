@@ -58,6 +58,14 @@ class TrainingTable:
             self.features[keep].reset_index(drop=True), self.stats[keep].reset_index(drop=True)
         )
 
+    def before(self, season: int, week: int) -> TrainingTable:
+        """Every row played before `week` of `season`: what a model trained that Tuesday sees."""
+        f = self.features
+        keep = ((f["season"] < season) | ((f["season"] == season) & (f["week"] < week))).to_numpy()
+        return TrainingTable(
+            self.features[keep].reset_index(drop=True), self.stats[keep].reset_index(drop=True)
+        )
+
 
 def training_table(data: ModelData, seasons: Sequence[int]) -> TrainingTable:
     """Every skill-position player-game in `seasons`, with its features and raw stats."""
@@ -113,8 +121,12 @@ def fit(
     target: Target,
     train_seasons: Sequence[int],
     grid: Sequence[dict[str, Any]] = GRID,
+    upto: tuple[int, int] | None = None,
 ) -> FittedModel:
-    """Choose settings on the last training season, then retrain on all of them."""
+    """Choose settings on the last training season, then retrain on all of them.
+
+    `upto=(season, week)`: the final retrain also learns from that season's games before
+    `week` (ADR-065); settings are still chosen on the last full training season."""
     seasons = sorted(set(train_seasons))
     if len(seasons) < 2:
         raise ValueError("training needs at least two seasons: one is held back to pick settings")
@@ -138,7 +150,9 @@ def fit(
             best = (score, params, booster.best_iteration + 1, booster)
     assert best is not None
     score, params, trees, inner_booster = best
-    # retrain on every training season; more rows support proportionally more trees
+    if upto is not None:
+        feats, y, w = _rows(table.seasons([*seasons, upto[0]]).before(*upto), position, target)
+    # retrain on every training row; more rows support proportionally more trees
     trees_all = min(MAX_TREES, round(trees * len(y) / max(1, int(inner.sum()))))
     booster = xgb.train(params, _matrix(feats, columns, y, w), num_boost_round=trees_all)
     return FittedModel(
@@ -172,11 +186,14 @@ def train_all(
     train_seasons: Sequence[int],
     positions: Sequence[str] = SKILL,
     grid: Sequence[dict[str, Any]] = GRID,
+    upto: tuple[int, int] | None = None,
 ) -> ModelSet:
     out = ModelSet()
     for position in positions:
         for target in BY_POSITION[position]:
-            out.models[(position, target.name)] = fit(table, position, target, train_seasons, grid)
+            out.models[(position, target.name)] = fit(
+                table, position, target, train_seasons, grid, upto
+            )
     seasons = sorted(set(train_seasons))
     held, before = table.seasons(seasons[-1:]), table.seasons(seasons[:-1])
     keep = held.features["position"].isin(list(positions)).to_numpy()
@@ -186,7 +203,10 @@ def train_all(
         out.predict(held.features, inner=True), held.features["position"], fit_minor_rates(before)
     )
     out.spreads = fit_spreads(expected, held.stats, held.features["position"])
-    out.minor = fit_minor_rates(table.seasons(seasons))
+    everything = table.seasons(seasons)
+    if upto is not None:
+        everything = table.seasons([*seasons, upto[0]]).before(*upto)
+    out.minor = fit_minor_rates(everything)
     return out
 
 
