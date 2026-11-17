@@ -10,6 +10,7 @@ tags: [index, build-plan]
 - [P3 Build Plan](P3-Build-Plan.md): the ESPN adapter, step by step, with its checklist
 - [P4 Build Plan](P4-Build-Plan.md): a machine-learning projection model (predict the stats with XGBoost, then score them), step by step
 - [Backtest Report](Backtest-Report.md): walk-forward accuracy and range calibration of projection model v1 (generated)
+- [ML Training Report](ML-Training-Report.md): P4 step 5, each XGBoost target against a simple baseline, season by season 2022-2025 (generated)
 - [Improvement Backlog](Improvement-Backlog.md): known gaps and deferred upgrades (model, UI, platform), with evidence and priority
 - [CI](CI.md): what the GitHub Actions workflow checks and how to run each check locally
 - [Verification Gaps](Verification-Gaps.md): things built but not yet seen working, and how to test each

@@ -141,6 +141,7 @@ def test_shares_are_ratios_of_totals_with_season_last_and_recent_windows() -> No
     assert wr1["last_games"] == 6
     assert wr1["season_catch_rate"] == pytest.approx(0.5)
     assert wr1["season_yards_per_target"] == pytest.approx(10.0)
+    assert wr1["season_yards_per_catch"] == pytest.approx(20.0)
     assert wr1["season_air_share"] == pytest.approx(48 / (48 + 60))
     assert wr1["season_snap_share"] == pytest.approx(0.8)
     assert np.isnan(wr1["season_yards_per_attempt"])  # receivers have no pass attempts

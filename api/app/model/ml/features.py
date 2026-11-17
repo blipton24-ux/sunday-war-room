@@ -156,6 +156,7 @@ def _rates(out: pd.DataFrame, src: pd.DataFrame, w: str) -> None:
     out[f"{w}_attempts"] = c("attempts")
     out[f"{w}_catch_rate"] = _ratio(c("receptions"), c("targets"))
     out[f"{w}_yards_per_target"] = _ratio(c("receiving_yards"), c("targets"))
+    out[f"{w}_yards_per_catch"] = _ratio(c("receiving_yards"), c("receptions"))
     out[f"{w}_rec_td_rate"] = _ratio(c("receiving_tds"), c("targets"))
     out[f"{w}_yards_per_carry"] = _ratio(c("rushing_yards"), c("carries"))
     out[f"{w}_rush_td_rate"] = _ratio(c("rushing_tds"), c("carries"))

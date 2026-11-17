@@ -24,6 +24,7 @@ dependencies = [
   "polars[rtcompat]>=1.12; sys_platform == 'win32'",
   "pyarrow>=18",
   "nflreadpy>=0.1",
+  "xgboost-cpu>=3.4.1",
 ]
 
 [project.optional-dependencies]
