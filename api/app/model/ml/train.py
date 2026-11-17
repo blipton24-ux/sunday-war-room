@@ -20,6 +20,7 @@ import xgboost as xgb
 
 from app.model.ml.data import ModelData
 from app.model.ml.features import SKILL, TARGET_COLUMNS, build_features, feature_columns
+from app.model.ml.project import Key, expected_stats, fit_minor_rates, fit_spreads
 from app.model.ml.targets import BY_POSITION, Target, label
 
 SEED = 2026
@@ -76,9 +77,19 @@ class FittedModel:
     features: list[str]
     train_seasons: list[int]
     holdout_score: float
+    # The chosen settings trained without the held-back season: used once, to learn how far
+    # real stats land from predictions (spreads). Not saved.
+    inner: xgb.Booster | None = None
+    inner_trees: int = 0
 
-    def predict(self, features: pd.DataFrame) -> np.ndarray:
+    def predict(self, features: pd.DataFrame, inner: bool = False) -> np.ndarray:
         matrix = xgb.DMatrix(features[self.features].astype(float), missing=np.nan)
+        if inner:
+            if self.inner is None:
+                raise ValueError("this model has no held-back version (loaded from files)")
+            return np.asarray(
+                self.inner.predict(matrix, iteration_range=(0, self.inner_trees)), dtype=float
+            )
         return np.asarray(self.booster.predict(matrix), dtype=float)
 
 
@@ -115,7 +126,7 @@ def fit(
     d_inner = _matrix(feats[inner], columns, y[inner], w[inner])
     d_held = _matrix(feats[~inner], columns, y[~inner], w[~inner])
 
-    best: tuple[float, dict[str, Any], int] | None = None
+    best: tuple[float, dict[str, Any], int, xgb.Booster] | None = None
     for settings in grid:
         params = {**BASE_PARAMS, **settings, "objective": objective, "eval_metric": metric}
         booster = xgb.train(
@@ -124,13 +135,15 @@ def fit(
         )  # fmt: skip
         score = float(booster.best_score)
         if best is None or score < best[0]:
-            best = (score, params, booster.best_iteration + 1)
+            best = (score, params, booster.best_iteration + 1, booster)
     assert best is not None
-    score, params, trees = best
+    score, params, trees, inner_booster = best
     # retrain on every training season; more rows support proportionally more trees
     trees_all = min(MAX_TREES, round(trees * len(y) / max(1, int(inner.sum()))))
     booster = xgb.train(params, _matrix(feats, columns, y, w), num_boost_round=trees_all)
-    return FittedModel(position, target, booster, params, trees_all, columns, seasons, score)
+    return FittedModel(
+        position, target, booster, params, trees_all, columns, seasons, score, inner_booster, trees
+    )
 
 
 @dataclass
@@ -138,16 +151,19 @@ class ModelSet:
     """Every fitted model for one training run, keyed by (position, target name)."""
 
     models: dict[tuple[str, str], FittedModel] = field(default_factory=dict)
+    minor: dict[Key, float] = field(default_factory=dict)  # league-average minor-stat rates
+    spreads: dict[Key, tuple[float, float]] = field(default_factory=dict)  # variance = a*mean^b
 
-    def predict(self, features: pd.DataFrame) -> pd.DataFrame:
-        """One column per target name; a row gets values only from its own position's models."""
+    def predict(self, features: pd.DataFrame, inner: bool = False) -> pd.DataFrame:
+        """One column per target name; a row gets values only from its own position's models.
+        `inner`: use the versions trained without the held-back season."""
         out = pd.DataFrame(index=features.index)
         for (position, name), model in self.models.items():
             at = (features["position"] == position).to_numpy()
             if name not in out.columns:
                 out[name] = np.nan
             if at.any():
-                out.loc[at, name] = model.predict(features[at])
+                out.loc[at, name] = model.predict(features[at], inner)
         return out
 
 
@@ -161,6 +177,16 @@ def train_all(
     for position in positions:
         for target in BY_POSITION[position]:
             out.models[(position, target.name)] = fit(table, position, target, train_seasons, grid)
+    seasons = sorted(set(train_seasons))
+    held, before = table.seasons(seasons[-1:]), table.seasons(seasons[:-1])
+    keep = held.features["position"].isin(list(positions)).to_numpy()
+    held = TrainingTable(held.features[keep], held.stats[keep])
+    # spreads: out-of-sample, from the held-back versions predicting the held-back season
+    expected = expected_stats(
+        out.predict(held.features, inner=True), held.features["position"], fit_minor_rates(before)
+    )
+    out.spreads = fit_spreads(expected, held.stats, held.features["position"])
+    out.minor = fit_minor_rates(table.seasons(seasons))
     return out
 
 
@@ -171,7 +197,12 @@ META = "models.json"
 def save(models: ModelSet, directory: Path) -> None:
     """Each model as XGBoost JSON, plus models.json with its seasons, settings and columns."""
     directory.mkdir(parents=True, exist_ok=True)
-    meta: dict[str, Any] = {"xgboost": xgb.__version__, "models": []}
+    meta: dict[str, Any] = {
+        "xgboost": xgb.__version__,
+        "models": [],
+        "minor": [[p, s, r] for (p, s), r in models.minor.items()],
+        "spreads": [[p, s, a, b] for (p, s), (a, b) in models.spreads.items()],
+    }
     for (position, name), m in models.models.items():  # order kept for load()
         file = f"{position}_{name}.json"
         m.booster.save_model(str(directory / file))
@@ -186,7 +217,10 @@ def save(models: ModelSet, directory: Path) -> None:
 def load(directory: Path) -> ModelSet:
     meta = json.loads((directory / META).read_text(encoding="utf-8"))
     targets = {t.name: t for ts in BY_POSITION.values() for t in ts}
-    out = ModelSet()
+    out = ModelSet(
+        minor={(p, s): float(r) for p, s, r in meta["minor"]},
+        spreads={(p, s): (float(a), float(b)) for p, s, a, b in meta["spreads"]},
+    )
     for entry in meta["models"]:
         booster = xgb.Booster()
         booster.load_model(str(directory / entry["file"]))

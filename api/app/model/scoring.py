@@ -223,8 +223,15 @@ def _overridden_positions(rules: Mapping[str, float]) -> dict[str, set[str]]:
     return out
 
 
-def score(df: pd.DataFrame, rules: Mapping[str, float]) -> pd.Series:
-    """Fantasy points for every row of `df` (needs a `position` column + stat columns)."""
+def score(
+    df: pd.DataFrame, rules: Mapping[str, float], variance: pd.DataFrame | None = None
+) -> pd.Series:
+    """Fantasy points for every row of `df` (needs a `position` column + stat columns).
+
+    With `variance` (ADR-064), `df` holds *expected* stats and `variance` each stat's variance
+    around them (same columns, same rows): tier, step and range rules then score their expected
+    value under a gamma spread (`expected_rule`), not the rule applied to the average. Linear
+    rules are the same either way. Without `variance`, every row is one real game."""
     pts = pd.Series(0.0, index=df.index)
     position = df["position"]
     overridden = _overridden_positions(rules)
@@ -239,7 +246,10 @@ def score(df: pd.DataFrame, rules: Mapping[str, float]) -> pd.Series:
         if not applies.any():
             continue
         q = rule.quantity(df).astype(float)
-        if rule.shape == "per_unit":
+        if variance is not None and rule.shape != "per_unit":
+            spread = rule.quantity(variance).astype(float).clip(lower=0.0)
+            contrib = expected_rule(rule, q, spread) * value
+        elif rule.shape == "per_unit":
             contrib = q * value
         elif rule.shape == "tier":
             contrib = (q >= rule.lo).astype(float) * value
@@ -250,6 +260,43 @@ def score(df: pd.DataFrame, rules: Mapping[str, float]) -> pd.Series:
             contrib = ((q >= rule.lo) & (q <= rule.hi)).astype(float) * value
         pts = pts + np.where(applies, contrib, 0.0)
     return pts.round(2)
+
+
+# gamma spreads tighter than this are treated as exact (no spread to speak of)
+MIN_VARIANCE = 1e-9
+MAX_STEPS = 400  # a step rule reads at most this many steps (25-yard steps: 10,000 yards)
+
+
+def expected_rule(rule: Rule, mean: pd.Series, variance: pd.Series) -> pd.Series:
+    """Expected value of a tier, step or range rule's indicator or step count, when the
+    quantity follows a gamma distribution with this mean and variance (ADR-064). A quantity
+    with no spread (or a mean at or below zero) is scored as one exact game."""
+    from scipy.stats import gamma  # imported here: only expected scoring needs it
+
+    m = mean.to_numpy(dtype=float)
+    v = variance.to_numpy(dtype=float)
+    spread = (v > MIN_VARIANCE) & (m > 0)
+    shape = np.where(spread, m**2 / np.where(spread, v, 1.0), 1.0)
+    scale = np.where(spread, v / np.where(m > 0, m, 1.0), 1.0)
+
+    def at_least(x: np.ndarray | float) -> np.ndarray:
+        return np.asarray(gamma.sf(x, shape, scale=scale), dtype=float)
+
+    if rule.shape == "tier":
+        exact = (m >= rule.lo).astype(float)
+        smooth = at_least(rule.lo)
+    elif rule.shape == "range":
+        exact = ((m >= rule.lo) & (m <= rule.hi)).astype(float)
+        upper = np.asarray(gamma.cdf(rule.hi, shape, scale=scale), dtype=float)
+        smooth = np.clip(upper - (1.0 - at_least(rule.lo)), 0.0, 1.0)
+    else:  # step: E[whole steps] = sum over k of P(quantity >= k steps)
+        exact = np.trunc(m / rule.step)
+        top = np.max(np.where(spread, m + 10 * np.sqrt(np.maximum(v, 0.0)), 0.0), initial=0.0)
+        steps = min(MAX_STEPS, int(np.ceil(top / rule.step)) + 1)
+        smooth = np.zeros_like(m)
+        for k in range(1, steps + 1):
+            smooth += at_least(k * rule.step)
+    return pd.Series(np.where(spread, smooth, exact), index=mean.index)
 
 
 def score_one(stats: Mapping[str, float], position: str, rules: Mapping[str, float]) -> float:

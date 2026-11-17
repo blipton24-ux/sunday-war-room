@@ -118,6 +118,13 @@ def test_predictions_go_to_their_own_position_and_survive_save_and_load(tmp_path
     pd.testing.assert_frame_equal(back.predict(rows), out)
     kept = back.models[("WR", "targets")]
     assert kept.train_seasons == [2019, 2020, 2021] and "season_target_share" in kept.features
+    assert back.minor == models.minor and back.spreads == models.spreads
+    assert ("WR", "receptions") in models.spreads and (
+        "WR",
+        "receiving_first_downs",
+    ) in models.minor
+    with pytest.raises(ValueError, match="held-back"):
+        back.predict(rows, inner=True)  # the held-back versions are not saved
 
 
 def test_report_renders_every_target_and_season() -> None:
