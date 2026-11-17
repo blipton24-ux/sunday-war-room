@@ -6,8 +6,10 @@
 Walk-forward season by season (ADR-061), retrained every 4 weeks inside each test season
 (ADR-065; `ml/walk_forward.py`). Both models are graded on exactly the same player-games: the
 four skill positions (kickers and defenses keep the 1.0.0 method in 2.0.0, P4 step 12). The
-ML projections are cached (`--cache`) because training takes about half an hour; delete the file
-to retrain. The current season is never read here: it is the one look before shipping (step 11).
+ML projections are cached (`--cache`) because training takes about an hour; delete the file
+to retrain. Sleeper's projections are added as an outside benchmark when they have been fetched
+(`python -m app.scripts.fetch_sleeper_benchmark`, ADR-066). The current season is never
+read here: it is the one look before shipping (step 11).
 """
 
 from __future__ import annotations
@@ -21,9 +23,11 @@ from datetime import date
 from pathlib import Path
 
 import pandas as pd
+from sqlalchemy import select
 
+from app.db.models import Player
 from app.db.session import get_engine, get_sessionmaker
-from app.model import compare, metrics
+from app.model import benchmark, compare, metrics
 from app.model.distribution import apply_range, load_calibration
 from app.model.ml.data import ModelData, load_model_data
 from app.model.ml.features import SKILL
@@ -73,6 +77,23 @@ def paired_frames(scoring: str, ml: pd.DataFrame, seasons: Sequence[int]) -> pd.
     return compare.pair(rows.drop(columns="proj_ml"), cand).assign(
         _graded=len(rows), _base_rows=len(base), _ml_rows=len(ml)
     )
+
+
+def sleeper_crosswalk() -> dict[str, str]:
+    """Sleeper player id -> gsis id, from the players table."""
+
+    async def _load() -> dict[str, str]:
+        async with get_sessionmaker()() as db:
+            rows = await db.execute(
+                select(Player.sleeper_id, Player.gsis_id).where(
+                    Player.sleeper_id.is_not(None), Player.gsis_id.is_not(None)
+                )
+            )
+            out = {str(s): str(g) for s, g in rows.all()}
+        await get_engine().dispose()
+        return out
+
+    return asyncio.run(_load())
 
 
 # --------------------------------------------------------------------------- report
@@ -192,6 +213,34 @@ def benchmark_section(half: pd.DataFrame) -> list[str]:
     ]
 
 
+def sleeper_section(paired: dict[str, pd.DataFrame]) -> list[str]:
+    """ADR-066: Sleeper's own projections (Rotowire's) on the player-games they cover."""
+    if not any("sleeper" in p.columns for p in paired.values()):
+        return []
+    lines = [
+        "## Outside benchmark: Sleeper's projections",
+        "",
+        "Sleeper's past weekly projections (supplied to Sleeper by Rotowire; "
+        "[ADR-066](../Decisions/ADR-066-P4-Sleeper-Projections-As-A-Local-Benchmark.md)), on the "
+        "startable player-games Sleeper projected, injury games left out. Benchmark only, never a "
+        "model input. Average miss in points, and rank accuracy.",
+        "",
+        "| Format | Slice | Games | 1.0.0 | ML | Sleeper | Rank 1.0.0 | Rank ML | Rank Sleeper |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for fmt, p in paired.items():
+        s = _slice(p)
+        s = s[s["sleeper"].notna()]
+        slices = [*[(str(k), g) for k, g in s.groupby("season")], ("**All four**", s),
+                  *[(str(k), g) for k, g in s.groupby("position")]]  # fmt: skip
+        for label, g in slices:
+            lines.append(f"| {fmt} | {label} | {len(g):,} | {_mae(g, 'proj_base'):.3f} "
+                         f"| {_mae(g, 'proj_cand'):.3f} | {_mae(g, 'sleeper'):.3f} "
+                         f"| {_rank(g, 'proj_base'):.3f} | {_rank(g, 'proj_cand'):.3f} "
+                         f"| {_rank(g, 'sleeper'):.3f} |")  # fmt: skip
+    return [*lines, ""]
+
+
 def render(paired: dict[str, pd.DataFrame], seasons: Sequence[int], first: int) -> str:
     lines = [
         "---",
@@ -219,6 +268,7 @@ def render(paired: dict[str, pd.DataFrame], seasons: Sequence[int], first: int) 
         lines += format_section(fmt.capitalize(), p)
     lines += coverage_section(paired)
     lines += benchmark_section(paired["half"])
+    lines += sleeper_section(paired)
     lines += [
         "Related: [P4 Build Plan](P4-Build-Plan.md) · [ML Training Report](ML-Training-Report.md)"
         " · [Backtest Report](Backtest-Report.md) · "
@@ -237,6 +287,10 @@ def main() -> None:
     seasons = sorted(args.test)
     ml = ml_projections(args.first, seasons, args.cache)
     paired = {fmt: paired_frames(fmt, ml[fmt], seasons) for fmt in FORMATS}
+    sleeper = benchmark.load(seasons)
+    if not sleeper.empty:
+        crosswalk = sleeper_crosswalk()
+        paired = {fmt: benchmark.attach(p, sleeper, crosswalk, fmt) for fmt, p in paired.items()}
     text = render(paired, seasons, args.first)
     print(text)
     if args.report:

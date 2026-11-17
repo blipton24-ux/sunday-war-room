@@ -133,4 +133,38 @@ Season average and 1.0.0 are in every table above. The removed model 1.1.0 (runn
 
 1.1.0's 4.07 counted every game; the ML column here does too.
 
+## Outside benchmark: Sleeper's projections
+
+Sleeper's past weekly projections (supplied to Sleeper by Rotowire; [ADR-066](../Decisions/ADR-066-P4-Sleeper-Projections-As-A-Local-Benchmark.md)), on the startable player-games Sleeper projected, injury games left out. Benchmark only, never a model input. Average miss in points, and rank accuracy.
+
+| Format | Slice | Games | 1.0.0 | ML | Sleeper | Rank 1.0.0 | Rank ML | Rank Sleeper |
+|---|---|---|---|---|---|---|---|---|
+| half | 2022 | 1,781 | 5.666 | 5.468 | 5.505 | 0.361 | 0.387 | 0.425 |
+| half | 2023 | 1,801 | 5.684 | 5.505 | 5.460 | 0.280 | 0.310 | 0.326 |
+| half | 2024 | 1,799 | 5.749 | 5.497 | 5.414 | 0.248 | 0.344 | 0.367 |
+| half | 2025 | 1,801 | 5.729 | 5.490 | 5.538 | 0.267 | 0.331 | 0.356 |
+| half | **All four** | 7,182 | 5.707 | 5.490 | 5.479 | 0.289 | 0.343 | 0.368 |
+| half | QB | 1,050 | 6.191 | 5.974 | 6.387 | 0.251 | 0.296 | 0.293 |
+| half | RB | 2,535 | 5.751 | 5.586 | 5.464 | 0.378 | 0.414 | 0.463 |
+| half | TE | 1,056 | 4.706 | 4.415 | 4.406 | 0.267 | 0.352 | 0.367 |
+| half | WR | 2,541 | 5.880 | 5.642 | 5.565 | 0.261 | 0.310 | 0.351 |
+| full | 2022 | 1,782 | 6.148 | 5.966 | 5.986 | 0.354 | 0.390 | 0.424 |
+| full | 2023 | 1,803 | 6.183 | 5.999 | 5.947 | 0.292 | 0.314 | 0.339 |
+| full | 2024 | 1,798 | 6.253 | 5.994 | 5.895 | 0.254 | 0.345 | 0.367 |
+| full | 2025 | 1,806 | 6.166 | 5.911 | 5.908 | 0.277 | 0.342 | 0.369 |
+| full | **All four** | 7,189 | 6.187 | 5.968 | 5.934 | 0.294 | 0.348 | 0.375 |
+| full | QB | 1,050 | 6.193 | 5.975 | 6.384 | 0.252 | 0.297 | 0.294 |
+| full | RB | 2,537 | 6.050 | 5.867 | 5.734 | 0.384 | 0.426 | 0.474 |
+| full | TE | 1,058 | 5.466 | 5.166 | 5.138 | 0.270 | 0.345 | 0.366 |
+| full | WR | 2,544 | 6.622 | 6.398 | 6.279 | 0.271 | 0.323 | 0.364 |
+| standard | 2022 | 1,779 | 5.209 | 4.975 | 5.041 | 0.361 | 0.385 | 0.424 |
+| standard | 2023 | 1,798 | 5.275 | 5.081 | 5.048 | 0.265 | 0.303 | 0.314 |
+| standard | 2024 | 1,801 | 5.322 | 5.039 | 4.987 | 0.233 | 0.339 | 0.368 |
+| standard | 2025 | 1,801 | 5.322 | 5.106 | 5.200 | 0.268 | 0.329 | 0.347 |
+| standard | **All four** | 7,179 | 5.282 | 5.050 | 5.069 | 0.282 | 0.339 | 0.363 |
+| standard | QB | 1,050 | 6.194 | 5.976 | 6.393 | 0.253 | 0.300 | 0.299 |
+| standard | RB | 2,533 | 5.518 | 5.340 | 5.250 | 0.373 | 0.419 | 0.453 |
+| standard | TE | 1,057 | 4.018 | 3.766 | 3.762 | 0.258 | 0.340 | 0.366 |
+| standard | WR | 2,539 | 5.197 | 4.913 | 4.885 | 0.243 | 0.296 | 0.334 |
+
 Related: [P4 Build Plan](P4-Build-Plan.md) · [ML Training Report](ML-Training-Report.md) · [Backtest Report](Backtest-Report.md) · [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md)
