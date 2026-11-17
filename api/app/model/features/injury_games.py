@@ -6,9 +6,11 @@ against known games before any experiment used it, and is never tuned against mo
 
 Labels (`None` means a normal game):
   "before"        listed Out or Doubtful that week and played anyway (a late change)
-  "during"        his snap share collapsed against his own recent normal AND there is direct
-                  evidence of an injury at his team's next game: an injury-report designation
-                  (Out, Doubtful, Questionable) or a reserve-list listing (injured reserve)
+  "during"        his snap share fell against his own recent normal AND there is direct evidence
+                  of an injury at his team's next game. Under half his normal: any injury-report
+                  designation (Out, Doubtful, Questionable) or a reserve listing. Between half and
+                  80% (a second-half injury, owner 2026-11-17 after a hand check): only Out,
+                  Doubtful or a reserve listing, since a Questionable tag is common for knocks
   "questionable"  listed Questionable and played: kept, but counted on its own line
 
 Why evidence and not "he missed his next game": a hand check found that rule also flags a
@@ -34,7 +36,8 @@ import pandas as pd
 OUT_STATUSES = frozenset({"Out", "Doubtful"})
 REPORT_STATUSES = frozenset({"Out", "Doubtful", "Questionable"})
 RESERVE = "RES"
-SNAP_DROP = 0.5  # snap share under half his own recent normal
+SNAP_DROP = 0.5  # under half his own recent normal: any next-game designation is evidence
+SNAP_PARTIAL = 0.8  # under 80%: a second-half injury; needs Out, Doubtful or a reserve listing
 RECENT_GAMES = 4  # his recent normal: the mean of up to this many earlier games
 MIN_RECENT_GAMES = 2
 MIN_NORMAL_SNAP = 0.30  # only players who normally play count (a backup's snaps are noise)
@@ -105,12 +108,14 @@ def mark_injury_games(history: pd.DataFrame, injuries: pd.DataFrame | None) -> p
         label: str | None = None
         if this in OUT_STATUSES:
             label = "before"
-        elif _snap_collapsed(recent.get(gid, []), snap):
+        elif _snap_collapsed(recent.get(gid, []), snap, SNAP_PARTIAL):
             nxt = next_week.get((str(team), season, week))
-            if nxt is not None and (
-                status.get((gid, season, nxt)) in REPORT_STATUSES or (gid, season, nxt) in reserve
-            ):
-                label = "during"
+            if nxt is not None:
+                listed = status.get((gid, season, nxt))
+                strong = listed in OUT_STATUSES or (gid, season, nxt) in reserve
+                deep = _snap_collapsed(recent.get(gid, []), snap, SNAP_DROP)
+                if strong or (deep and listed in REPORT_STATUSES):
+                    label = "during"
         if label is None and this == "Questionable":
             label = "questionable"
         labels.at[idx] = label
@@ -119,11 +124,12 @@ def mark_injury_games(history: pd.DataFrame, injuries: pd.DataFrame | None) -> p
     return labels
 
 
-def _snap_collapsed(earlier: list[float], snap: object) -> bool:
+def _snap_collapsed(earlier: list[float], snap: object, share: float = SNAP_DROP) -> bool:
+    """His snap share is under `share` of his recent normal (and he normally plays)."""
     if snap is None or pd.isna(snap) or len(earlier) < MIN_RECENT_GAMES:  # type: ignore[call-overload]
         return False
     normal = float(np.mean(earlier[-RECENT_GAMES:]))
-    return normal >= MIN_NORMAL_SNAP and float(snap) < SNAP_DROP * normal  # type: ignore[arg-type]
+    return normal >= MIN_NORMAL_SNAP and float(snap) < share * normal  # type: ignore[arg-type]
 
 
 def excluded(labels: pd.Series) -> pd.Series:

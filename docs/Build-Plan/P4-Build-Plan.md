@@ -100,6 +100,11 @@ More seasons mean better trees. Load raw stats, snap counts, schedules with line
 - New report lines: **rank accuracy** (Spearman per week and position), **range coverage** per position and scoring format, **everything counted** beside the injury-left-out number, weeks 1-4 and 5+ apart, rest-of-season accuracy.
 - Benchmarks in every report: season average, 1.0.0, the removed 1.1.0's published numbers.
 - **Outside benchmark:** check whether Sleeper's past weekly projections can be fetched for 2024-2026. If so, propose it as a data source (ADR) and add it as a benchmark column (never a model input).
+- **Model improvements** ([ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)), each run through `evaluate_ml` and kept only if it beats noise; the order is cheapest evidence first:
+  1. Availability (M-29) and how Questionable players are shown, with injury news (M-34): a side-by-side first.
+  2. Tuning run: wider settings grid (M-26), plain average for weak targets (M-27), training from 2012 (M-31).
+  3. Red-zone and goal-line usage from play-by-play (M-24; data-source ADR first), and the scoring rules it unlocks (M-12, M-17).
+  4. New signals (M-33) and the blend with 1.0.0 (M-30); the ordering gap to Sleeper (M-28) is re-measured after each.
 
 ### 8. Ranges
 Refit the residual-quantile method ([ADR-031](../Decisions/ADR-031-Approved-Reuses.md) reuse 2) on the new model's backtest misses, per position and per scoring family (backlog M-08). XGBoost's percentile mode is tried only if coverage misses 80% by more than a few points.
@@ -109,16 +114,20 @@ XGBoost's per-signal contributions (`pred_contribs`) for each stat, grouped into
 
 ### 10. Live compute and weekly retraining
 - The weekly compute builds the same feature table from stored data before kickoff and loads the current model files.
+- **Late injuries (M-10) and injury news (M-34, live part):** a side-by-side on sources and timing (Sunday-morning refresh, rate limits) before building ([ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)).
 - A worker job retrains every Tuesday after the stats ingest, on everything played so far, and replaces the live files only if the retrained model is not worse on the latest weeks (backlog M-14). Each projection row records which training produced it.
 
 ### 11. Model 2.0.0: owner review and ship
-Full report on the four test seasons, the one look at the 2026 weeks played so far, example projections for players the owner knows, and the owner's ship decision. Then, in one commit: `MODEL_VERSION = "2.0.0"`, refit ranges, spec update ([Projection Model](../Specs/Projection-Model.md)), Backtest Report regenerated, CI green.
+Full report on the four test seasons, the one look at the 2026 weeks played so far, example projections for players the owner knows, and the owner's ship decision. Before it: the Accuracy page's version switch (U-17), unmatched players (M-13, M-19), and switching the "2026 not looked at yet" condition back on in `compare.ship_rule` ([ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)). Then, in one commit: `MODEL_VERSION = "2.0.0"`, refit ranges, spec update ([Projection Model](../Specs/Projection-Model.md)), Backtest Report regenerated, CI green.
 
 ### 12. Kickers and defenses
 K: field-goal attempts by distance band and extra points (volume) from the team's implied score, dome and drive data; made rate by distance. DEF: sacks, interceptions, fumble recoveries, touchdowns and points allowed from the opponent's implied score and the opposing QB's sack and turnover rates (backlog M-04). Same pipeline, same ship rule; ships as 2.1.0 when it passes. Until then K and DEF keep the 1.0.0 method inside 2.0.0.
 
+### 13. Rest-of-season model
+A separate long-range model for rest-of-season value on the trade and waiver screens (M-15, [ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)): trained on each player's remaining-season output from the same feature table, tested walk-forward like the weekly model on the rest-of-season backtest (`backtest.rest_of_season_backtest`). Ships when it beats the current method (the weekly model carried across the schedule) at every position; until then 2.0.0 keeps that method.
+
 ## Rough time
-About 4½ to 5½ working sessions, plus the owner's review time: steps 1-4, steps 5-6, steps 7-8, steps 9-10, steps 11-12.
+About 7 to 8½ working sessions, plus the owner's review time: steps 1-4, steps 5-6, step 7 (two to three sessions with the model improvements, [ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)), step 8, steps 9-10, steps 11-12, step 13.
 
 ## Decided before the build (2026-11-14)
 - **Training history from 2016** ([ADR-062](../Decisions/ADR-062-P4-Training-History-From-2016.md)).
@@ -129,7 +138,9 @@ About 4½ to 5½ working sessions, plus the owner's review time: steps 1-4, step
 Each follows [ADR-003](../Decisions/ADR-003-Documentation-Standard.md), before the step that needs it:
 - **Where model files live, and what a weekly retrain means for `model_version`** (step 10): for example, files in the database with "2.0.0" as the method and a training date per row.
 - ~~Sleeper's past projections as a benchmark source~~: decided, [ADR-066](../Decisions/ADR-066-P4-Sleeper-Projections-As-A-Local-Benchmark.md).
-- **Play-by-play for red-zone and goal-line usage** (backlog M-24): about 100 MB a season, for a strong touchdown signal.
+- **Play-by-play for red-zone and goal-line usage** (backlog M-24): about 100 MB a season, for a strong touchdown signal (step 7).
+- **How Questionable players are projected and shown, and an injury news source** (M-29, M-34; step 7, live part step 10).
+- **Late injuries** (M-10; step 10).
 
 ## Verification
 - Step 2 reproduces 1.0.0 exactly; `--compare shipped,shipped` is 0.000.
@@ -138,6 +149,6 @@ Each follows [ADR-003](../Decisions/ADR-003-Documentation-Standard.md), before t
 - The ship rule and new report lines are unit-tested on a small hand-made frame with known answers.
 - Each version: pytest, strict mypy, web tests, the 2026 one-look check, the Accuracy page still showing earlier weeks, and the Player screen's factors read in the browser on a real league. CI green before each merge.
 
-Out of P4 ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)): smarter rest-of-season (M-15), IDP (M-18), keeper and dynasty value.
+Out of P4 ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)): IDP (M-18), keeper and dynasty value, correlated simulation (M-07). Rest of season came back in as step 13 ([ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)).
 
 Related: [ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md) · [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md) · [Projection Model](../Specs/Projection-Model.md) · [Backtest Report](Backtest-Report.md) · [Improvement Backlog](Improvement-Backlog.md) · [Later Phases Outline](P2-P8-Outline.md)

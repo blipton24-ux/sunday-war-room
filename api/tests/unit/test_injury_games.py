@@ -118,3 +118,27 @@ def test_last_seasons_games_count_towards_a_players_normal() -> None:
 def test_empty_inputs_mark_nothing() -> None:
     assert mark_injury_games(pd.DataFrame(columns=["gsis_id"]), None).empty
     assert label(games("p1", STARTER), pd.DataFrame(), "p1", 5) is None
+
+
+# A starter at 80% who plays 56% in week 5: 70% of his normal, hurt in the second half.
+PARTIAL = [0.8, 0.8, 0.8, 0.8, 0.56, 0.8, 0.8]
+
+
+def test_a_second_half_injury_needs_strong_evidence() -> None:
+    """Between half and 80% of his normal (owner, 2026-11-17): Out, Doubtful or reserve only."""
+    for status, roster in (("Out", None), ("Doubtful", None), (None, "RES")):
+        inj = injuries(("p1", 6, status, roster))
+        assert label(games("p1", PARTIAL), inj, "p1", 5) == "during"
+    questionable = injuries(("p1", 6, "Questionable", None))
+    assert label(games("p1", PARTIAL), questionable, "p1", 5) is None  # a knock, not proof
+
+
+def test_a_deep_drop_still_accepts_questionable() -> None:
+    assert label(games("p1", STARTER), injuries(("p1", 6, "Questionable", None)), "p1", 5) == (
+        "during"
+    )
+
+
+def test_eighty_percent_of_normal_or_more_is_a_normal_game() -> None:
+    near = [0.8, 0.8, 0.8, 0.8, 0.65, 0.8]  # 81% of his normal
+    assert label(games("p1", near), injuries(("p1", 6, "Out", None)), "p1", 5) is None
