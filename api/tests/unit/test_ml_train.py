@@ -10,8 +10,17 @@ import pytest
 import xgboost as xgb
 
 from app.model.ml import train
+from app.model.ml.data import ModelData
 from app.model.ml.targets import CATCH_RATE, TARGETS, label, naive
-from app.model.ml.train import ModelSet, TrainingTable, fit, load, save, train_all
+from app.model.ml.train import (
+    ModelSet,
+    TrainingTable,
+    fit,
+    load,
+    report_rows,
+    save,
+    train_all,
+)
 from app.scripts import train_ml
 
 TINY_GRID = ({"max_depth": 2, "min_child_weight": 1, "colsample_bytree": 1.0},
@@ -119,6 +128,7 @@ def test_predictions_go_to_their_own_position_and_survive_save_and_load(tmp_path
     kept = back.models[("WR", "targets")]
     assert kept.train_seasons == [2019, 2020, 2021] and "season_target_share" in kept.features
     assert back.minor == models.minor and back.spreads == models.spreads
+    assert back.trim == models.trim and back.play_rates == models.play_rates
     assert ("WR", "receptions") in models.spreads and (
         "WR",
         "receiving_first_downs",
@@ -146,3 +156,25 @@ def test_report_renders_every_target_and_season() -> None:
 def test_an_empty_model_set_predicts_nothing() -> None:
     rows = table().features.head(3)
     assert ModelSet().predict(rows).empty
+
+
+def test_injury_reports_follow_the_training_seasons_and_weeks() -> None:
+    stats = pd.DataFrame({"gsis_id": ["w", "q", "d"], "position": ["WR", "QB", "LB"]})
+    injuries = pd.DataFrame(
+        {"gsis_id": ["w", "w", "q", "d", "w"], "season": [2020, 2021, 2021, 2021, 2021],
+         "week": [3, 2, 9, 2, 10],
+         "report_status": ["Questionable", "Doubtful", "Questionable", "Questionable", "Out"],
+         "roster_status": None, "practice_status": None,
+         "played": [True, False, None, True, False]}
+    )  # fmt: skip
+    depth = pd.DataFrame({"gsis_id": ["w"], "season": [2020], "week": [3], "depth_tier": [1]})
+    data = ModelData(stats, pd.DataFrame(), injuries, depth, pd.DataFrame())
+    rows = report_rows(data, [2020, 2021])
+    # the QB's week has no snap counts yet, the LB is not a skill player, Out is not listed
+    assert rows[["gsis_id", "season", "starter", "played"]].values.tolist() == [
+        ["w", 2020, True, True],
+        ["w", 2021, False, False],
+    ]
+    empty = table()
+    t = TrainingTable(empty.features.iloc[0:0], empty.stats.iloc[0:0], rows)
+    assert len(t.seasons([2021]).reports) == 1 and len(t.before(2021, 2).reports) == 1

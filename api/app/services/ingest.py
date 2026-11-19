@@ -131,6 +131,22 @@ async def replace_week_stats(db: AsyncSession, rows: list[dict[str, Any]]) -> in
     return len(rows)
 
 
+def mark_played(injuries: pl.DataFrame, snaps: pl.DataFrame) -> pl.DataFrame:
+    """`injuries` with `played`: an offensive snap that week (ADR-068). Null for a week with no
+    snap counts at all yet, so an unplayed week is never read as "sat out"."""
+    covered = snaps.select("season", "week").unique().with_columns(pl.lit(True).alias("_covered"))
+    took = snaps.filter(pl.col("offense_pct") > 0).select("gsis_id", "season", "week").unique()
+    took = took.with_columns(pl.lit(True).alias("_took"))
+    return (
+        injuries.join(covered, on=["season", "week"], how="left")
+        .join(took, on=["gsis_id", "season", "week"], how="left")
+        .with_columns(
+            pl.when(pl.col("_covered")).then(pl.col("_took").fill_null(False)).alias("played")
+        )
+        .drop("_covered", "_took")
+    )
+
+
 async def replace_injury_reports(db: AsyncSession, injuries: pl.DataFrame) -> int:
     rows = injuries.to_dicts()
     seasons = sorted({r["season"] for r in rows})
@@ -212,9 +228,10 @@ async def ingest_nflverse(db: AsyncSession, seasons: Sequence[int]) -> dict[str,
     frames = await asyncio.to_thread(fetch_frames, seasons)
     games = await upsert_games(db, frames.schedule)
     stats = await replace_week_stats(db, stats_rows(frames))
-    injuries = (
-        await replace_injury_reports(db, frames.injuries) if frames.injuries is not None else 0
-    )
+    injuries = 0
+    if frames.injuries is not None:
+        marked = mark_played(frames.injuries, frames.snaps)
+        injuries = await replace_injury_reports(db, marked)
     depth = await replace_depth_charts(db, frames.depth) if frames.depth is not None else 0
     background = (
         await replace_player_background(db, frames.background)

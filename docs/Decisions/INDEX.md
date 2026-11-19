@@ -69,6 +69,7 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-065 Retrain every 4 weeks in testing](ADR-065-P4-Retrain-Every-Four-Weeks-In-Testing.md): the four-season test retrains before weeks 1, 5, 9 and 13 with the season so far added
 - [ADR-066 Sleeper's projections as a local benchmark](ADR-066-P4-Sleeper-Projections-As-A-Local-Benchmark.md): fetched into a git-ignored cache, totals in reports only, never a model input
 - [ADR-067 P4 scope: the best model now](ADR-067-P4-Scope-For-The-Best-Model-Now.md): every model experiment with evidence goes into P4, rest-of-season model added, second-half injuries marked
+- [ADR-068 Questionable players projected as if they play](ADR-068-P4-Questionable-Players-Projected-If-Playing.md): trimmed "if he plays" number shown, fitted chance he plays beside it and in win probability
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
 - [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in

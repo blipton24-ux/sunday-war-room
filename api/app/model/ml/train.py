@@ -20,7 +20,15 @@ import xgboost as xgb
 
 from app.model.ml.data import ModelData
 from app.model.ml.features import SKILL, TARGET_COLUMNS, build_features, feature_columns
-from app.model.ml.project import Key, expected_stats, fit_minor_rates, fit_spreads
+from app.model.ml.project import (
+    Key,
+    expected_stats,
+    fit_minor_rates,
+    fit_play_rates,
+    fit_spreads,
+    fit_trim,
+    report_status,
+)
 from app.model.ml.targets import BY_POSITION, Target, label
 
 SEED = 2026
@@ -44,27 +52,58 @@ GRID: tuple[dict[str, Any], ...] = tuple(
 OBJECTIVE = {"count": ("count:poisson", "poisson-nloglik"), "rate": ("reg:squarederror", "rmse")}
 
 
+REPORT_COLUMNS = ["gsis_id", "season", "week", "position", "report_status", "starter", "played"]
+
+
 @dataclass(frozen=True)
 class TrainingTable:
     """`features`: build_features output, one row per player-game. `stats`: the same rows' raw
-    stat columns, which the labels come from. Kept apart so a label can never become an input."""
+    stat columns, which the labels come from. Kept apart so a label can never become an input.
+    `reports`: skill players listed Questionable or Doubtful, whether or not they then played
+    (`injury_reports`), for the chance he plays (ADR-068)."""
 
     features: pd.DataFrame
     stats: pd.DataFrame
+    reports: pd.DataFrame = field(default_factory=lambda: pd.DataFrame(columns=REPORT_COLUMNS))
+
+    def _keep(self, keep: np.ndarray, reports: np.ndarray) -> TrainingTable:
+        return TrainingTable(
+            self.features[keep].reset_index(drop=True),
+            self.stats[keep].reset_index(drop=True),
+            self.reports[reports].reset_index(drop=True),
+        )
 
     def seasons(self, seasons: Sequence[int]) -> TrainingTable:
         keep = self.features["season"].isin(list(seasons)).to_numpy()
-        return TrainingTable(
-            self.features[keep].reset_index(drop=True), self.stats[keep].reset_index(drop=True)
-        )
+        return self._keep(keep, self.reports["season"].isin(list(seasons)).to_numpy())
 
     def before(self, season: int, week: int) -> TrainingTable:
         """Every row played before `week` of `season`: what a model trained that Tuesday sees."""
-        f = self.features
-        keep = ((f["season"] < season) | ((f["season"] == season) & (f["week"] < week))).to_numpy()
-        return TrainingTable(
-            self.features[keep].reset_index(drop=True), self.stats[keep].reset_index(drop=True)
-        )
+
+        def keep(f: pd.DataFrame) -> np.ndarray:
+            return (
+                (f["season"] < season) | ((f["season"] == season) & (f["week"] < week))
+            ).to_numpy()
+
+        return self._keep(keep(self.features), keep(self.reports))
+
+
+def report_rows(data: ModelData, seasons: Sequence[int]) -> pd.DataFrame:
+    """Skill players listed Questionable or Doubtful whose week's snap counts are known: his
+    position (from his games), whether he was a starter (depth tier 1) and whether he played."""
+    inj = data.injuries
+    if inj.empty or "played" not in inj.columns:
+        return pd.DataFrame(columns=REPORT_COLUMNS)
+    status = inj["report_status"].fillna("").astype(str).str.lower()
+    rows = inj[status.isin(["questionable", "doubtful"]) & inj["played"].notna()]
+    rows = rows[rows["season"].isin(list(seasons))]
+    position = data.stats.drop_duplicates("gsis_id", keep="last").set_index("gsis_id")["position"]
+    rows = rows.assign(position=rows["gsis_id"].map(position))
+    rows = rows[rows["position"].isin(SKILL)]
+    tier = data.depth.drop_duplicates(["gsis_id", "season", "week"])
+    rows = rows.merge(tier, on=["gsis_id", "season", "week"], how="left")
+    rows = rows.assign(starter=rows["depth_tier"].eq(1), played=rows["played"].astype(bool))
+    return rows[REPORT_COLUMNS].reset_index(drop=True)
 
 
 def training_table(data: ModelData, seasons: Sequence[int]) -> TrainingTable:
@@ -72,7 +111,7 @@ def training_table(data: ModelData, seasons: Sequence[int]) -> TrainingTable:
     s = data.stats
     games = s[s["position"].isin(SKILL) & s["season"].isin(list(seasons))].reset_index(drop=True)
     features = build_features(data, games[list(TARGET_COLUMNS)])
-    return TrainingTable(features, games)
+    return TrainingTable(features, games, report_rows(data, seasons))
 
 
 @dataclass
@@ -167,6 +206,8 @@ class ModelSet:
     models: dict[tuple[str, str], FittedModel] = field(default_factory=dict)
     minor: dict[Key, float] = field(default_factory=dict)  # league-average minor-stat rates
     spreads: dict[Key, tuple[float, float]] = field(default_factory=dict)  # variance = a*mean^b
+    trim: dict[str, float] = field(default_factory=dict)  # Questionable/Doubtful who play
+    play_rates: dict[tuple[str, str, bool], float] = field(default_factory=dict)  # ADR-068
 
     def predict(self, features: pd.DataFrame, inner: bool = False) -> pd.DataFrame:
         """One column per target name; a row gets values only from its own position's models.
@@ -203,10 +244,16 @@ def train_all(
         out.predict(held.features, inner=True), held.features["position"], fit_minor_rates(before)
     )
     out.spreads = fit_spreads(expected, held.stats, held.features["position"])
+    # the trim for playing hurt: out of sample too, on the same held-back predictions
+    out.trim = fit_trim(
+        expected, held.stats, held.features["position"], report_status(held.features)
+    )
     everything = table.seasons(seasons)
     if upto is not None:
         everything = table.seasons([*seasons, upto[0]]).before(*upto)
     out.minor = fit_minor_rates(everything)
+    reports = everything.reports
+    out.play_rates = fit_play_rates(reports[reports["position"].isin(list(positions))])
     return out
 
 
@@ -222,6 +269,8 @@ def save(models: ModelSet, directory: Path) -> None:
         "models": [],
         "minor": [[p, s, r] for (p, s), r in models.minor.items()],
         "spreads": [[p, s, a, b] for (p, s), (a, b) in models.spreads.items()],
+        "trim": models.trim,
+        "play_rates": [[p, s, t, r] for (p, s, t), r in models.play_rates.items()],
     }
     for (position, name), m in models.models.items():  # order kept for load()
         file = f"{position}_{name}.json"
@@ -240,6 +289,8 @@ def load(directory: Path) -> ModelSet:
     out = ModelSet(
         minor={(p, s): float(r) for p, s, r in meta["minor"]},
         spreads={(p, s): (float(a), float(b)) for p, s, a, b in meta["spreads"]},
+        trim={p: float(t) for p, t in meta.get("trim", {}).items()},
+        play_rates={(p, s, bool(t)): float(r) for p, s, t, r in meta.get("play_rates", [])},
     )
     for entry in meta["models"]:
         booster = xgb.Booster()

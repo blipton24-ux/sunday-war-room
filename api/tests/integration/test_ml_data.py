@@ -32,7 +32,7 @@ async def test_load_model_data_feeds_the_feature_table(db: AsyncSession) -> None
                             position="WR", team="LA", opponent="KC", offense_snap_pct=0.9,
                             stats={"targets": 9.0, "receptions": 6.0, "receiving_yards": 83.0}),
             InjuryReport(gsis_id="00-1", season=2025, week=3, report_status="Questionable",
-                         practice_status="Limited Participation in Practice"),
+                         practice_status="Limited Participation in Practice", played=True),
             DepthChartWeek(gsis_id="00-1", season=2025, week=3, depth_tier=1),
             DepthChartWeek(gsis_id="00-1", season=2024, week=3, depth_tier=2),  # not loaded
             PlayerBackground(gsis_id="00-1", birth_date=date(2001, 5, 29), rookie_season=2023,
@@ -45,6 +45,7 @@ async def test_load_model_data_feeds_the_feature_table(db: AsyncSession) -> None
     assert len(data.stats) == 1 and data.stats.iloc[0]["targets"] == 9.0
     assert set(data.games["roof"]) == {"dome", "outdoors"}
     assert data.injuries.iloc[0]["practice_status"].startswith("Limited")
+    assert bool(data.injuries.iloc[0]["played"])
     assert data.depth["season"].tolist() == [2025]
     assert data.background.iloc[0]["draft_pick"] == 177
 

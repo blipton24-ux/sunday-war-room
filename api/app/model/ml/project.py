@@ -4,9 +4,10 @@ The models predict volume (attempts, carries, targets) and rates per opportunity
 become expected stats (volume x rate), the stats the models do not predict come from
 league-average rates per opportunity (`MINOR`), each stat gets a spread learned out of sample
 (`fit_spreads`), and the league's own rules score them (`scoring.score` with `variance`, so step
-and bonus rules count their expected value). Availability rules then apply: Out, IR, PUP and
-Suspended score 0, Doubtful and Questionable keep the 1.0.0 discount for the chance he sits (the
-models learned from players who played), and a backup quarterback is discounted.
+and bonus rules count their expected value). Availability (ADR-068): Out, IR, PUP and Suspended
+score 0; a Questionable or Doubtful player is projected as if he plays, less the fitted trim for
+playing hurt, and carries the fitted chance he plays (`p_play`) and the chance-weighted value
+(`expected`) beside it; a backup quarterback is discounted.
 
 The example from the P4 Build Plan: 8.1 targets x 66% caught = 5.35 catches x 12.4 yards = 66
 yards, 8.1 x 0.055 = 0.45 touchdowns; full PPR 5.35 + 6.6 + 2.7 = 14.6 before minor stats.
@@ -21,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from app.model.projection import BACKUP_QB_MULTIPLIER, INJURY_MULTIPLIER
-from app.model.scoring import score
+from app.model.scoring import REFERENCE_RULES, score
 
 if TYPE_CHECKING:
     from app.model.ml.train import ModelSet, TrainingTable
@@ -50,6 +51,16 @@ STATS = (*CORE, *(stat for stat, _ in MINOR))
 SPREAD_BINS = 8
 MIN_SPREAD_ROWS = 50
 POISSON = (1.0, 1.0)  # variance = mean, when there is too little to fit a spread
+
+# Availability (ADR-068). The statuses that get a chance to play and a trim; the feature table
+# codes the final report as 1 Questionable, 2 Doubtful.
+PLAY_STATUSES = ("questionable", "doubtful")
+REPORT_CODE_STATUS = {1.0: "questionable", 2.0: "doubtful"}
+# Before a fit (or for a group never seen): 2016-2025 rates, skill positions (ADR-068).
+DEFAULT_PLAY = {"questionable": 0.65, "doubtful": 0.01}
+PLAY_PRIOR = 20  # games: a thin group (Doubtful QBs) leans on its status's overall rate
+TRIM_PRIOR = 50  # games: with few Questionable games the trim stays near 1
+TRIM_LIMITS = (0.7, 1.05)
 
 Key = tuple[str, str]  # (position, stat)
 
@@ -145,32 +156,115 @@ def stat_variance(
     return out
 
 
-def availability(targets: pd.DataFrame) -> pd.Series:
-    """The 1.0.0 availability multiplier from live status (backtests carry no such columns):
-    Out, IR, PUP, Suspended 0; Doubtful 0.25; Questionable 0.92; a backup QB 0.25."""
-    mult = pd.Series(1.0, index=targets.index)
-    if "injury_status" in targets.columns:
-        status = targets["injury_status"].fillna("").astype(str).str.strip().str.lower()
-        mult *= status.map(INJURY_MULTIPLIER).fillna(1.0).astype(float)
-    if "depth_chart_order" in targets.columns:
-        depth = pd.to_numeric(targets["depth_chart_order"], errors="coerce")
-        backup = (targets["position"] == "QB") & (depth >= 2)
+def fit_play_rates(reports: pd.DataFrame) -> dict[tuple[str, str, bool], float]:
+    """Chance he plays, per (position, status, starter), from `reports`: one row per skill
+    player listed Questionable or Doubtful, with `position`, `report_status`, `starter` (depth
+    tier 1 that week) and `played` (an offensive snap). Each group is pulled toward its status's
+    overall rate by PLAY_PRIOR games."""
+    out: dict[tuple[str, str, bool], float] = {}
+    if reports.empty:
+        return out
+    status = reports["report_status"].astype(str).str.lower()
+    for name in PLAY_STATUSES:
+        rows = reports[status == name]
+        if rows.empty:
+            continue
+        overall = float(rows["played"].astype(float).mean())
+        for (position, starter), g in rows.groupby(["position", "starter"]):
+            played = float(g["played"].astype(float).sum())
+            out[(str(position), name, bool(starter))] = (played + PLAY_PRIOR * overall) / (
+                len(g) + PLAY_PRIOR
+            )
+    return out
+
+
+def shrink_trim(ratio: float, games: int) -> float:
+    """The trim for one position: `ratio` is how Questionable/Doubtful players who played scored
+    against their projection, relative to everyone else (0.9 = 10% under), from `games` games
+    in the held-back season. Returns the multiplier to apply to their projection."""
+    blended = (ratio * games + 1.0 * TRIM_PRIOR) / (games + TRIM_PRIOR)
+    low, high = TRIM_LIMITS
+    return max(low, min(blended, high))
+
+
+def fit_trim(
+    expected: pd.DataFrame, actual: pd.DataFrame, positions: pd.Series, status: pd.Series
+) -> dict[str, float]:
+    """Per position: actual over projected points for players listed Questionable or Doubtful
+    who played, relative to the same ratio for everyone else, out of sample. Points use
+    Sleeper's half PPR only to weight the stats; each league's own rules score projections."""
+    exp = score(expected.assign(position=positions), REFERENCE_RULES)
+    real = actual.reindex(columns=list(STATS)).fillna(0.0)
+    act = score(real.assign(position=positions), REFERENCE_RULES)
+    listed = status.isin(PLAY_STATUSES).to_numpy()
+    out: dict[str, float] = {}
+    for position in pd.unique(positions):
+        at = (positions == position).to_numpy()
+        hurt, rest = at & listed, at & ~listed
+        if not hurt.any() or exp[rest].sum() <= 0 or exp[hurt].sum() <= 0:
+            continue
+        ratio = (act[hurt].sum() / exp[hurt].sum()) / (act[rest].sum() / exp[rest].sum())
+        out[str(position)] = shrink_trim(float(ratio), int(hurt.sum()))
+    return out
+
+
+def report_status(features: pd.DataFrame) -> pd.Series:
+    """Lower-case status per row: the live `injury_status` where given, else the final report
+    from the feature table (backtests), else ""."""
+    out = pd.Series("", index=features.index)
+    if "report_status" in features.columns:
+        out = features["report_status"].map(REPORT_CODE_STATUS).fillna("").astype(str)
+    if "injury_status" in features.columns:
+        live = features["injury_status"].fillna("").astype(str).str.strip().str.lower()
+        out = live.where(live != "", out)
+    return out
+
+
+def availability(
+    features: pd.DataFrame,
+    trim: Mapping[str, float] | None = None,
+    play_rates: Mapping[tuple[str, str, bool], float] | None = None,
+) -> pd.DataFrame:
+    """Per row: `mult`, applied to the projection (0 for Out, IR, PUP, Suspended; the trim for
+    Questionable and Doubtful; the backup QB discount), and `p_play`, the chance he plays."""
+    status = report_status(features)
+    positions = features["position"].astype(str)
+    starter = (
+        pd.to_numeric(features["depth_tier"], errors="coerce").eq(1)
+        if "depth_tier" in features.columns
+        else pd.Series(True, index=features.index)
+    )
+    zero = status.map(INJURY_MULTIPLIER).eq(0.0) & ~status.isin(PLAY_STATUSES)
+    listed = status.isin(PLAY_STATUSES)
+    trims = positions.map(lambda p: (trim or {}).get(p, 1.0)).astype(float)
+    mult = pd.Series(1.0, index=features.index).where(~listed, trims).where(~zero, 0.0)
+    rates = [
+        (play_rates or {}).get((p, s, bool(t)), DEFAULT_PLAY[s]) if s in PLAY_STATUSES else 1.0
+        for p, s, t in zip(positions, status, starter, strict=True)
+    ]
+    p_play = pd.Series(rates, index=features.index, dtype=float).where(~zero, 0.0)
+    if "depth_chart_order" in features.columns:
+        depth = pd.to_numeric(features["depth_chart_order"], errors="coerce")
+        backup = (positions == "QB") & (depth >= 2)
         mult = mult.where(~backup, mult * BACKUP_QB_MULTIPLIER)
-    return mult
+    return pd.DataFrame({"mult": mult, "p_play": p_play})
 
 
 def project(models: ModelSet, features: pd.DataFrame, rules: Mapping[str, float]) -> pd.DataFrame:
     """Points for every row of `features` (build_features output, plus `injury_status` and
-    `depth_chart_order` when live) under one league's rules. Returns `points`, the multiplier
-    applied, and every expected stat (`exp_<stat>`)."""
+    `depth_chart_order` when live) under one league's rules. Returns `points` (as if he plays,
+    ADR-068), `p_play`, `expected` (points x p_play, for win probability and team totals), the
+    multiplier applied, and every expected stat (`exp_<stat>`)."""
     positions = features["position"]
     expected = expected_stats(models.predict(features), positions, models.minor)
     variance = stat_variance(expected, positions, models.spreads)
     raw = score(expected.assign(position=positions), rules, variance.assign(position=positions))
-    mult = availability(features)
+    avail = availability(features, models.trim, models.play_rates)
     out = pd.DataFrame(index=features.index)
-    out["points"] = (raw.clip(lower=0.0) * mult).round(2)
-    out["availability"] = mult
+    out["points"] = (raw.clip(lower=0.0) * avail["mult"]).round(2)
+    out["p_play"] = avail["p_play"].round(3)
+    out["expected"] = (out["points"] * out["p_play"]).round(2)
+    out["availability"] = avail["mult"]
     for stat in STATS:
         out[f"exp_{stat}"] = expected[stat]
     return out

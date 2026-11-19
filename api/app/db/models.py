@@ -345,7 +345,8 @@ class InjuryReport(Base):
     Kept so models can be tested on real injury history; `report_status` is the final game
     designation (Out, Doubtful, Questionable) or null for a player listed without one, and
     `roster_status` is "RES" while he is on a reserve list (injured reserve shows here, not on
-    the report).
+    the report). `played`: he took an offensive snap that week (snap counts, so a player with no
+    stats still counts); null until that week's snap counts are published (ADR-068).
     """
 
     __tablename__ = "injury_reports"
@@ -357,6 +358,7 @@ class InjuryReport(Base):
     roster_status: Mapped[str | None] = mapped_column(String(8))  # "RES": on a reserve list
     practice_status: Mapped[str | None] = mapped_column(Text)
     injury: Mapped[str | None] = mapped_column(Text)
+    played: Mapped[bool | None] = mapped_column(Boolean)
 
 
 class DepthChartWeek(Base):

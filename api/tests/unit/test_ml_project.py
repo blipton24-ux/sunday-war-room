@@ -8,12 +8,17 @@ from scipy.stats import gamma
 
 from app.model.ml import project as proj
 from app.model.ml.project import (
+    DEFAULT_PLAY,
     POISSON,
     STATS,
     availability,
     expected_stats,
     fit_minor_rates,
+    fit_play_rates,
     fit_spreads,
+    fit_trim,
+    report_status,
+    shrink_trim,
     stat_variance,
 )
 from app.model.ml.train import ModelSet, TrainingTable
@@ -134,20 +139,68 @@ def test_a_range_rule_scores_its_probability() -> None:
 # --------------------------------------------------------------------------- availability + points
 def test_availability_rules() -> None:
     t = pd.DataFrame(
-        {"position": ["WR", "WR", "WR", "WR", "QB", "RB"],
-         "injury_status": ["Out", "Questionable", "Doubtful", None, None, None],
-         "depth_chart_order": [1, 1, 1, 1, 2, 2]}
+        {"position": ["WR", "WR", "WR", "WR", "QB", "RB", "WR"],
+         "injury_status": ["Out", "Questionable", "Doubtful", None, None, None, "IR"],
+         "depth_chart_order": [1, 1, 1, 1, 2, 2, 1],
+         "depth_tier": [1, 1, 2, 1, 2, 2, 1]}
     )  # fmt: skip
-    assert availability(t).tolist() == [0.0, 0.92, 0.25, 1.0, 0.25, 1.0]  # RB2 not discounted
-    assert availability(t[["position"]]).tolist() == [1.0] * 6  # backtests carry no status
+    trim = {"WR": 0.9}
+    rates = {("WR", "questionable", True): 0.77}
+    a = availability(t, trim, rates)
+    assert a["mult"].tolist() == [0.0, 0.9, 0.9, 1.0, 0.25, 1.0, 0.0]  # RB2 not discounted
+    assert a["p_play"].tolist() == [0.0, 0.77, DEFAULT_PLAY["doubtful"], 1.0, 1.0, 1.0, 0.0]
+    plain = availability(t[["position"]])
+    assert plain["mult"].tolist() == [1.0] * 7 and plain["p_play"].tolist() == [1.0] * 7
+
+
+def test_backtests_read_the_final_report_and_live_status_wins() -> None:
+    t = pd.DataFrame({"position": ["WR"] * 4, "report_status": [0.0, 1.0, 2.0, 1.0],
+                      "injury_status": [None, None, None, "Out"]})  # fmt: skip
+    assert report_status(t).tolist() == ["", "questionable", "doubtful", "out"]
+    a = availability(t, {"WR": 0.9})
+    assert a["mult"].tolist() == [1.0, 0.9, 0.9, 0.0]
+
+
+def test_play_rates_lean_on_the_status_rate_when_thin() -> None:
+    rows = [("WR", "Questionable", True, i < 80) for i in range(100)]  # 80 of 100 starters
+    rows += [("WR", "Questionable", False, i < 1) for i in range(2)]  # 1 of 2 backups
+    rows += [("QB", "Doubtful", True, False) for _ in range(10)]
+    reports = pd.DataFrame(rows, columns=["position", "report_status", "starter", "played"])
+    rates = fit_play_rates(reports)
+    overall = 81 / 102
+    assert rates[("WR", "questionable", True)] == pytest.approx((80 + 20 * overall) / 120)
+    assert rates[("WR", "questionable", False)] == pytest.approx((1 + 20 * overall) / 22)
+    assert rates[("QB", "doubtful", True)] == 0.0
+    assert fit_play_rates(reports.iloc[0:0]) == {}
+
+
+def test_the_trim_is_pulled_toward_none_with_few_games() -> None:
+    assert shrink_trim(1.0, 500) == pytest.approx(1.0)
+    many, few = shrink_trim(0.85, 2000), shrink_trim(0.85, 5)
+    assert many == pytest.approx(0.85, abs=0.01)  # plenty of games: close to what was seen
+    assert few > 0.85 and few == pytest.approx(1.0, abs=0.02)  # a handful: barely moves
+    assert 0.85 < shrink_trim(0.85, 50) < 1.0
+    assert shrink_trim(0.2, 10_000) >= 0.7 and shrink_trim(1.5, 10_000) <= 1.05  # kept sane
+
+
+def test_trim_compares_hurt_players_with_everyone_else() -> None:
+    n = 4000
+    expected = pd.DataFrame({stat: [0.0] * n for stat in STATS}).assign(receptions=5.0)
+    hurt = pd.Series(["questionable" if i % 4 == 0 else "" for i in range(n)])
+    # everyone else catches 10% more than expected; hurt players 10% less
+    actual = expected.assign(receptions=np.where(hurt == "", 5.5, 4.5))
+    trim = fit_trim(expected, actual, pd.Series(["WR"] * n), hurt)
+    assert trim["WR"] == pytest.approx(shrink_trim((4.5 / 5) / (5.5 / 5), n // 4))
+    assert fit_trim(expected, actual, pd.Series(["WR"] * n), hurt.map(lambda _: "")) == {}
 
 
 def test_points_for_one_league(monkeypatch: pytest.MonkeyPatch) -> None:
-    models = ModelSet()
+    models = ModelSet(trim={"WR": 0.9}, play_rates={("WR", "questionable", True): 0.7})
     monkeypatch.setattr(ModelSet, "predict", lambda self, f, inner=False: wr())
     features = pd.DataFrame([{"position": "WR", "injury_status": "Questionable"}])
     out = proj.project(models, features, FULL_PPR).iloc[0]
     full = 8.1 * 0.66 + 8.1 * 0.66 * 12.4 * 0.1 + 8.1 * 0.055 * 6  # 5.35 + 6.63 + 2.67
-    assert out["availability"] == 0.92
-    assert out["points"] == pytest.approx(round(full * 0.92, 2))
+    assert out["availability"] == 0.9 and out["p_play"] == 0.7
+    assert out["points"] == pytest.approx(round(full * 0.9, 2))  # as if he plays, trimmed
+    assert out["expected"] == pytest.approx(round(out["points"] * 0.7, 2))
     assert out["exp_receiving_yards"] == pytest.approx(66.29, abs=0.01)

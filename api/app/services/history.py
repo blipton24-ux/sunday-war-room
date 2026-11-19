@@ -58,12 +58,14 @@ async def load_injury_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataF
             InjuryReport.report_status,
             InjuryReport.roster_status,
             InjuryReport.practice_status,
+            InjuryReport.played,
         ).where(InjuryReport.season.in_(list(seasons)))
     )
     return pd.DataFrame(
         rows.all(),
-        columns=["gsis_id", "season", "week", "report_status", "roster_status", "practice_status"],
-    )
+        columns=["gsis_id", "season", "week", "report_status", "roster_status", "practice_status",
+                 "played"],
+    )  # fmt: skip
 
 
 async def load_depth_rows(db: AsyncSession, seasons: Sequence[int]) -> pd.DataFrame:
