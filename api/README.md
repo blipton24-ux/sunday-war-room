@@ -41,6 +41,7 @@ python -m venv .venv
 | `app/services/` | Orchestration, e.g. `sync.py` (adapter output -> Postgres upserts) |
 | `app/jobs/`, `app/worker.py` | ARQ jobs + schedule; `sync_runs` tracking and retry policy |
 | `app/db/` | SQLAlchemy models + session; migrations in `alembic/` |
+| `app/model/ml/` | P4 machine-learning model: `data.py` (inputs from Postgres), `features.py` (feature table), `targets.py`, `train.py`; `python -m app.scripts.train_ml` trains season by season and writes the ML Training Report |
 | `tests/fixtures/sleeper/` | Recorded, anonymized Sleeper responses from a real league |
 
 > **Windows note:** on some CPUs the default Polars build hangs at import, so `pyproject.toml`

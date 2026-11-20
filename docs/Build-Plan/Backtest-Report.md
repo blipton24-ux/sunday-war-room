@@ -1,6 +1,6 @@
 ---
 title: "Backtest Report (projection model v1)"
-date: 2026-11-09
+date: 2026-11-14
 tags: [model, backtest, p1, p2]
 ---
 # Backtest Report: projection model 1.0.0
@@ -19,6 +19,30 @@ Overall MAE **4.03** (naive season average: 4.12), rank correlation 0.444 (naive
 | RB | 1,575 | 4.12 | 4.08 | 6.04 | -0.23 | 0.711 | 78.9% |
 | TE | 1,287 | 3.04 | 3.08 | 4.48 | -0.21 | 0.585 | 80.7% |
 | WR | 2,511 | 3.70 | 3.82 | 5.24 | +0.14 | 0.624 | 80.3% |
+
+## Startable players (2025, held out)
+
+Each week's top 15 QB and TE and top 36 RB and WR. Picked by the plain season average, so every model is judged on the same players, and by the model's own projection (the players it would start; ADR-034's table was built this way, with every game counted).
+
+| Picked by | Injury games | Weeks | Games | MAE | Season average MAE | Rank corr |
+|---|---|---|---|---|---|---|
+| season average | left out | 5+ | 1,428 | 5.88 | 5.98 | 0.255 |
+| season average | left out | 1-4 | 408 | 5.36 | 5.97 | 0.304 |
+| season average | counted | 5+ | 1,428 | 5.92 | 6.02 | 0.255 |
+| season average | counted | 1-4 | 408 | 5.37 | 5.98 | 0.317 |
+| model projection | left out | 5+ | 1,428 | 5.92 | 5.97 | 0.219 |
+| model projection | left out | 1-4 | 408 | 5.60 | 5.86 | 0.209 |
+| model projection | counted | 5+ | 1,428 | 5.98 | 6.02 | 0.218 |
+| model projection | counted | 1-4 | 408 | 5.62 | 5.83 | 0.221 |
+
+## Injury games (2025, held out)
+
+Games spoiled by an injury (ADR-061) are left out of the headline when comparing models. Of 7,124 player-games: 0 listed Out or Doubtful who played, 63 hurt during the game, 206 Questionable who played (kept).
+
+| | Games | MAE | Startable MAE (picked by season average) |
+|---|---|---|---|
+| Everything counted | 7,124 | 4.03 | 5.80 |
+| Injury games left out | 7,061 | 4.01 | 5.76 |
 
 ## Error by projected points (held out)
 

@@ -8,7 +8,7 @@ aliases: [Home, 00 Home]
 
 The source of truth for every decision, spec and explanation behind Sunday War Room. No code lives here. Start with the Product Vision, then skim the Decisions.
 
-**Status (2026-11-10):** 53 decisions made; Phases 1 and 2 built and passing CI on GitHub (260 backend, 73 web, 81 end-to-end tests): P2 adds waivers, trades and live game day ([P2 Build Plan](Build-Plan/P2-Build-Plan.md)). Next is P3 ESPN ([P3 Build Plan](Build-Plan/P3-Build-Plan.md)), then P4 improved model, P5 AI assistant + strategy tendencies, P6 UI/UX overhaul, P7 Yahoo, P8 deploy + push alerts ([ADR-049](Decisions/ADR-049-Phases-Reordered-ESPN-First.md), [ADR-050](Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)) ([ADR-026](Decisions/ADR-026-Execution-Order.md)).
+**Status (2026-11-14):** Phases 1 and 2 built and passing CI on GitHub; P3 ESPN built except the last real-league checks ([P3 Build Plan](Build-Plan/P3-Build-Plan.md)). **P4 restarted 2026-11-14** as a machine-learning model: XGBoost predicts each player's stats, then each league's scoring turns them into points ([P4 Build Plan](Build-Plan/P4-Build-Plan.md), [ADR-060](Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md), [ADR-061](Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md)); not built yet. Then P5 AI assistant + strategy tendencies, P6 UI/UX overhaul, P7 Yahoo, P8 deploy + push alerts ([ADR-049](Decisions/ADR-049-Phases-Reordered-ESPN-First.md), [ADR-050](Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)).
 
 ## Start here
 - [Product Vision](Specs/Product-Vision.md): what Sunday War Room is, who it's for, its principles

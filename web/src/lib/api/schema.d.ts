@@ -200,7 +200,8 @@ export interface paths {
          * Refresh League
          * @description Queue a sync now. Returns the running job if one is already in flight.
          *
-         *     Rate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS).
+         *     Rate limited per user per league (REFRESH_MIN_INTERVAL_SECONDS), counted from when the
+         *     user's last refresh finished, so a slow sync does not shorten the wait.
          */
         post: operations["refresh_league"];
         delete?: never;
@@ -279,6 +280,8 @@ export interface paths {
         /**
          * Get Accuracy
          * @description How frozen, pre-kickoff projections compared with actual results in past weeks.
+         *
+         *     One model version at a time: the current one unless `model_version` names another.
          */
         get: operations["get_accuracy"];
         put?: never;
@@ -436,6 +439,11 @@ export interface components {
             };
             /** Weeks */
             weeks: components["schemas"]["AccuracyWeek"][];
+            /**
+             * Available Versions
+             * @default []
+             */
+            available_versions: string[];
         };
         /** AccuracyWeek */
         AccuracyWeek: {
@@ -2040,7 +2048,9 @@ export interface operations {
     };
     get_accuracy: {
         parameters: {
-            query?: never;
+            query?: {
+                model_version?: string | null;
+            };
             header?: never;
             path: {
                 league_id: number;

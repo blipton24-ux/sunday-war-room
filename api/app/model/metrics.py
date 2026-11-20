@@ -49,3 +49,26 @@ def grade(df: pd.DataFrame) -> dict[str, Any]:
 
 def grade_by_position(df: pd.DataFrame) -> dict[str, dict[str, Any]]:
     return {str(pos): grade(g) for pos, g in df.groupby("position")}
+
+
+# --------------------------------------------------------------------------- startable players
+# Who a manager would plausibly start: each week's top QBs and TEs, and top RBs and WRs
+# (about a 12-team league's starters plus flex). K and DEF are not part of the slice.
+STARTABLE_TOP = {"QB": 15, "TE": 15, "RB": 36, "WR": 36}
+
+
+def startable_mask(df: pd.DataFrame, by: str = "naive") -> pd.Series:
+    """True for the startable rows of each position-week, ranked by column `by`.
+
+    Rank by a column that does not depend on the model being judged (the default, the plain
+    season average), so two models are graded on the same players. Ranking by `proj` shows the
+    players a given model would actually start; ADR-034's 6.35 / 6.45 came from that.
+    """
+    limit = df["position"].map(STARTABLE_TOP)
+    rank = df.groupby(["position", "season", "week"])[by].rank(method="first", ascending=False)
+    return (rank <= limit).fillna(False)
+
+
+def week_group(df: pd.DataFrame) -> pd.Series:
+    """'1-4' (the opener, a harder problem with little history) or '5+'."""
+    return pd.Series(np.where(df["week"] <= 4, "1-4", "5+"), index=df.index)

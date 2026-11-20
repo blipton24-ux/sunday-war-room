@@ -84,7 +84,7 @@ test.describe("Lineup", () => {
     await expect(page.getByText("Recent games")).toBeVisible();
     const recent = page.getByText("Recent games").locator("..");
     await expect(recent.getByText(/^Wk \d/)).toHaveCount(4);
-    await expect(page.getByText(/Updates until kickoff · model 1\.0\.0/)).toBeVisible();
+    await expect(page.getByText(/Updates until kickoff · model \d+\.\d+\.\d+/)).toBeVisible();
     // Tapping again collapses it.
     await page.getByRole("button", { name: /Zay Flowers/ }).click();
     await expect(page.getByText("Why this number")).toHaveCount(0);
@@ -93,7 +93,7 @@ test.describe("Lineup", () => {
   test("a finished game shows the frozen projection and the actual score on the bar", async ({ page }) => {
     await page.goto("/lineup");
     await page.getByRole("button", { name: /Jordan Love/ }).click();
-    await expect(page.getByText(/Frozen at kickoff · model 1\.0\.0/)).toBeVisible();
+    await expect(page.getByText(/Frozen at kickoff · model \d+\.\d+\.\d+/)).toBeVisible();
     await expect(page.getByRole("img", { name: /, scored [\d.]+$/ })).toBeVisible();
     // The tag appears on the player's row, on the Top performers shelf, and in the detail.
     await expect(page.getByText("🔥 Boom")).toHaveCount(3);
