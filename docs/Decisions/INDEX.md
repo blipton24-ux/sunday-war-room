@@ -70,6 +70,15 @@ One record per decision: context, options considered, the choice, why, and trade
 - [ADR-066 Sleeper's projections as a local benchmark](ADR-066-P4-Sleeper-Projections-As-A-Local-Benchmark.md): fetched into a git-ignored cache, totals in reports only, never a model input
 - [ADR-067 P4 scope: the best model now](ADR-067-P4-Scope-For-The-Best-Model-Now.md): every model experiment with evidence goes into P4, rest-of-season model added, second-half injuries marked
 - [ADR-068 Questionable players projected as if they play](ADR-068-P4-Questionable-Players-Projected-If-Playing.md): trimmed "if he plays" number shown, fitted chance he plays beside it and in win probability
+- [ADR-069 Practice status in the model, news shown only](ADR-069-P4-Practice-Status-In-The-Model-News-Shown-Only.md): the chance he plays uses the official practice report; ESPN's injury news is displayed, never a model input
+- [ADR-070 Tuning run](ADR-070-P4-Tuning-Run-Grid-Targets-History.md): settings grid widened to 24, the model kept for every target, training from 2012 tested and kept only if better
+- [ADR-071 Play-by-play counts only](ADR-071-P4-Play-By-Play-Counts-Only.md): play-by-play becomes per-player-week counts (goal-line, red-zone, end-zone); the plays are not stored
+- [ADR-072 One model, no blend](ADR-072-P4-One-Model-No-Blend.md): 2.0.0 projects QB, RB, WR and TE with the ML model alone; 1.0.0's method retires for them
+- [ADR-073 Model trainings in the database](ADR-073-P4-Model-Trainings-In-The-Database.md): every training stored in `model_trainings`; `model_version` names the method, each projection records its training
+- [ADR-074 Late injuries](ADR-074-P4-Late-Injuries-ESPN-Feed-And-Sunday-Sleeper-Fetch.md): ESPN's injury feed polled near each kickoff, and Sunday's Sleeper fetch moved after inactives
+- [ADR-075 Questionable starters](ADR-075-P4-Questionable-Starters-Start-If-Active-With-Fallback.md): start/sit advice says start him if active and names a fallback; chance-weighted only when the fallback locks first
+- [ADR-076 Weekly retrain with a sanity gate](ADR-076-P4-Weekly-Retrain-With-A-Sanity-Gate.md): a Tuesday training goes live only if complete, not worse on its held-back season, and without sudden position shifts
+- [ADR-077 Rest-of-season points over replacement](ADR-077-P4-Rest-Of-Season-Points-Over-Replacement.md): value shown over the last starter league-wide; the long-range model built only if 2.0.0 carried across still loses
 - [ADR-038 Service worker scope](ADR-038-Service-Worker-Scope.md): static files and an offline page only, never API data (offline data is backlog U-11)
 - [ADR-039 Python dependency lock (uv)](ADR-039-Python-Dependency-Lock-uv.md): exact, repeatable installs for Windows and Linux
 - [ADR-040 End-to-end test approach](ADR-040-End-to-End-Test-Approach.md): real browser, whole container stack, recorded league plus seeded NFL data, real magic-link sign-in

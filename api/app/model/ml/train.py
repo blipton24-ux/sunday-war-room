@@ -21,7 +21,9 @@ import xgboost as xgb
 from app.model.ml.data import ModelData
 from app.model.ml.features import SKILL, TARGET_COLUMNS, build_features, feature_columns
 from app.model.ml.project import (
+    PRACTICE_NAME,
     Key,
+    PlayKey,
     expected_stats,
     fit_minor_rates,
     fit_play_rates,
@@ -52,7 +54,16 @@ GRID: tuple[dict[str, Any], ...] = tuple(
 OBJECTIVE = {"count": ("count:poisson", "poisson-nloglik"), "rate": ("reg:squarederror", "rmse")}
 
 
-REPORT_COLUMNS = ["gsis_id", "season", "week", "position", "report_status", "starter", "played"]
+REPORT_COLUMNS = [
+    "gsis_id",
+    "season",
+    "week",
+    "position",
+    "report_status",
+    "starter",
+    "practice",
+    "played",
+]
 
 
 @dataclass(frozen=True)
@@ -102,7 +113,11 @@ def report_rows(data: ModelData, seasons: Sequence[int]) -> pd.DataFrame:
     rows = rows[rows["position"].isin(SKILL)]
     tier = data.depth.drop_duplicates(["gsis_id", "season", "week"])
     rows = rows.merge(tier, on=["gsis_id", "season", "week"], how="left")
-    rows = rows.assign(starter=rows["depth_tier"].eq(1), played=rows["played"].astype(bool))
+    rows = rows.assign(
+        starter=rows["depth_tier"].eq(1),
+        practice=rows["practice_status"].map(PRACTICE_NAME).fillna(""),
+        played=rows["played"].astype(bool),
+    )
     return rows[REPORT_COLUMNS].reset_index(drop=True)
 
 
@@ -207,7 +222,7 @@ class ModelSet:
     minor: dict[Key, float] = field(default_factory=dict)  # league-average minor-stat rates
     spreads: dict[Key, tuple[float, float]] = field(default_factory=dict)  # variance = a*mean^b
     trim: dict[str, float] = field(default_factory=dict)  # Questionable/Doubtful who play
-    play_rates: dict[tuple[str, str, bool], float] = field(default_factory=dict)  # ADR-068
+    play_rates: dict[PlayKey, float] = field(default_factory=dict)  # ADR-068, ADR-069
 
     def predict(self, features: pd.DataFrame, inner: bool = False) -> pd.DataFrame:
         """One column per target name; a row gets values only from its own position's models.
@@ -270,7 +285,7 @@ def save(models: ModelSet, directory: Path) -> None:
         "minor": [[p, s, r] for (p, s), r in models.minor.items()],
         "spreads": [[p, s, a, b] for (p, s), (a, b) in models.spreads.items()],
         "trim": models.trim,
-        "play_rates": [[p, s, t, r] for (p, s, t), r in models.play_rates.items()],
+        "play_rates": [[p, s, t, pr, r] for (p, s, t, pr), r in models.play_rates.items()],
     }
     for (position, name), m in models.models.items():  # order kept for load()
         file = f"{position}_{name}.json"
@@ -290,7 +305,10 @@ def load(directory: Path) -> ModelSet:
         minor={(p, s): float(r) for p, s, r in meta["minor"]},
         spreads={(p, s): (float(a), float(b)) for p, s, a, b in meta["spreads"]},
         trim={p: float(t) for p, t in meta.get("trim", {}).items()},
-        play_rates={(p, s, bool(t)): float(r) for p, s, t, r in meta.get("play_rates", [])},
+        play_rates={
+            (p, s, bool(t), pr): float(r)
+            for p, s, t, pr, r in (row for row in meta.get("play_rates", []) if len(row) == 5)
+        },
     )
     for entry in meta["models"]:
         booster = xgb.Booster()

@@ -142,13 +142,15 @@ def test_availability_rules() -> None:
         {"position": ["WR", "WR", "WR", "WR", "QB", "RB", "WR"],
          "injury_status": ["Out", "Questionable", "Doubtful", None, None, None, "IR"],
          "depth_chart_order": [1, 1, 1, 1, 2, 2, 1],
-         "depth_tier": [1, 1, 2, 1, 2, 2, 1]}
+         "depth_tier": [1, 1, 2, 1, 2, 2, 1],
+         "practice_status": [3.0, 2.0, 0.0, 1.0, 0.0, 0.0, 0.0]}
     )  # fmt: skip
     trim = {"WR": 0.9}
-    rates = {("WR", "questionable", True): 0.77}
+    rates = {("WR", "questionable", True, "limited"): 0.64, ("WR", "questionable", True, ""): 0.9}
     a = availability(t, trim, rates)
     assert a["mult"].tolist() == [0.0, 0.9, 0.9, 1.0, 0.25, 1.0, 0.0]  # RB2 not discounted
-    assert a["p_play"].tolist() == [0.0, 0.77, DEFAULT_PLAY["doubtful"], 1.0, 1.0, 1.0, 0.0]
+    # the Questionable WR was limited in practice (code 2): his limited rate, not the "" one
+    assert a["p_play"].tolist() == [0.0, 0.64, DEFAULT_PLAY["doubtful"], 1.0, 1.0, 1.0, 0.0]
     plain = availability(t[["position"]])
     assert plain["mult"].tolist() == [1.0] * 7 and plain["p_play"].tolist() == [1.0] * 7
 
@@ -161,17 +163,40 @@ def test_backtests_read_the_final_report_and_live_status_wins() -> None:
     assert a["mult"].tolist() == [1.0, 0.9, 0.9, 0.0]
 
 
-def test_play_rates_lean_on_the_status_rate_when_thin() -> None:
-    rows = [("WR", "Questionable", True, i < 80) for i in range(100)]  # 80 of 100 starters
-    rows += [("WR", "Questionable", False, i < 1) for i in range(2)]  # 1 of 2 backups
-    rows += [("QB", "Doubtful", True, False) for _ in range(10)]
-    reports = pd.DataFrame(rows, columns=["position", "report_status", "starter", "played"])
+def test_play_rates_shrink_in_two_levels() -> None:
+    # Questionable: 100 limited (WR starters, 64 played) + 50 no practice (WR starters, 20 played)
+    rows = [("WR", "Questionable", True, "limited", i < 64) for i in range(100)]
+    rows += [("WR", "Questionable", True, "none", i < 20) for i in range(50)]
+    rows += [("WR", "Questionable", False, "limited", i < 1) for i in range(2)]  # 1 of 2 backups
+    rows += [("QB", "Doubtful", True, "none", False) for _ in range(10)]
+    reports = pd.DataFrame(
+        rows, columns=["position", "report_status", "starter", "practice", "played"]
+    )
     rates = fit_play_rates(reports)
-    overall = 81 / 102
-    assert rates[("WR", "questionable", True)] == pytest.approx((80 + 20 * overall) / 120)
-    assert rates[("WR", "questionable", False)] == pytest.approx((1 + 20 * overall) / 22)
-    assert rates[("QB", "doubtful", True)] == 0.0
+    overall = (64 + 20 + 1) / 152  # every Questionable row
+    limited = (64 + 1 + 20 * overall) / (102 + 20)  # Questionable + limited, toward overall
+    none = (20 + 20 * overall) / (50 + 20)
+    assert rates[("*", "questionable", False, "limited")] == pytest.approx(limited)
+    assert rates[("*", "questionable", False, "none")] == pytest.approx(none)
+    # each group leans on its status-and-practice rate, not the status overall
+    assert rates[("WR", "questionable", True, "limited")] == pytest.approx(
+        (64 + 20 * limited) / 120
+    )
+    assert rates[("WR", "questionable", False, "limited")] == pytest.approx((1 + 20 * limited) / 22)
+    assert (
+        rates[("WR", "questionable", True, "none")] < rates[("WR", "questionable", True, "limited")]
+    )
+    assert rates[("QB", "doubtful", True, "none")] == 0.0
     assert fit_play_rates(reports.iloc[0:0]) == {}
+
+
+def test_play_rate_falls_back_for_a_group_never_seen() -> None:
+    rates = {("*", "questionable", False, "full"): 0.75, ("WR", "questionable", True, "full"): 0.8}
+    assert proj.play_rate(rates, "WR", "questionable", True, "full") == 0.8
+    assert proj.play_rate(rates, "TE", "questionable", True, "full") == 0.75
+    assert (
+        proj.play_rate(rates, "TE", "questionable", True, "") == proj.DEFAULT_PLAY["questionable"]
+    )
 
 
 def test_the_trim_is_pulled_toward_none_with_few_games() -> None:
@@ -195,7 +220,7 @@ def test_trim_compares_hurt_players_with_everyone_else() -> None:
 
 
 def test_points_for_one_league(monkeypatch: pytest.MonkeyPatch) -> None:
-    models = ModelSet(trim={"WR": 0.9}, play_rates={("WR", "questionable", True): 0.7})
+    models = ModelSet(trim={"WR": 0.9}, play_rates={("WR", "questionable", True, ""): 0.7})
     monkeypatch.setattr(ModelSet, "predict", lambda self, f, inner=False: wr())
     features = pd.DataFrame([{"position": "WR", "injury_status": "Questionable"}])
     out = proj.project(models, features, FULL_PPR).iloc[0]

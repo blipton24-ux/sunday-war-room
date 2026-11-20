@@ -56,13 +56,23 @@ POISSON = (1.0, 1.0)  # variance = mean, when there is too little to fit a sprea
 # codes the final report as 1 Questionable, 2 Doubtful.
 PLAY_STATUSES = ("questionable", "doubtful")
 REPORT_CODE_STATUS = {1.0: "questionable", 2.0: "doubtful"}
+# The last practice that week (ADR-069), from the feature table's code or nflverse's wording;
+# "" when there is no practice report (a status from Sleeper with no report behind it).
+PRACTICE_CODE_NAME = {1.0: "full", 2.0: "limited", 3.0: "none"}
+PRACTICE_NAME = {
+    "Full Participation in Practice": "full",
+    "Limited Participation in Practice": "limited",
+    "Did Not Participate In Practice": "none",
+}
 # Before a fit (or for a group never seen): 2016-2025 rates, skill positions (ADR-068).
 DEFAULT_PLAY = {"questionable": 0.65, "doubtful": 0.01}
-PLAY_PRIOR = 20  # games: a thin group (Doubtful QBs) leans on its status's overall rate
+PLAY_PRIOR = 20  # games: a thin group leans on the rate one level up (ADR-068, ADR-069)
 TRIM_PRIOR = 50  # games: with few Questionable games the trim stays near 1
 TRIM_LIMITS = (0.7, 1.05)
 
 Key = tuple[str, str]  # (position, stat)
+PlayKey = tuple[str, str, bool, str]  # (position, status, starter, practice)
+ANY_POSITION = "*"  # the status-and-practice rate, for a group never seen
 
 
 def _col(frame: pd.DataFrame, name: str) -> pd.Series:
@@ -156,25 +166,37 @@ def stat_variance(
     return out
 
 
-def fit_play_rates(reports: pd.DataFrame) -> dict[tuple[str, str, bool], float]:
-    """Chance he plays, per (position, status, starter), from `reports`: one row per skill
-    player listed Questionable or Doubtful, with `position`, `report_status`, `starter` (depth
-    tier 1 that week) and `played` (an offensive snap). Each group is pulled toward its status's
-    overall rate by PLAY_PRIOR games."""
-    out: dict[tuple[str, str, bool], float] = {}
+def shrink(hits: float, games: int, toward: float) -> float:
+    """`hits` out of `games`, pulled toward `toward` by PLAY_PRIOR pretend games."""
+    return (hits + PLAY_PRIOR * toward) / (games + PLAY_PRIOR)
+
+
+def fit_play_rates(reports: pd.DataFrame) -> dict[PlayKey, float]:
+    """Chance he plays, per (position, status, starter, practice), from `reports`: one row per
+    skill player listed Questionable or Doubtful, with `position`, `report_status`, `starter`
+    (depth tier 1 that week), `practice` (last practice: full, limited, none or "") and `played`
+    (an offensive snap). Shrunk in two levels: a group leans on its status-and-practice rate,
+    which leans on its status's overall rate. The status-and-practice rates are kept too, under
+    position ANY_POSITION, for a group never seen."""
+    out: dict[PlayKey, float] = {}
     if reports.empty:
         return out
     status = reports["report_status"].astype(str).str.lower()
+    practice = reports["practice"].fillna("").astype(str)
     for name in PLAY_STATUSES:
         rows = reports[status == name]
         if rows.empty:
             continue
         overall = float(rows["played"].astype(float).mean())
-        for (position, starter), g in rows.groupby(["position", "starter"]):
-            played = float(g["played"].astype(float).sum())
-            out[(str(position), name, bool(starter))] = (played + PLAY_PRIOR * overall) / (
-                len(g) + PLAY_PRIOR
-            )
+        for level, same in rows.groupby(practice[status == name]):
+            level_played = float(same["played"].astype(float).sum())
+            target = shrink(level_played, len(same), overall)
+            out[(ANY_POSITION, name, False, str(level))] = target
+            for (position, starter), g in same.groupby(["position", "starter"]):
+                played = float(g["played"].astype(float).sum())
+                out[(str(position), name, bool(starter), str(level))] = shrink(
+                    played, len(g), target
+                )
     return out
 
 
@@ -220,10 +242,28 @@ def report_status(features: pd.DataFrame) -> pd.Series:
     return out
 
 
+def practice_status(features: pd.DataFrame) -> pd.Series:
+    """Last practice per row (full, limited, none) from the feature table's code, else ""."""
+    if "practice_status" not in features.columns:
+        return pd.Series("", index=features.index)
+    return features["practice_status"].map(PRACTICE_CODE_NAME).fillna("").astype(str)
+
+
+def play_rate(
+    rates: Mapping[PlayKey, float], position: str, status: str, starter: bool, practice: str
+) -> float:
+    """The fitted chance he plays; a group never seen falls back to its status-and-practice
+    rate, then to DEFAULT_PLAY."""
+    exact = rates.get((position, status, starter, practice))
+    if exact is not None:
+        return exact
+    return rates.get((ANY_POSITION, status, False, practice), DEFAULT_PLAY[status])
+
+
 def availability(
     features: pd.DataFrame,
     trim: Mapping[str, float] | None = None,
-    play_rates: Mapping[tuple[str, str, bool], float] | None = None,
+    play_rates: Mapping[PlayKey, float] | None = None,
 ) -> pd.DataFrame:
     """Per row: `mult`, applied to the projection (0 for Out, IR, PUP, Suspended; the trim for
     Questionable and Doubtful; the backup QB discount), and `p_play`, the chance he plays."""
@@ -238,9 +278,10 @@ def availability(
     listed = status.isin(PLAY_STATUSES)
     trims = positions.map(lambda p: (trim or {}).get(p, 1.0)).astype(float)
     mult = pd.Series(1.0, index=features.index).where(~listed, trims).where(~zero, 0.0)
+    practice = practice_status(features)
     rates = [
-        (play_rates or {}).get((p, s, bool(t)), DEFAULT_PLAY[s]) if s in PLAY_STATUSES else 1.0
-        for p, s, t in zip(positions, status, starter, strict=True)
+        play_rate(play_rates or {}, p, s, bool(t), pr) if s in PLAY_STATUSES else 1.0
+        for p, s, t, pr in zip(positions, status, starter, practice, strict=True)
     ]
     p_play = pd.Series(rates, index=features.index, dtype=float).where(~zero, 0.0)
     if "depth_chart_order" in features.columns:

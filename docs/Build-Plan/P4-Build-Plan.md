@@ -100,8 +100,8 @@ More seasons mean better trees. Load raw stats, snap counts, schedules with line
 - New report lines: **rank accuracy** (Spearman per week and position), **range coverage** per position and scoring format, **everything counted** beside the injury-left-out number, weeks 1-4 and 5+ apart, rest-of-season accuracy.
 - Benchmarks in every report: season average, 1.0.0, the removed 1.1.0's published numbers.
 - **Outside benchmark:** check whether Sleeper's past weekly projections can be fetched for 2024-2026. If so, propose it as a data source (ADR) and add it as a benchmark column (never a model input).
-- **Model improvements** ([ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)), each run through `evaluate_ml` and kept only if it beats noise; the order is cheapest evidence first:
-  1. Availability (M-29) and how Questionable players are shown, with injury news (M-34): a side-by-side first. **Availability done (2026-11-18, [ADR-068](../Decisions/ADR-068-P4-Questionable-Players-Projected-If-Playing.md)):** Questionable and Doubtful players are projected as if they play, less a fitted trim, with the fitted chance he plays and the chance-weighted value beside it; half PPR startable 5.489 to 5.472, full 5.967 to 5.946, standard 5.049 to 5.035, lower in every season and position (no paired bootstrap against the earlier ML run: its cache was not kept). The news source (M-34) is still to do; Friday practice status is backlog M-35.
+- **Model improvements** ([ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)), each run through `evaluate_ml` and kept only if it beats noise (a paired bootstrap against the previous run's cached projections, kept outside the repo); the order is cheapest evidence first:
+  1. Availability (M-29) and how Questionable players are shown, with injury news (M-34): a side-by-side first. **Availability done (2026-11-18, [ADR-068](../Decisions/ADR-068-P4-Questionable-Players-Projected-If-Playing.md)):** Questionable and Doubtful players are projected as if they play, less a fitted trim, with the fitted chance he plays and the chance-weighted value beside it; half PPR startable 5.489 to 5.472, full 5.967 to 5.946, standard 5.049 to 5.035, lower in every season and position (no paired bootstrap against the earlier ML run: its cache was not kept). Practice status in the chance he plays and the injury news line decided 2026-11-20 ([ADR-069](../Decisions/ADR-069-P4-Practice-Status-In-The-Model-News-Shown-Only.md)): practice is in the model (M-35): graded directly on the chance he plays, Brier 0.2009 to 0.1966, just short of beyond chance and kept by the owner (the points evaluation cannot see it); the news line is shown only, built in step 10.
   2. Tuning run: wider settings grid (M-26), plain average for weak targets (M-27), training from 2012 (M-31).
   3. Red-zone and goal-line usage from play-by-play (M-24; data-source ADR first), and the scoring rules it unlocks (M-12, M-17).
   4. New signals (M-33) and the blend with 1.0.0 (M-30); the ordering gap to Sleeper (M-28) is re-measured after each.
@@ -126,21 +126,39 @@ K: field-goal attempts by distance band and extra points (volume) from the team'
 ### 13. Rest-of-season model
 A separate long-range model for rest-of-season value on the trade and waiver screens (M-15, [ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)): trained on each player's remaining-season output from the same feature table, tested walk-forward like the weekly model on the rest-of-season backtest (`backtest.rest_of_season_backtest`). Ships when it beats the current method (the weekly model carried across the schedule) at every position; until then 2.0.0 keeps that method.
 
-## Rough time
-About 7 to 8½ working sessions, plus the owner's review time: steps 1-4, steps 5-6, step 7 (two to three sessions with the model improvements, [ADR-067](../Decisions/ADR-067-P4-Scope-For-The-Best-Model-Now.md)), step 8, steps 9-10, steps 11-12, step 13.
+## Remaining work (planned 2026-11-20)
 
-## Decided before the build (2026-11-14)
-- **Training history from 2016** ([ADR-062](../Decisions/ADR-062-P4-Training-History-From-2016.md)).
-- **P3 merged first**, as step 1.
-- **1.1.0 not kept live** during the build ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)).
+What is left after M-29 and M-35, in order, with each owner decision placed before the step that needs it. A decision follows [ADR-003](../Decisions/ADR-003-Documentation-Standard.md) (plain explanation, side-by-side, recommendation) and is recorded as an ADR.
 
-## Decisions still to make
-Each follows [ADR-003](../Decisions/ADR-003-Documentation-Standard.md), before the step that needs it:
-- **Where model files live, and what a weekly retrain means for `model_version`** (step 10): for example, files in the database with "2.0.0" as the method and a training date per row.
-- ~~Sleeper's past projections as a benchmark source~~: decided, [ADR-066](../Decisions/ADR-066-P4-Sleeper-Projections-As-A-Local-Benchmark.md).
-- **Play-by-play for red-zone and goal-line usage** (backlog M-24): about 100 MB a season, for a strong touchdown signal (step 7).
-- **How Questionable players are projected and shown, and an injury news source** (M-29, M-34; step 7, live part step 10).
-- **Late injuries** (M-10; step 10).
+| Step | Work | Decisions first | Long runs |
+|---|---|---|---|
+| 7c | Tuning run ([ADR-070](../Decisions/ADR-070-P4-Tuning-Run-Grid-Targets-History.md)): grid of 24 (M-26), then training from 2012 against 2016 (M-31); every target keeps its model (M-27 stays open for play-by-play) | D1 (decided) | one or two evaluations (the wider grid roughly doubles training time) |
+| 7d | Play-by-play counts ([ADR-071](../Decisions/ADR-071-P4-Play-By-Play-Counts-Only.md)): goal-line and red-zone touches and targets (M-24), then the scoring rules it unlocks (M-12, M-17) | D2 (decided) | download, then one evaluation |
+| 7e | New signals (M-33: Next Gen Stats, route participation, changed teams, averaged seeds); re-measure the ordering gap to Sleeper (M-28). No blend with 1.0.0 ([ADR-072](../Decisions/ADR-072-P4-One-Model-No-Blend.md)) | none | one evaluation each |
+| 8 | Ranges refit on the final model's misses, per position and scoring family (M-08) | none ([ADR-031](../Decisions/ADR-031-Approved-Reuses.md)) | short |
+| 9 | Explanations on the Player screen from `pred_contribs`; browser check on a real league | none | none |
+| 10 | Live compute from stored data; `model_trainings` ([ADR-073](../Decisions/ADR-073-P4-Model-Trainings-In-The-Database.md)); Tuesday retrain through the gate ([ADR-076](../Decisions/ADR-076-P4-Weekly-Retrain-With-A-Sanity-Gate.md), M-14); late injuries ([ADR-074](../Decisions/ADR-074-P4-Late-Injuries-ESPN-Feed-And-Sunday-Sleeper-Fetch.md), M-10); ESPN news line ([ADR-069](../Decisions/ADR-069-P4-Practice-Status-In-The-Model-News-Shown-Only.md)); `p_play` and `expected` on the screens and in win probability; start-if-active advice ([ADR-075](../Decisions/ADR-075-P4-Questionable-Starters-Start-If-Active-With-Fallback.md)) | D4-D7 (decided) | none |
+| 11 | Before: Accuracy version switch (U-17), unmatched players (M-13, M-19), the 2026 condition back on in `compare.ship_rule`. Then the 2026 one look, example projections, owner review, ship 2.0.0 | D8 | one evaluation |
+| 12 | Kickers and defenses (M-04), ships as 2.1.0 | none | one evaluation |
+| 13 | Rest of season ([ADR-077](../Decisions/ADR-077-P4-Rest-Of-Season-Points-Over-Replacement.md)): points over the last starter on the trade, waiver and Player screens; rerun the rest-of-season backtest with 2.0.0 carried across, and build the long-range model (M-15) only if a position still loses to the naive average | D9 (decided) | one rest-of-season backtest |
+
+**Decision queue:**
+
+| # | Decision | Step |
+|---|---|---|
+| ~~D1~~ | Tuning run: decided, [ADR-070](../Decisions/ADR-070-P4-Tuning-Run-Grid-Targets-History.md) (grid of 24; the model for every target; 2012 tested, kept only if better) | 7c |
+| ~~D2~~ | Play-by-play: decided, [ADR-071](../Decisions/ADR-071-P4-Play-By-Play-Counts-Only.md) (per-player-week counts only, about 20 MB a season downloaded) | 7d |
+| ~~D3~~ | Blend with 1.0.0: decided, no blend ([ADR-072](../Decisions/ADR-072-P4-One-Model-No-Blend.md)) | 7e |
+| ~~D4~~ | Model files and versions: decided, [ADR-073](../Decisions/ADR-073-P4-Model-Trainings-In-The-Database.md) (a `model_trainings` table; the version names the method) | 10 |
+| ~~D5~~ | Late injuries: decided, [ADR-074](../Decisions/ADR-074-P4-Late-Injuries-ESPN-Feed-And-Sunday-Sleeper-Fetch.md) (ESPN injury feed near each kickoff, Sunday Sleeper fetch after inactives) | 10 |
+| ~~D6~~ | Questionable starters: decided, [ADR-075](../Decisions/ADR-075-P4-Questionable-Starters-Start-If-Active-With-Fallback.md) (start if active, named fallback) | 10 |
+| ~~D7~~ | Tuesday retrain: decided, [ADR-076](../Decisions/ADR-076-P4-Weekly-Retrain-With-A-Sanity-Gate.md) (weekly, through a sanity gate) | 10 |
+| D8 | Ship 2.0.0 | 11 |
+| ~~D9~~ | Rest of season: decided, [ADR-077](../Decisions/ADR-077-P4-Rest-Of-Season-Points-Over-Replacement.md) (points over the last starter shown; measure 2.0.0 carried across first) | 13 |
+
+Decided earlier: training history from 2016 ([ADR-062](../Decisions/ADR-062-P4-Training-History-From-2016.md)), P3 merged first, 1.1.0 not kept live ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)), Sleeper's projections as a benchmark ([ADR-066](../Decisions/ADR-066-P4-Sleeper-Projections-As-A-Local-Benchmark.md)), Questionable players ([ADR-068](../Decisions/ADR-068-P4-Questionable-Players-Projected-If-Playing.md)), practice status and injury news ([ADR-069](../Decisions/ADR-069-P4-Practice-Status-In-The-Model-News-Shown-Only.md)).
+
+**Rough time:** about 7 working sessions from here, plus the evaluation runs (about an hour each, unattended): 7c-7e two sessions, step 8 with 9 one, step 10 two, steps 11-12 one or two, step 13 one.
 
 ## Verification
 - Step 2 reproduces 1.0.0 exactly; `--compare shipped,shipped` is 0.000.

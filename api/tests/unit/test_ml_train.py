@@ -164,16 +164,17 @@ def test_injury_reports_follow_the_training_seasons_and_weeks() -> None:
         {"gsis_id": ["w", "w", "q", "d", "w"], "season": [2020, 2021, 2021, 2021, 2021],
          "week": [3, 2, 9, 2, 10],
          "report_status": ["Questionable", "Doubtful", "Questionable", "Questionable", "Out"],
-         "roster_status": None, "practice_status": None,
+         "roster_status": None,
+         "practice_status": ["Limited Participation in Practice", None, None, None, None],
          "played": [True, False, None, True, False]}
     )  # fmt: skip
     depth = pd.DataFrame({"gsis_id": ["w"], "season": [2020], "week": [3], "depth_tier": [1]})
     data = ModelData(stats, pd.DataFrame(), injuries, depth, pd.DataFrame())
     rows = report_rows(data, [2020, 2021])
     # the QB's week has no snap counts yet, the LB is not a skill player, Out is not listed
-    assert rows[["gsis_id", "season", "starter", "played"]].values.tolist() == [
-        ["w", 2020, True, True],
-        ["w", 2021, False, False],
+    assert rows[["gsis_id", "season", "starter", "practice", "played"]].values.tolist() == [
+        ["w", 2020, True, "limited", True],
+        ["w", 2021, False, "", False],
     ]
     empty = table()
     t = TrainingTable(empty.features.iloc[0:0], empty.stats.iloc[0:0], rows)
