@@ -16,7 +16,14 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import NflGame, Player, PlayerWeekStats
+from app.db.models import (
+    DepthChartWeek,
+    InjuryReport,
+    NflGame,
+    Player,
+    PlayerBackground,
+    PlayerWeekStats,
+)
 from app.logging import get_logger
 from app.nfl_teams import defense_key
 from app.sources import nflverse
@@ -35,6 +42,9 @@ class NflverseFrames:
     defense_stats: pl.DataFrame
     snaps: pl.DataFrame
     ids: pl.DataFrame
+    injuries: pl.DataFrame | None = None
+    depth: pl.DataFrame | None = None
+    background: pl.DataFrame | None = None
 
 
 def fetch_frames(seasons: Sequence[int]) -> NflverseFrames:
@@ -47,6 +57,9 @@ def fetch_frames(seasons: Sequence[int]) -> NflverseFrames:
         defense_stats=nflverse.load_defense_stats(seasons, schedule),
         snaps=nflverse.load_snap_shares(seasons, ids),
         ids=ids,
+        injuries=nflverse.load_injury_reports(seasons),
+        depth=nflverse.load_depth_tiers(seasons),
+        background=nflverse.load_player_background(),
     )
 
 
@@ -70,6 +83,9 @@ async def upsert_games(db: AsyncSession, schedule: pl.DataFrame) -> int:
                     "home": ex.home,
                     "away": ex.away,
                     "week": ex.week,
+                    "spread_line": ex.spread_line,
+                    "total_line": ex.total_line,
+                    "roof": ex.roof,
                 },
             )
         )
@@ -112,6 +128,49 @@ async def replace_week_stats(db: AsyncSession, rows: list[dict[str, Any]]) -> in
     seasons = sorted({r["season"] for r in rows})
     await db.execute(delete(PlayerWeekStats).where(PlayerWeekStats.season.in_(seasons)))
     await _bulk_insert(db, PlayerWeekStats, rows)
+    return len(rows)
+
+
+def mark_played(injuries: pl.DataFrame, snaps: pl.DataFrame) -> pl.DataFrame:
+    """`injuries` with `played`: an offensive snap that week (ADR-068). Null for a week with no
+    snap counts at all yet, so an unplayed week is never read as "sat out"."""
+    covered = snaps.select("season", "week").unique().with_columns(pl.lit(True).alias("_covered"))
+    took = snaps.filter(pl.col("offense_pct") > 0).select("gsis_id", "season", "week").unique()
+    took = took.with_columns(pl.lit(True).alias("_took"))
+    return (
+        injuries.join(covered, on=["season", "week"], how="left")
+        .join(took, on=["gsis_id", "season", "week"], how="left")
+        .with_columns(
+            pl.when(pl.col("_covered")).then(pl.col("_took").fill_null(False)).alias("played")
+        )
+        .drop("_covered", "_took")
+    )
+
+
+async def replace_injury_reports(db: AsyncSession, injuries: pl.DataFrame) -> int:
+    rows = injuries.to_dicts()
+    seasons = sorted({r["season"] for r in rows})
+    await db.execute(delete(InjuryReport).where(InjuryReport.season.in_(seasons)))
+    await _bulk_insert(db, InjuryReport, rows)
+    return len(rows)
+
+
+async def replace_depth_charts(db: AsyncSession, depth: pl.DataFrame) -> int:
+    rows = depth.to_dicts()
+    seasons = sorted({r["season"] for r in rows})
+    await db.execute(delete(DepthChartWeek).where(DepthChartWeek.season.in_(seasons)))
+    await _bulk_insert(db, DepthChartWeek, rows)
+    return len(rows)
+
+
+async def replace_player_background(db: AsyncSession, background: pl.DataFrame) -> int:
+    """Every player at once: the source is one table, not split by season."""
+    if background.is_empty():  # never wipe the table because a download came back empty
+        log.warning("player_background_empty")
+        return 0
+    rows = background.to_dicts()
+    await db.execute(delete(PlayerBackground))
+    await _bulk_insert(db, PlayerBackground, rows)
     return len(rows)
 
 
@@ -169,9 +228,27 @@ async def ingest_nflverse(db: AsyncSession, seasons: Sequence[int]) -> dict[str,
     frames = await asyncio.to_thread(fetch_frames, seasons)
     games = await upsert_games(db, frames.schedule)
     stats = await replace_week_stats(db, stats_rows(frames))
+    injuries = 0
+    if frames.injuries is not None:
+        marked = mark_played(frames.injuries, frames.snaps)
+        injuries = await replace_injury_reports(db, marked)
+    depth = await replace_depth_charts(db, frames.depth) if frames.depth is not None else 0
+    background = (
+        await replace_player_background(db, frames.background)
+        if frames.background is not None
+        else 0
+    )
     linked = await apply_crosswalk(db, frames.ids)
     espn = await fill_espn_ids(db, frames.ids)
     await db.commit()
-    result = {"games": games, "player_weeks": stats, "players_linked": linked, "espn_ids": espn}
+    result = {
+        "games": games,
+        "player_weeks": stats,
+        "players_linked": linked,
+        "espn_ids": espn,
+        "injury_reports": injuries,
+        "depth_chart_weeks": depth,
+        "player_background": background,
+    }
     log.info("nflverse_ingested", seasons=list(seasons), **result)
     return result

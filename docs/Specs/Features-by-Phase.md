@@ -33,7 +33,7 @@ Plan: [P3 Build Plan](../Build-Plan/P3-Build-Plan.md).
 - Every existing feature (lineup, matchup, waivers, trades, live) works on an ESPN league.
 
 ## P4 — Improved model projections
-The [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md) upgrades (per-position models, depth charts, correlated simulation), smarter rest-of-season projections, IDP players, dynasty/keeper future-season value. Each upgrade must beat the current model on held-out weeks.
+A machine-learning projection model ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md)): XGBoost predicts each player's stats from a table of signals known before kickoff (role, team volume, betting market, opponent, injuries and depth), and each league's own scoring turns them into points, with ranges and plain "why this number" factors. It ships only if it beats the current model on four held-out seasons and the current season's weeks ([ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md)). Plan: [P4 Build Plan](../Build-Plan/P4-Build-Plan.md). Smarter rest-of-season projections, IDP players and dynasty/keeper value are later.
 
 ## P5 — AI assistant + strategy tendencies
 - **Chat tab:** Claude agent with read-only tools over Sunday War Room data plus news search (RAG) ([ADR-018](../Decisions/ADR-018-AI-Agent-With-RAG.md)).

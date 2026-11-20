@@ -44,3 +44,6 @@ docs/Private/
 CLAUDE.local.md
 
 api/.coverage
+
+# Outside benchmark data (ADR-066): licensed numbers, local only — never commit
+api/benchmarks/

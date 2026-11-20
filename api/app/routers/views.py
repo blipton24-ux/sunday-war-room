@@ -42,9 +42,12 @@ async def get_lineup(
 
 
 @router.get("/leagues/{league_id}/accuracy", response_model=AccuracyOut)
-async def get_accuracy(league: LeagueDep, db: DB) -> AccuracyOut:
-    """How frozen, pre-kickoff projections compared with actual results in past weeks."""
-    return await views.accuracy_view(db, league)
+async def get_accuracy(league: LeagueDep, db: DB, model_version: str | None = None) -> AccuracyOut:
+    """How frozen, pre-kickoff projections compared with actual results in past weeks.
+
+    One model version at a time: the current one unless `model_version` names another.
+    """
+    return await views.accuracy_view(db, league, model_version)
 
 
 @router.get("/players/{player_id}/projection", response_model=PlayerProjectionOut)

@@ -248,6 +248,7 @@ class AccuracyOut(Schema):
     coverage_80: float | None
     by_position: dict[str, dict[str, float]]
     weeks: list[AccuracyWeek]
+    available_versions: list[str] = []  # model versions with graded rows, to switch between
 
 
 # --------------------------------------------------------------------------- P2: waivers

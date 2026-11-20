@@ -26,6 +26,10 @@ Plain-language explainers: what each piece is, how it works in Sunday War Room, 
 - [Auth: OAuth and tokens](Auth-OAuth-Tokens.md): authentication vs authorization
 - [Multi-tenancy](Multi-Tenancy.md): one app, many users, isolated data
 
+## Projection model
+- [Machine learning and XGBoost](Machine-Learning-and-XGBoost.md): how the P4 model learns from past games, and how overfitting is guarded against
+- [Backtesting and measuring](Backtesting-and-Measuring.md): how a projection model is graded on past seasons, what each number means, and how luck is told apart from a real gain
+
 ## AI
 - [LLMs, agents and RAG](LLM-Agents-and-RAG.md): how the P5 assistant uses your real data
 

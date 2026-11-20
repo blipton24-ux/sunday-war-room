@@ -9,11 +9,12 @@ mapping in web/src/lib/server/auth-schema.ts; Better Auth checks this at startup
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -281,6 +282,12 @@ class NflGame(Base):
     kickoff_at: Mapped[datetime | None] = mapped_column(TZ)
     home_score: Mapped[int | None] = mapped_column(Integer)
     away_score: Mapped[int | None] = mapped_column(Integer)
+    # Betting lines from nflverse (a P4 model feature): the home team's spread (positive: home
+    # favoured by that many points) and the total. Pre-game; refreshed by the daily ingest.
+    spread_line: Mapped[float | None] = mapped_column(Float)
+    total_line: Mapped[float | None] = mapped_column(Float)
+    # nflverse roof: dome, closed, open or outdoors (a P4 model feature)
+    roof: Mapped[str | None] = mapped_column(String(16))
 
     __table_args__ = (Index("ix_nfl_games_season_week", "season", "week"),)
 
@@ -330,6 +337,74 @@ class PlayerWeekStats(Base):
     # the model depends on and fails loudly if one disappears.
     stats: Mapped[dict[str, float]] = mapped_column(JSONB)
     offense_snap_pct: Mapped[float | None] = mapped_column(Float)
+
+
+class InjuryReport(Base):
+    """Weekly game-status injury report per player, from nflverse (P4).
+
+    Kept so models can be tested on real injury history; `report_status` is the final game
+    designation (Out, Doubtful, Questionable) or null for a player listed without one, and
+    `roster_status` is "RES" while he is on a reserve list (injured reserve shows here, not on
+    the report). `played`: he took an offensive snap that week (snap counts, so a player with no
+    stats still counts); null until that week's snap counts are published (ADR-068).
+    """
+
+    __tablename__ = "injury_reports"
+
+    gsis_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    week: Mapped[int] = mapped_column(Integer, primary_key=True)
+    report_status: Mapped[str | None] = mapped_column(String(16))
+    roster_status: Mapped[str | None] = mapped_column(String(8))  # "RES": on a reserve list
+    practice_status: Mapped[str | None] = mapped_column(Text)
+    injury: Mapped[str | None] = mapped_column(Text)
+    played: Mapped[bool | None] = mapped_column(Boolean)
+
+
+class DepthChartWeek(Base):
+    """Each offensive player's depth-chart tier the week of each game, from nflverse (P4,
+    ADR-063): 1 starter, 2 next in line, 3 deeper. A row exists whether or not he then played,
+    and only charts published before that week's first kickoff are read
+    (`nflverse.load_depth_tiers`)."""
+
+    __tablename__ = "depth_chart_weeks"
+
+    gsis_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    week: Mapped[int] = mapped_column(Integer, primary_key=True)
+    depth_tier: Mapped[int] = mapped_column(Integer)
+
+
+class PlayerBackground(Base):
+    """Facts about a player that do not change week to week, for every player nflverse knows,
+    retired ones included (P4, ADR-063). Empty draft columns mean undrafted."""
+
+    __tablename__ = "player_background"
+
+    gsis_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    rookie_season: Mapped[int | None] = mapped_column(Integer)
+    draft_year: Mapped[int | None] = mapped_column(Integer)
+    draft_round: Mapped[int | None] = mapped_column(Integer)
+    draft_pick: Mapped[int | None] = mapped_column(Integer)
+
+
+class PlayerStatusSnapshot(Base):
+    """What the app knew about a player's injury and depth-chart status when it projected him.
+
+    Written when a compute sees a change (not every run). nflverse has weekly injury history but
+    Sleeper's live status and depth chart have none, so this is how a later model version can be
+    tested on them (backlog M-11).
+    """
+
+    __tablename__ = "player_status_snapshots"
+
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), primary_key=True)
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    week: Mapped[int] = mapped_column(Integer, primary_key=True)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    injury_status: Mapped[str | None] = mapped_column(String(32))
+    depth_chart_order: Mapped[int | None] = mapped_column(Integer)
 
 
 # --------------------------------------------------------------------------- projections

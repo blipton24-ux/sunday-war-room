@@ -14,7 +14,7 @@ Built 2026-11-10: [P2 Build Plan](P2-Build-Plan.md). Push alerts moved to P8 and
 Decided and planned: [P3 Build Plan](P3-Build-Plan.md) ([ADR-051](../Decisions/ADR-051-ESPN-Access-Link-First-Cookie-Fallback.md) access, [ADR-052](../Decisions/ADR-052-Credential-Encryption.md) encryption, [ADR-053](../Decisions/ADR-053-ESPN-Client-Own-Code.md) client). Yahoo moved to P7 ([ADR-050](../Decisions/ADR-050-Yahoo-Phase-7-Deploy-Phase-8.md)). Every P2 feature (waivers, trades, live) must work on the owner's ESPN league.
 
 ## P4 — Improved model projections
-The [ADR-034](../Decisions/ADR-034-Ship-Model-v1-Upgrade-Later.md) upgrades (per-position expected-points models, depth-chart adjustments, defenses from betting totals, correlated simulation), smarter rest-of-season projections, IDP players, dynasty/keeper future value. Each needs reuse approval (ADR-002) and must beat model 1.0.0 on held-out weeks, including the startable-player slice.
+Decided and planned, restarted 2026-11-14: [P4 Build Plan](P4-Build-Plan.md) ([ADR-060](../Decisions/ADR-060-P4-Machine-Learning-Stats-Then-Score.md), [ADR-061](../Decisions/ADR-061-P4-How-The-ML-Model-Is-Tested-And-Shipped.md)). A machine-learning model: XGBoost predicts each player's stats (targets, carries, catch rate, yards, touchdowns), and each league's scoring turns them into points. Weekly accuracy only: rest-of-season, IDP and keeper/dynasty stay out of P4.
 
 ## P5 — AI assistant + strategy tendencies
 - Decide: news sources, embedding provider, daily message limit ([Open Questions](../Specs/Open-Questions.md) #9–11).

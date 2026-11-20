@@ -24,6 +24,7 @@ FANTASY_POSITIONS = ("QB", "RB", "WR", "TE", "K")
 # Columns the scoring map (app/model/scoring.py) and the model read. Contract for load_player_stats.
 PLAYER_STAT_COLUMNS: tuple[str, ...] = (
     "completions", "attempts", "passing_yards", "passing_tds", "passing_interceptions",
+    "passing_air_yards", "receiving_air_yards",
     "sacks_suffered", "sack_fumbles_lost", "passing_2pt_conversions", "passing_first_downs",
     "carries", "rushing_yards", "rushing_tds", "rushing_fumbles_lost", "rushing_first_downs",
     "rushing_2pt_conversions",
@@ -47,8 +48,17 @@ TEAM_DEF_COLUMNS: tuple[str, ...] = (
 TEAM_KEY_COLUMNS = ("team", "opponent_team", "season", "week", "season_type")
 
 SCHEDULE_COLUMNS = ("game_id", "season", "game_type", "week", "gameday", "gametime",
-                    "home_team", "away_team", "home_score", "away_score")  # fmt: skip
+                    "home_team", "away_team", "home_score", "away_score", "spread_line",
+                    "total_line", "roof")  # fmt: skip
 SNAP_COLUMNS = ("pfr_player_id", "season", "week", "game_type", "offense_pct")
+ROSTER_COLUMNS = ("season", "week", "game_type", "gsis_id", "status")
+BACKGROUND_COLUMNS = ("gsis_id", "birth_date", "rookie_season", "draft_year", "draft_round",
+                      "draft_pick")  # fmt: skip
+INJURY_COLUMNS = ("season", "game_type", "week", "gsis_id", "report_status", "practice_status",
+                  "report_primary_injury")  # fmt: skip
+# Up to 2024 the injury file has one row per practice day, ordered by `date_modified`; from 2025
+# it has one row per player-week and no `date_modified` column.
+INJURY_ORDER_COLUMN = "date_modified"
 ID_COLUMNS = ("gsis_id", "sleeper_id", "espn_id", "yahoo_id", "pfr_id", "name", "position")
 
 
@@ -159,7 +169,118 @@ def load_schedule(seasons: Sequence[int]) -> pl.DataFrame:
         .alias("kickoff_at"),
         pl.col("home_score").cast(pl.Int32),
         pl.col("away_score").cast(pl.Int32),
+        pl.col("spread_line").cast(pl.Float64),
+        pl.col("total_line").cast(pl.Float64),
+        pl.col("roof").cast(pl.String),
     )
+
+
+def load_player_background() -> pl.DataFrame:
+    """Birth date, rookie season and draft year, round and pick for every player nflverse knows
+    (retired ones included), one row per gsis_id. Empty draft columns mean undrafted."""
+    raw = nfl.load_players()
+    check_columns(raw, BACKGROUND_COLUMNS, "players")
+    return (
+        raw.filter(pl.col("gsis_id").is_not_null())
+        .select(
+            pl.col("gsis_id").cast(pl.String),
+            pl.col("birth_date").cast(pl.String).str.to_date("%Y-%m-%d", strict=False),
+            *(pl.col(c).cast(pl.Int64) for c in BACKGROUND_COLUMNS[2:]),
+        )
+        .unique(subset=["gsis_id"], keep="first")
+    )
+
+
+DEPTH_POSITIONS = ("QB", "RB", "WR", "TE")
+DEPTH_TIERS = 3  # starter, next in line, deeper
+WR_TIER_LIMITS = (3, 5)  # 2025+ format: WR1-3 are starters, WR4-5 next in line
+
+
+def _tier(position: pl.Expr, rank: pl.Expr) -> pl.Expr:
+    """Depth tier 1-3 from a straight-down rank (2025+ format)."""
+    wr = (
+        pl.when(rank <= WR_TIER_LIMITS[0])
+        .then(1)
+        .when(rank <= WR_TIER_LIMITS[1])
+        .then(2)
+        .otherwise(3)
+    )
+    return pl.when(position == "WR").then(wr).otherwise(pl.min_horizontal(rank, DEPTH_TIERS))
+
+
+def load_depth_tiers(seasons: Sequence[int]) -> pl.DataFrame:
+    """Each offensive player's depth-chart tier the week of each game: 1 starter,
+    2 next in line, 3 deeper. One row per player-week: gsis_id, season, week, depth_tier.
+
+    Up to 2024 nflverse publishes a chart per week, where several receivers share level 1 (one
+    per formation slot): the tier is that level. From 2025 it publishes dated snapshots that
+    number players straight down; a week uses the last snapshot taken before the day of its
+    first kickoff, so nothing from game day or later is read.
+    """
+    frames = []
+    weekly = [s for s in seasons if s <= 2024]
+    if weekly:
+        raw = nfl.load_depth_charts(weekly)
+        check_columns(
+            raw, ("season", "week", "game_type", "gsis_id", "depth_team", "depth_position",
+                  "formation"), "depth_charts",
+        )  # fmt: skip
+        frames.append(
+            raw.filter(
+                (pl.col("game_type") == "REG")
+                & (pl.col("formation") == "Offense")
+                & pl.col("gsis_id").is_not_null()
+                & pl.col("depth_position").is_in(DEPTH_POSITIONS)
+            )
+            .group_by(["gsis_id", "season", "week"])
+            .agg(pl.col("depth_team").cast(pl.Int64, strict=False).min().alias("depth_tier"))
+            .with_columns(pl.min_horizontal("depth_tier", DEPTH_TIERS).alias("depth_tier"))
+            .select(
+                "gsis_id",
+                pl.col("season").cast(pl.Int64),
+                pl.col("week").cast(pl.Int64),
+                pl.col("depth_tier").cast(pl.Int64),
+            )
+        )
+    snapshots = [s for s in seasons if s >= 2025]
+    if snapshots:
+        games = nfl.load_schedules(snapshots).filter(pl.col("game_type") == "REG")
+        first_day = games.group_by(["season", "week"]).agg(pl.col("gameday").min())
+    for season in snapshots:
+        raw = nfl.load_depth_charts([season])
+        check_columns(raw, ("dt", "gsis_id", "pos_abb", "pos_rank"), "depth_charts")
+        charts = raw.filter(
+            pl.col("gsis_id").is_not_null() & pl.col("pos_abb").is_in(DEPTH_POSITIONS)
+        )
+        stamps = charts.select("dt").unique().sort("dt")["dt"].to_list()
+        days = first_day.filter(pl.col("season") == season).sort("week").rows(named=True)
+        pick = []
+        for day in days:
+            before = [d for d in stamps if d < str(day["gameday"])]
+            if before:
+                pick.append({"week": int(day["week"]), "dt": before[-1]})
+        if not pick:
+            continue
+        chosen = charts.join(pl.DataFrame(pick), on="dt")
+        frames.append(
+            chosen.group_by(["gsis_id", "week", "pos_abb"])
+            .agg(pl.col("pos_rank").min())
+            .with_columns(_tier(pl.col("pos_abb"), pl.col("pos_rank")).alias("depth_tier"))
+            .group_by(["gsis_id", "week"])
+            .agg(pl.col("depth_tier").min())
+            .select(
+                "gsis_id",
+                pl.lit(season, pl.Int64).alias("season"),
+                pl.col("week").cast(pl.Int64),
+                pl.col("depth_tier").cast(pl.Int64),
+            )
+        )
+    if not frames:
+        return pl.DataFrame(
+            schema={"gsis_id": pl.String, "season": pl.Int64, "week": pl.Int64,
+                    "depth_tier": pl.Int64}
+        )  # fmt: skip
+    return pl.concat(frames)
 
 
 # --------------------------------------------------------------------------- snaps + ids
@@ -174,6 +295,51 @@ def load_snap_shares(seasons: Sequence[int], ids: pl.DataFrame) -> pl.DataFrame:
         .select("gsis_id", "season", "week", pl.col("offense_pct").cast(pl.Float64))
         .unique(subset=["gsis_id", "season", "week"], keep="first")
     )
+
+
+def load_injury_reports(seasons: Sequence[int]) -> pl.DataFrame:
+    """Weekly game-status injury reports, one row per player-week (regular season).
+
+    nflverse lists each practice day as its own row; the game designation (Out, Doubtful,
+    Questionable) is the latest one the team filed that week. Players on the report with no
+    designation keep a null `report_status`. Players on a reserve list that week (the weekly
+    roster status `RES`, which includes injured reserve and is visible the week the placement
+    happens, unlike the report) carry `roster_status = "RES"`.
+    """
+    raw = nfl.load_injuries(list(seasons))
+    check_columns(raw, INJURY_COLUMNS, "injuries")
+    _check_seasons(raw, seasons, "injuries")
+    rows = raw.filter(
+        (pl.col("game_type") == "REG") & pl.col("gsis_id").is_not_null()
+    ).with_columns(
+        pl.col("season").cast(pl.Int64),
+        pl.col("week").cast(pl.Int64),  # 2016-2020: decimals
+    )
+    if INJURY_ORDER_COLUMN in rows.columns:
+        rows = rows.sort(INJURY_ORDER_COLUMN, nulls_last=False, maintain_order=True)
+    reports = rows.group_by(["gsis_id", "season", "week"], maintain_order=True).agg(
+        pl.col("report_status").drop_nulls().last().alias("report_status"),
+        pl.col("practice_status").drop_nulls().last().alias("practice_status"),
+        pl.col("report_primary_injury").drop_nulls().last().alias("injury"),
+    )
+    rosters = nfl.load_rosters_weekly(list(seasons))
+    check_columns(rosters, ROSTER_COLUMNS, "rosters_weekly")
+    _check_seasons(rosters, seasons, "rosters_weekly")
+    reserve = (
+        rosters.filter(
+            (pl.col("game_type") == "REG")
+            & pl.col("gsis_id").is_not_null()
+            & (pl.col("status") == "RES")
+        )
+        .select(
+            "gsis_id",
+            pl.col("season").cast(pl.Int64),
+            pl.col("week").cast(pl.Int64),
+            pl.lit("RES").alias("roster_status"),
+        )
+        .unique(subset=["gsis_id", "season", "week"])
+    )
+    return reports.join(reserve, on=["gsis_id", "season", "week"], how="full", coalesce=True)
 
 
 def load_id_crosswalk() -> pl.DataFrame:
